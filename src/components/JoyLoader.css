@@ -1,0 +1,160 @@
+.joy-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(90deg, rgba(246, 241, 238, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(246, 241, 238, 0.035) 1px, transparent 1px),
+    linear-gradient(25deg, rgba(228, 102, 48, 0.1), transparent 26rem),
+    linear-gradient(135deg, #294a6d 0%, #12283f 100%);
+  background-size: 84px 84px, 84px 84px, auto, auto;
+  overflow: hidden;
+}
+
+.joy-loader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgba(246, 241, 238, 0.07), transparent),
+    linear-gradient(180deg, transparent 0%, rgba(18, 40, 63, 0.34) 100%);
+  opacity: 0.55;
+}
+
+.joy-loader-map {
+  position: absolute;
+  width: min(72vw, 680px);
+  height: min(46vh, 340px);
+  opacity: 0.46;
+}
+
+.loader-line {
+  position: absolute;
+  display: block;
+  background: rgba(246, 241, 238, 0.4);
+  box-shadow: 0 0 18px rgba(246, 241, 238, 0.12);
+}
+
+.loader-line-1,
+.loader-line-2,
+.loader-line-3 {
+  height: 1px;
+}
+
+.loader-line-4,
+.loader-line-5,
+.loader-line-6 {
+  width: 1px;
+}
+
+.loader-line-1 {
+  top: 18%;
+  left: 8%;
+  width: 76%;
+}
+
+.loader-line-2 {
+  top: 52%;
+  left: 18%;
+  width: 68%;
+}
+
+.loader-line-3 {
+  top: 78%;
+  left: 5%;
+  width: 56%;
+  background: rgba(228, 102, 48, 0.56);
+}
+
+.loader-line-4 {
+  top: 18%;
+  left: 18%;
+  height: 60%;
+}
+
+.loader-line-5 {
+  top: 18%;
+  left: 58%;
+  height: 34%;
+}
+
+.loader-line-6 {
+  top: 52%;
+  left: 84%;
+  height: 26%;
+}
+
+.joy-loader-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.joy-loader-brand {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  color: #f6f1ee;
+  font-size: clamp(30px, 4vw, 46px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  text-shadow: 0 18px 46px rgba(7, 20, 35, 0.34);
+}
+
+.joy-loader-pin {
+  display: inline-flex;
+  width: 24px;
+  height: 31px;
+  margin: 0 2px;
+  border: 6px solid #e46630;
+  border-radius: 999px 999px 999px 0;
+  transform: rotate(-45deg);
+}
+
+.joy-loader-copy {
+  position: relative;
+  z-index: 1;
+  margin-top: 18px;
+  color: rgba(246, 241, 238, 0.74);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.joy-loader-progress {
+  position: relative;
+  z-index: 1;
+  width: 172px;
+  height: 3px;
+  margin-top: 20px;
+  border-radius: 2px;
+  background: rgba(246, 241, 238, 0.18);
+  overflow: hidden;
+}
+
+.joy-loader-progress span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f6f1ee, #e46630);
+  box-shadow: 0 0 26px rgba(228, 102, 48, 0.55);
+  transform-origin: left center;
+  animation: joyLine 1.05s ease-in-out both;
+}
+
+@keyframes joyLine {
+  from {
+    transform: scaleX(0.24);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
