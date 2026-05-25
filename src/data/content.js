@@ -118,3 +118,111 @@ export const propertyCards = [
     promoted: false
   }
 ];
+
+export const partnerAgents = [
+  {
+    name: "UZTELECOM",
+    service: "Korporativ ofislar va texnik maydonlar",
+    city: "Toshkent",
+    spaces: 28,
+    rating: "4.9",
+    reviews: 214,
+    tone: "#1f78d1"
+  },
+  {
+    name: "IT Park",
+    service: "Kovorking, meeting room va startup hub",
+    city: "Toshkent",
+    spaces: 16,
+    rating: "4.8",
+    reviews: 168,
+    tone: "#294a6d"
+  },
+  {
+    name: "GroundZero",
+    service: "Kreativ jamoalar uchun ish joylari",
+    city: "Toshkent City",
+    spaces: 12,
+    rating: "4.7",
+    reviews: 96,
+    tone: "#e46630"
+  },
+  {
+    name: "Artel",
+    service: "Trening zallari va showroom maydonlari",
+    city: "Chilonzor",
+    spaces: 9,
+    rating: "4.6",
+    reviews: 74,
+    tone: "#c4332c"
+  },
+  {
+    name: "Uzum",
+    service: "Ofis bloklari va loyiha xonalari",
+    city: "Yunusobod",
+    spaces: 14,
+    rating: "4.9",
+    reviews: 132,
+    tone: "#7b3ff2"
+  },
+  {
+    name: "TBC Bank",
+    service: "Premium uchrashuv va muzokara xonalari",
+    city: "Mirobod",
+    spaces: 7,
+    rating: "4.8",
+    reviews: 89,
+    tone: "#00a86b"
+  },
+  {
+    name: "Beeline",
+    service: "Event space va brend zonalar",
+    city: "Samarqand",
+    spaces: 11,
+    rating: "4.7",
+    reviews: 101,
+    tone: "#f6c445"
+  },
+  {
+    name: "C-Space",
+    service: "Konferensiya va seminar maydonlari",
+    city: "Mirzo Ulug'bek",
+    spaces: 18,
+    rating: "4.9",
+    reviews: 156,
+    tone: "#68a7a1"
+  }
+];
+
+export const joyBenefits = [
+  {
+    title: "Joyni tez tushunish",
+    text: "Rasm, narx, manzil, sig'im va qulayliklar birinchi ko'rinishdayoq aniq ko'rinadi.",
+    icon: "interface"
+  },
+  {
+    title: "Aqlli qidiruv",
+    text: "Shahar, format, narx va odam soni bo'yicha mos joylarni tez ajratib beradi.",
+    icon: "search"
+  },
+  {
+    title: "Hamkor kabineti",
+    text: "Partnerlar joy qo'shadi, tarif tanlaydi va so'rovlarni bitta kabinetda boshqaradi.",
+    icon: "building"
+  },
+  {
+    title: "Ishonch signallari",
+    text: "Reyting, sharhlar va tasdiqlangan profil foydalanuvchiga xavfsiz tanlov beradi.",
+    icon: "shield"
+  },
+  {
+    title: "Mos tariflar",
+    text: "Free, Bronze va Gold paketlari joy egasiga o'z o'sish bosqichini tanlash imkonini beradi.",
+    icon: "crown"
+  },
+  {
+    title: "Ko'rinishni oshirish",
+    text: "Reklama, tavsiya bloklari va yuqori joylashuv orqali obyekt ko'proq mijozga chiqadi.",
+    icon: "megaphone"
+  }
+];
