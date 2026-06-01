@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
+import FilterPage from "./components/FilterPage.jsx";
 import JoySlider from "./components/JoySlider.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
 import { slides } from "./data/content.js";
 
 function useAuthRoute() {
-  const readRoute = () => (window.location.hash || "#home").replace("#", "") || "home";
+  const knownRoutes = new Set(["home", "filter", "register", "login", "forgot", "verify"]);
+  const readRoute = () => {
+    const hash = (window.location.hash || "#home").replace("#", "") || "home";
+    return knownRoutes.has(hash) ? hash : "home";
+  };
   const [route, setRoute] = useState(readRoute);
 
   useEffect(() => {
@@ -127,6 +132,15 @@ function App() {
     return (
       <>
         <HomeHero userState={userState} setUserState={setUserState} slides={slides} />
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "filter") {
+    return (
+      <>
+        <FilterPage />
         <JoyLoader active={bootLoading} />
       </>
     );

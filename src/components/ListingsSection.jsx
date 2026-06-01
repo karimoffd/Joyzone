@@ -8,7 +8,7 @@ function getSpaceHref(title) {
   return `#space-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-function PropertyCard({ item, index }) {
+export function PropertyCard({ item, index, href = "#filter" }) {
   const [activeImage, setActiveImage] = useState(0);
   const [liked, setLiked] = useState(false);
   const mediaRef = useRef(null);
@@ -36,11 +36,9 @@ function PropertyCard({ item, index }) {
     gsap.fromTo(likeRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
   };
 
-  const href = getSpaceHref(item.title);
-
   return (
     <article className="property-card" style={{ "--delay": `${index * 0.055}s` }}>
-      <a className="property-card-link" href={href} aria-label={`${item.title} sahifasini ochish`} />
+      <a className="property-card-link" href={href} aria-label={`${item.title} filtr sahifasini ochish`} />
       <div ref={mediaRef} className="property-media">
         {item.images.map((image, imageIndex) => (
           <img
