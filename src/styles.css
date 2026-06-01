@@ -39,6 +39,13 @@ select {
   font: inherit;
 }
 
+.app-route-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  transform-origin: center top;
+  will-change: opacity, transform, filter, clip-path;
+}
+
 .joy-auth-shell {
   min-height: 100vh;
   align-items: center;

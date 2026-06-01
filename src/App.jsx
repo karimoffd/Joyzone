@@ -55,7 +55,6 @@ function App() {
   const route = useAuthRoute();
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
-  const [routeLoading, setRouteLoading] = useState(false);
   const [userState, setUserState] = useUserState();
 
   useEffect(() => {
@@ -67,36 +66,51 @@ function App() {
 
   useEffect(() => {
     if (route === displayedRoute) return;
-    setRouteLoading(true);
-    const screen = document.querySelector(".route-screen, .auth-screen-panel");
+    const screen = document.querySelector(".app-route-shell");
     if (screen) {
+      gsap.killTweensOf(screen);
       gsap.to(screen, {
         opacity: 0,
-        y: -22,
-        scale: 0.982,
-        filter: "blur(10px)",
-        duration: 0.24,
-        ease: "power2.in"
+        y: -24,
+        scale: 0.984,
+        filter: "blur(12px)",
+        clipPath: "inset(0% 0% 8% 0% round 24px)",
+        duration: 0.28,
+        ease: "power2.in",
+        onComplete: () => setDisplayedRoute(route)
       });
+      return undefined;
     }
-    const swapTimer = window.setTimeout(() => {
-      setDisplayedRoute(route);
-    }, 260);
-    return () => window.clearTimeout(swapTimer);
+    setDisplayedRoute(route);
+    return undefined;
   }, [route, displayedRoute]);
 
   useEffect(() => {
     if (bootLoading) return undefined;
-    const screen = document.querySelector(".route-screen");
+    const screen = document.querySelector(".app-route-shell");
     if (screen) {
+      gsap.killTweensOf(screen);
       gsap.fromTo(
         screen,
-        { opacity: 0, y: 28, scale: 0.985, filter: "blur(12px)" },
-        { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.58, ease: "power3.out" }
+        {
+          opacity: 0,
+          y: 30,
+          scale: 0.986,
+          filter: "blur(12px)",
+          clipPath: "inset(8% 0% 0% 0% round 24px)"
+        },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          filter: "blur(0px)",
+          clipPath: "inset(0% 0% 0% 0% round 0px)",
+          duration: 0.64,
+          ease: "expo.out"
+        }
       );
     }
-    const timer = window.setTimeout(() => setRouteLoading(false), 360);
-    return () => window.clearTimeout(timer);
+    return undefined;
   }, [displayedRoute, bootLoading]);
 
   useEffect(() => {
@@ -147,10 +161,10 @@ function App() {
   if (displayedRoute === "home") {
     return (
       <>
-        <div className="route-screen route-screen-home">
+        <div className="route-screen route-screen-home app-route-shell">
           <HomeHero userState={userState} setUserState={setUserState} slides={slides} />
         </div>
-        <JoyLoader active={bootLoading || routeLoading} />
+        <JoyLoader active={bootLoading} />
       </>
     );
   }
@@ -158,10 +172,10 @@ function App() {
   if (displayedRoute === "filter") {
     return (
       <>
-        <div className="route-screen route-screen-filter">
+        <div className="route-screen route-screen-filter app-route-shell">
           <FilterPage userState={userState} setUserState={setUserState} />
         </div>
-        <JoyLoader active={bootLoading || routeLoading} />
+        <JoyLoader active={bootLoading} />
       </>
     );
   }
@@ -169,7 +183,7 @@ function App() {
   if (displayedRoute === "verify") {
     return (
       <>
-        <div className="auth-page-shell">
+        <div className="auth-page-shell app-route-shell">
           <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
           <div className="joy-auth-shell flex justify-center">
             <div className="auth-screen-panel joy-card joy-card-center overflow-hidden rounded-[26px]">
@@ -177,7 +191,7 @@ function App() {
             </div>
           </div>
         </div>
-        <JoyLoader active={bootLoading || routeLoading} />
+        <JoyLoader active={bootLoading} />
       </>
     );
   }
@@ -190,7 +204,7 @@ function App() {
 
   return (
     <>
-      <div className="auth-page-shell">
+      <div className="auth-page-shell app-route-shell">
         <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
         <div className="joy-auth-shell flex justify-center">
           <div className="auth-screen-panel joy-card grid overflow-hidden rounded-[26px] min-[900px]:grid-cols-[49%_51%]">
@@ -205,7 +219,7 @@ function App() {
           </div>
         </div>
       </div>
-      <JoyLoader active={bootLoading || routeLoading} />
+      <JoyLoader active={bootLoading} />
     </>
   );
 }
