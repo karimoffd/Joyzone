@@ -1,3 +1,14 @@
+.auth-page-shell {
+  min-height: 100vh;
+  background: #294a6d;
+  padding: 10px clamp(14px, 5.7vw, 100px) clamp(20px, 4vh, 36px);
+}
+
+.auth-page-shell .joy-auth-shell {
+  min-height: calc(100vh - 92px);
+  padding: clamp(18px, 3vh, 30px) 0 0;
+}
+
 .joy-auth-shell {
   min-height: 100vh;
   align-items: center;
@@ -92,6 +103,9 @@
   border: 1px solid rgba(41, 74, 109, 0.18);
   background: rgba(255, 255, 255, 0.34);
   color: #12283f;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  line-height: 1.25;
   outline: none;
   transition:
     border-color 180ms ease,
@@ -107,6 +121,22 @@
   border-color: rgba(228, 102, 48, 0.85);
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.12);
+}
+
+@media (min-width: 1280px) {
+  .form-field {
+    height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .form-field {
+    height: 58px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -135,6 +165,8 @@
 
   .form-field {
     height: 44px;
+    padding-top: 11px;
+    padding-bottom: 11px;
   }
 
   .otp-field {

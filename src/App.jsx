@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { gsap } from "gsap";
-import HomeHero from "./components/HomeHero.jsx";
+import HomeHero, { Header as JoyNavbar } from "./components/HomeHero.jsx";
 import FilterPage from "./components/FilterPage.jsx";
 import JoySlider from "./components/JoySlider.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
@@ -55,6 +55,7 @@ function App() {
   const route = useAuthRoute();
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
+  const [routeLoading, setRouteLoading] = useState(false);
   const [userState, setUserState] = useUserState();
 
   useEffect(() => {
@@ -66,9 +67,10 @@ function App() {
 
   useEffect(() => {
     if (route === displayedRoute) return;
-    const panel = document.querySelector(".auth-screen-panel");
-    if (panel) {
-      gsap.to(panel, {
+    setRouteLoading(true);
+    const screen = document.querySelector(".route-screen, .auth-screen-panel");
+    if (screen) {
+      gsap.to(screen, {
         opacity: 0,
         y: -22,
         scale: 0.982,
@@ -82,6 +84,20 @@ function App() {
     }, 260);
     return () => window.clearTimeout(swapTimer);
   }, [route, displayedRoute]);
+
+  useEffect(() => {
+    if (bootLoading) return undefined;
+    const screen = document.querySelector(".route-screen");
+    if (screen) {
+      gsap.fromTo(
+        screen,
+        { opacity: 0, y: 28, scale: 0.985, filter: "blur(12px)" },
+        { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.58, ease: "power3.out" }
+      );
+    }
+    const timer = window.setTimeout(() => setRouteLoading(false), 360);
+    return () => window.clearTimeout(timer);
+  }, [displayedRoute, bootLoading]);
 
   useEffect(() => {
     if (bootLoading) return;
@@ -131,8 +147,10 @@ function App() {
   if (displayedRoute === "home") {
     return (
       <>
-        <HomeHero userState={userState} setUserState={setUserState} slides={slides} />
-        <JoyLoader active={bootLoading} />
+        <div className="route-screen route-screen-home">
+          <HomeHero userState={userState} setUserState={setUserState} slides={slides} />
+        </div>
+        <JoyLoader active={bootLoading || routeLoading} />
       </>
     );
   }
@@ -140,8 +158,10 @@ function App() {
   if (displayedRoute === "filter") {
     return (
       <>
-        <FilterPage />
-        <JoyLoader active={bootLoading} />
+        <div className="route-screen route-screen-filter">
+          <FilterPage userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading || routeLoading} />
       </>
     );
   }
@@ -149,12 +169,15 @@ function App() {
   if (displayedRoute === "verify") {
     return (
       <>
-        <div className="joy-auth-shell flex justify-center">
-          <div className="auth-screen-panel joy-card joy-card-center overflow-hidden rounded-[26px]">
-            <VerifyCodeForm />
+        <div className="auth-page-shell">
+          <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
+          <div className="joy-auth-shell flex justify-center">
+            <div className="auth-screen-panel joy-card joy-card-center overflow-hidden rounded-[26px]">
+              <VerifyCodeForm />
+            </div>
           </div>
         </div>
-        <JoyLoader active={bootLoading} />
+        <JoyLoader active={bootLoading || routeLoading} />
       </>
     );
   }
@@ -167,19 +190,22 @@ function App() {
 
   return (
     <>
-      <div className="joy-auth-shell flex justify-center">
-        <div className="auth-screen-panel joy-card grid overflow-hidden rounded-[26px] min-[900px]:grid-cols-[49%_51%]">
-          {displayedRoute === "register" ? (
-            formByRoute.register
-          ) : (
-            <div className="order-1 min-h-[inherit] min-[900px]:order-2">{formByRoute[displayedRoute] || formByRoute.login}</div>
-          )}
-          <div className={displayedRoute === "register" ? "order-2 flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:order-1 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2" : "flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2"}>
-            <JoySlider items={slides} />
+      <div className="auth-page-shell">
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
+        <div className="joy-auth-shell flex justify-center">
+          <div className="auth-screen-panel joy-card grid overflow-hidden rounded-[26px] min-[900px]:grid-cols-[49%_51%]">
+            {displayedRoute === "register" ? (
+              formByRoute.register
+            ) : (
+              <div className="order-1 min-h-[inherit] min-[900px]:order-2">{formByRoute[displayedRoute] || formByRoute.login}</div>
+            )}
+            <div className={displayedRoute === "register" ? "order-2 flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:order-1 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2" : "flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2"}>
+              <JoySlider items={slides} />
+            </div>
           </div>
         </div>
       </div>
-      <JoyLoader active={bootLoading} />
+      <JoyLoader active={bootLoading || routeLoading} />
     </>
   );
 }

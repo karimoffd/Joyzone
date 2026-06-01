@@ -1,193 +1,201 @@
 .filter-shell {
   min-height: 100vh;
-  padding: clamp(32px, 5vw, 56px) clamp(20px, 4.5vw, 72px);
+  padding: 10px clamp(14px, 4.7vw, 78px) clamp(34px, 5vw, 58px);
   background: #294a6d;
 }
 
-.filter-head {
+.filter-hero {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 18px;
-  align-items: flex-start;
-  margin-bottom: 34px;
+  padding: clamp(26px, 4vw, 46px) 0 18px;
+  color: #ffffff;
 }
 
-.filter-head .hero-eyebrow {
+.filter-hero span {
   color: #e46630;
   font-size: 12px;
-  font-weight: 400;
-  letter-spacing: 0.09em;
+  font-weight: 950;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  margin-bottom: 10px;
 }
 
-.filter-head h1 {
-  max-width: 720px;
-  font-size: clamp(34px, 4vw, 56px);
-  font-weight: 400;
-  color: #294a6d;
-  line-height: 1.02;
-}
-
-.filter-head .hero-copy {
-  max-width: 640px;
-  color: rgba(18, 40, 63, 0.72);
-  font-size: 15px;
-  font-weight: 400;
-  line-height: 1.6;
-  margin-top: 10px;
-}
-
-.filter-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 0 20px;
-  border: 0;
-  border-radius: 999px;
-  background: #294a6d;
+.filter-hero h1 {
+  margin-top: 6px;
   color: #ffffff;
-  font-weight: 400;
+  font-size: clamp(34px, 4vw, 56px);
+  font-weight: 950;
+  line-height: 1;
+}
+
+.filter-hero p {
+  max-width: 650px;
+  margin-top: 10px;
+  color: rgba(246, 241, 238, 0.82);
+  font-size: clamp(14px, 1.15vw, 18px);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.filter-hero button {
+  min-width: 118px;
+  min-height: 44px;
+  border: 1px solid rgba(246, 241, 238, 0.28);
+  border-radius: 999px;
+  background: rgba(246, 241, 238, 0.12);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 850;
   cursor: pointer;
 }
 
 .filter-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .filter-tab {
-  min-height: 44px;
+  min-height: 42px;
   padding: 0 18px;
+  border: 1px solid rgba(246, 241, 238, 0.42);
   border-radius: 999px;
-  border: 1px solid rgba(41, 74, 109, 0.16);
-  background: #ffffff;
+  background: #f6f1ee;
   color: #294a6d;
-  font-size: 13px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 850;
   cursor: pointer;
+  transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+}
+
+.filter-tab:hover {
+  transform: translateY(-2px);
 }
 
 .filter-tab.is-active {
+  border-color: transparent;
   background: #e46630;
   color: #ffffff;
-  border-color: transparent;
 }
 
 .filter-form {
   display: grid;
-  grid-template-columns: minmax(250px, 1.5fr) repeat(4, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
-  padding: 22px;
-  border-radius: 28px;
-  background: #ffffff;
-  box-shadow: 0 20px 48px rgba(7, 20, 35, 0.08);
-  border: 1px solid rgba(41, 74, 109, 0.08);
+  grid-template-columns: minmax(230px, 1.45fr) repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  border-radius: 26px;
+  background: #f6f1ee;
+  padding: 16px;
+  box-shadow: 0 20px 54px rgba(7, 20, 35, 0.18);
 }
 
 .filter-field {
   display: grid;
-  gap: 10px;
+  gap: 7px;
 }
 
 .filter-field span {
-  color: rgba(18, 40, 63, 0.72);
-  font-size: 12px;
-  font-weight: 400;
+  color: rgba(18, 40, 63, 0.62);
+  font-size: 11px;
+  font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.filter-field input,
-.filter-field select {
+.filter-field input {
   width: 100%;
-  min-height: 56px;
-  border-radius: 18px;
-  border: 1px solid rgba(41, 74, 109, 0.16);
+  min-height: 52px;
+  border: 1px solid rgba(41, 74, 109, 0.13);
+  border-radius: 16px;
   background: #ffffff;
   color: #12283f;
-  padding: 0 18px;
-  font-size: 15px;
-  font-weight: 400;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 750;
   outline: none;
 }
 
-.filter-field select {
-  appearance: none;
+.filter-field input:focus,
+.filter-shell .filter-dropdown-button:focus-visible {
+  border-color: rgba(228, 102, 48, 0.8);
+  box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.12);
 }
 
-.filter-search input {
-  padding-left: 18px;
-}
-
-.filter-dropdown {
+.filter-shell .filter-dropdown {
   position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  z-index: 40;
+  width: auto;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }
 
-.filter-dropdown-button {
+.filter-shell .filter-dropdown-button {
   width: 100%;
-  min-height: 56px;
-  padding: 0 18px;
-  border-radius: 18px;
-  border: 1px solid rgba(41, 74, 109, 0.16);
+  min-height: 52px;
+  border: 1px solid rgba(41, 74, 109, 0.13);
+  border-radius: 16px;
   background: #ffffff;
   color: #294a6d;
+  padding: 0 14px 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   font-size: 14px;
-  font-weight: 400;
+  font-weight: 850;
   cursor: pointer;
 }
 
-.filter-dropdown-button strong {
-  font-weight: 400;
+.filter-shell .filter-dropdown-button strong {
+  color: #e46630;
+  font-size: 11px;
+  font-weight: 950;
 }
 
-.filter-dropdown-panel {
+.filter-shell .filter-dropdown-panel {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 10px);
   left: 0;
   right: 0;
-  z-index: 20;
-  padding: 18px;
-  border-radius: 22px;
-  background: #ffffff;
+  z-index: 40;
+  display: grid;
+  gap: 4px;
+  max-height: 260px;
+  overflow: auto;
   border: 1px solid rgba(41, 74, 109, 0.12);
-  box-shadow: 0 24px 58px rgba(7, 20, 35, 0.14);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 10px;
+  box-shadow: 0 24px 58px rgba(7, 20, 35, 0.18);
 }
 
-.filter-shell .property-topline span {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.filter-shell .property-body p {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.filter-shell .property-body h3 {
-  color: #ffffff;
-}
-
-.filter-shell .property-bottom strong {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.filter-option {
+.filter-shell .filter-option {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 0;
-  font-size: 14px;
+  gap: 10px;
+  border-radius: 12px;
   color: #294a6d;
+  padding: 9px 8px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.filter-option input {
+.filter-shell .filter-option:hover {
+  background: #f6f1ee;
+}
+
+.filter-shell .filter-option input {
   width: 16px;
   height: 16px;
   accent-color: #e46630;
@@ -195,26 +203,11 @@
 
 .filter-results {
   display: grid;
-  gap: 24px;
-  margin-top: 24px;
-}
-
-.filter-advanced-panel {
-  margin-top: 18px;
-  display: grid;
-  gap: 16px;
-}
-
-.filter-tags {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.filter-results {
-  display: grid;
-  gap: 24px;
-  margin-top: 24px;
+  gap: 14px;
+  border-radius: 26px;
+  background: #f6f1ee;
+  padding: clamp(14px, 1.8vw, 22px);
+  box-shadow: 0 24px 64px rgba(7, 20, 35, 0.2);
 }
 
 .results-top {
@@ -223,99 +216,143 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 22px;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #ffffff;
-  border: 1px solid rgba(41, 74, 109, 0.08);
+  padding: 14px 16px;
 }
 
 .results-top p {
   margin: 0;
   color: #294a6d;
-  font-weight: 400;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .results-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
   align-items: center;
+  gap: 8px;
 }
 
 .sort-label {
-  color: rgba(18, 40, 63, 0.72);
-  font-size: 13px;
-  font-weight: 900;
-  text-transform: uppercase;
+  color: rgba(18, 40, 63, 0.58);
+  font-size: 11px;
+  font-weight: 950;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sort-pill {
-  min-height: 42px;
-  padding: 0 18px;
+  min-height: 36px;
+  border: 1px solid rgba(41, 74, 109, 0.12);
   border-radius: 999px;
-  border: 1px solid rgba(41, 74, 109, 0.14);
   background: #ffffff;
   color: #294a6d;
-  font-size: 13px;
-  font-weight: 400;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 850;
   cursor: pointer;
 }
 
 .sort-pill.is-active {
+  border-color: transparent;
   background: #e46630;
   color: #ffffff;
-  border-color: transparent;
 }
 
-.adv-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 46px;
-  padding: 0 16px;
+.filter-card-skeleton {
+  display: grid;
+  gap: 10px;
+  border-radius: 18px;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.skeleton-media,
+.skeleton-line {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #e8ecef;
+}
+
+.skeleton-media {
+  aspect-ratio: 1.52;
+}
+
+.skeleton-line {
+  width: 90%;
+  height: 13px;
   border-radius: 999px;
-  background: rgba(41, 74, 109, 0.06);
-  color: #294a6d;
-  font-size: 13px;
-  font-weight: 800;
+}
+
+.skeleton-line.is-short {
+  width: 56%;
+}
+
+.skeleton-line.is-price {
+  width: 38%;
+}
+
+.skeleton-media::after,
+.skeleton-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.72) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: filterSkeleton 1.2s infinite;
+}
+
+@keyframes filterSkeleton {
+  to {
+    transform: translateX(100%);
+  }
 }
 
 @media (max-width: 1180px) {
   .filter-form {
-    grid-template-columns: 1fr;
-  }
-
-  .filter-tags {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .filter-search {
+    grid-column: 1 / -1;
+  }
+
 }
 
 @media (max-width: 720px) {
   .filter-shell {
-    padding: 24px 16px;
+    padding: 8px 8px 28px;
   }
 
-  .filter-head {
-    flex-direction: column;
-    align-items: stretch;
+  .filter-hero {
+    display: block;
+    padding: 24px 0 14px;
   }
 
-  .filter-head h1 {
-    font-size: 38px;
+  .filter-hero h1 {
+    font-size: 34px;
+  }
+
+  .filter-hero button {
+    margin-top: 14px;
+  }
+
+  .filter-form,
+  .filter-results {
+    border-radius: 20px;
+    padding: 10px;
   }
 
   .filter-form {
-    gap: 14px;
-  }
-
-  .filter-tags {
     grid-template-columns: 1fr;
   }
-  
-  /* Ensure no bold text in the filter page: use 400 (or 500 if needed) */
-  .filter-shell,
-  .filter-shell * {
-    font-weight: 400 !important;
+
+  .filter-search {
+    grid-column: auto;
   }
+
 }

@@ -2,80 +2,168 @@ import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import JoySlider from "./JoySlider.jsx";
 import ListingsSection from "./ListingsSection.jsx";
-import { Logo, LangButton, MenuIcon, ChevronIcon } from "./ui/Shared.jsx";
-import { navItems, spaceTabs } from "../data/content.js";
+import logoImage from "../assets/img/Logo.png";
+import kvIcon from "../assets/img/kv.svg";
 import "./HomeHero.css";
 
-function LiquidNav({ activeIndex = 0 }) {
-  const navRef = useRef(null);
-  const dropRef = useRef(null);
-  const itemRefs = useRef([]);
-  const [hoverIndex, setHoverIndex] = useState(activeIndex);
+const navLinks = [
+  { href: "#about", label: "Biz haqimizda" },
+  { href: "#filter", label: "Ijaraga joylar" },
+  { href: "#guide", label: "Yoriqnoma" },
+  { href: "#services", label: "Kontaktlar" },
+  { href: "#contacts", label: "Kontaktlar" }
+];
 
-  const moveDrop = (index) => {
-    const nav = navRef.current;
-    const drop = dropRef.current;
-    const item = itemRefs.current[index];
-    if (!nav || !drop || !item) return;
+const tabs = [
+  { id: "barchasi", label: "Barchasi" },
+  { id: "ofislar", label: "Ofislar" },
+  { id: "coworking", label: "Kovorking" },
+  { id: "konf", label: "Konferentsiya zallari" },
+  { id: "muzokara", label: "Muzokara xonalari" },
+  { id: "tadbirlar", label: "Tadbirlar uchun xonalar" },
+  { id: "ijara", label: "Ijaraga joylar" }
+];
 
-    const navBox = nav.getBoundingClientRect();
-    const itemBox = item.getBoundingClientRect();
-    gsap.to(drop, {
-      x: itemBox.left - navBox.left + itemBox.width / 2 - 9,
-      width: 18,
-      opacity: 1,
-      duration: 0.46,
-      ease: "elastic.out(1, 0.72)"
-    });
-  };
+const filters = {
+  barchasi: [
+    { name: "Maydon", label: "Maydon (m2)", unit: "m2", options: ["50-100", "100-200", "200-500", "500+"] },
+    { name: "Sigim", label: "Sig'imi", unit: "kishi", options: ["2-8", "8-20", "20-50", "50+"] },
+    { name: "Muddati", label: "Muddati", unit: "", options: ["1 soat", "Kunlik", "Haftalik", "Oylik"] },
+    { name: "Kommunal", label: "Kommunal xizmatlar", unit: "", options: ["Elektr", "Suv", "Internet", "Issiqlik"] },
+    { name: "Avto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] },
+    { name: "Mebel", label: "Mebel/jihoz", unit: "", options: ["Stol", "Stul", "Proyektor", "Wi-Fi"] }
+  ],
+  ofislar: [
+    { name: "OfisMaydon", label: "Maydon (m2)", unit: "m2", options: ["80-150", "150-300", "300+"] },
+    { name: "OfisXona", label: "Xonalar", unit: "", options: ["2 xona", "4 xona", "Open space"] },
+    { name: "OfisMebel", label: "Mebel/jihoz", unit: "", options: ["Tayyor", "Bo'sh", "Premium"] }
+  ],
+  coworking: [
+    { name: "CoworkingJoy", label: "Joylar soni", unit: "", options: ["1 joy", "4 joy", "10 joy"] },
+    { name: "CoworkingMuddat", label: "Muddati", unit: "", options: ["Soatlik", "Kunlik", "Oylik"] },
+    { name: "CoworkingXizmat", label: "Xizmatlar", unit: "", options: ["Wi-Fi", "Printer", "Coffee point"] }
+  ],
+  konf: [
+    { name: "KonfSigim", label: "Sig'imi", unit: "kishi", options: ["10", "30", "80"] },
+    { name: "KonfMuddat", label: "Muddati", unit: "", options: ["2 soat", "4 soat", "Kunlik"] },
+    { name: "KonfJihoz", label: "Jihozlar", unit: "", options: ["Proyektor", "Mikrofon", "Ekran"] }
+  ],
+  muzokara: [
+    { name: "MuzokaraSigim", label: "Sig'imi", unit: "kishi", options: ["4", "8", "16"] },
+    { name: "MuzokaraMuddat", label: "Muddati", unit: "", options: ["1 soat", "2 soat", "4 soat"] },
+    { name: "MuzokaraJihoz", label: "Jihozlar", unit: "", options: ["TV", "Doska", "Wi-Fi"] }
+  ],
+  tadbirlar: [
+    { name: "TadbirlarSigim", label: "Sig'imi", unit: "kishi", options: ["50", "100", "200+"] },
+    { name: "TadbirlarMuddat", label: "Muddati", unit: "", options: ["4 soat", "Kunlik", "Dam olish kuni"] },
+    { name: "TadbirlarXizmat", label: "Xizmatlar", unit: "", options: ["Sahna", "Zvuk", "Yoritish"] }
+  ],
+  ijara: [
+    { name: "IjaraMaydon", label: "Maydon", unit: "m2", options: ["50-100", "100-200", "500+"] },
+    { name: "IjaraMuddat", label: "Muddati", unit: "oy", options: ["1-3", "3-6", "12+"] },
+    { name: "IjaraKommunal", label: "Kommunal xizmatlar", unit: "", options: ["Kiritilgan", "Alohida"] }
+  ]
+};
 
-  useEffect(() => {
-    moveDrop(hoverIndex);
-    const onResize = () => moveDrop(hoverIndex);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [hoverIndex]);
-
+function MenuIcon({ open = false }) {
   return (
-    <nav ref={navRef} className="liquid-nav hidden items-center gap-1 min-[920px]:flex" onMouseLeave={() => setHoverIndex(activeIndex)}>
-      <span ref={dropRef} className="nav-liquid-drop" />
-      {navItems.map((item, index) => (
-        <a
-          key={item.label}
-          ref={(node) => {
-            itemRefs.current[index] = node;
-          }}
-          href={item.href}
-          className={`nav-link ${index === activeIndex ? "is-active" : ""}`}
-          onMouseEnter={() => setHoverIndex(index)}
-        >
-          {item.label}
-        </a>
-      ))}
-    </nav>
+    <span className={`burger-lines ${open ? "is-open" : ""}`} aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
   );
 }
 
-function BurgerDrawer({ open, onClose, userState, setUserState }) {
+export function Header({ userState, setUserState, activeIndex = 0 }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navRef = useRef(null);
+  const waveRef = useRef(null);
+  const headerRef = useRef(null);
+
+  useEffect(() => {
+    const nav = navRef.current;
+    const wave = waveRef.current;
+    if (!nav || !wave) return;
+    const links = nav.querySelectorAll(".nav-link");
+    const moveWave = (el) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const parentRect = nav.getBoundingClientRect();
+      gsap.to(wave, {
+        x: rect.left - parentRect.left,
+        width: rect.width + 12,
+        duration: 1.1,
+        ease: "power3.out"
+      });
+    };
+    moveWave(links[activeIndex]);
+    links.forEach((link) => link.addEventListener("mouseenter", () => moveWave(link)));
+    nav.addEventListener("mouseleave", () => moveWave(links[activeIndex]));
+  }, []);
+
+  useEffect(() => {
+    gsap.fromTo(headerRef.current, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" });
+  }, []);
+
+  const statusLabel = userState.isAuthed ? (userState.isPartner ? "Partner" : "Profil") : "Kirish";
+
+  return (
+    <>
+      <header ref={headerRef} className="joy-header">
+        <div className="container-fluid">
+          <div className="nav-hover-zone">
+            <nav className="navbar d-flex justify-content-between align-items-center">
+              <a href="#home" className="logo">
+                <img src={logoImage} alt="Joyzone" />
+              </a>
+
+              <div className="nav-center" ref={navRef}>
+                <span className="nav-wave" ref={waveRef} />
+                {navLinks.map((link, index) => (
+                  <a key={`${link.label}-${index}`} href={link.href} className={`nav-link ${index === activeIndex ? "active" : ""}`}>
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+
+              <div className="nav-right">
+                <a className="login-button btn-shine" href={userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login"}>
+                  {statusLabel}
+                </a>
+                <button className={`burger-menu ${isMenuOpen ? "open" : ""}`} type="button" onClick={() => setIsMenuOpen(true)} aria-label="Menyuni ochish">
+                  <MenuIcon open={isMenuOpen} />
+                </button>
+              </div>
+            </nav>
+          </div>
+        </div>
+      </header>
+      <SideDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} userState={userState} setUserState={setUserState} />
+    </>
+  );
+}
+
+function SideDrawer({ open, onClose, userState, setUserState }) {
   const drawerRef = useRef(null);
 
   useEffect(() => {
-    const drawer = drawerRef.current;
-    if (!drawer) return undefined;
-    gsap.to(drawer, {
+    if (!drawerRef.current) return;
+    gsap.to(drawerRef.current, {
       x: open ? 0 : "104%",
       opacity: open ? 1 : 0,
       duration: 0.42,
       ease: "power3.out"
     });
-    return undefined;
   }, [open]);
 
-  const primaryItems = userState.isAuthed
+  const title = userState.isAuthed ? (userState.isPartner ? "Partner kabineti" : "Shaxsiy profil") : "Joyzone hisobingiz";
+  const status = userState.isAuthed ? (userState.isPartner ? "Partner akkaunt" : "Mijoz akkaunti") : "Mehmon rejimi";
+  const primary = userState.isAuthed
     ? [
-        { label: "Profilga o'tish", href: "#profile" },
+        { label: userState.isPartner ? "Partner kabineti" : "Profilga o'tish", href: userState.isPartner ? "#partner" : "#profile" },
         { label: "Bronlarim", href: "#bookings" },
-        userState.isPartner ? { label: "Partner kabineti", href: "#partner" } : { label: "Partner bo'lish", href: "#partner-start" }
+        userState.isPartner ? { label: "Joylarim", href: "#spaces" } : { label: "Partner bo'lish", href: "#partner-start" }
       ]
     : [
         { label: "Kirish", href: "#login" },
@@ -87,19 +175,28 @@ function BurgerDrawer({ open, onClose, userState, setUserState }) {
     <>
       <button type="button" className={`drawer-shade ${open ? "is-visible" : ""}`} onClick={onClose} aria-label="Menyuni yopish" />
       <aside ref={drawerRef} className="side-drawer" aria-hidden={open ? "false" : "true"}>
-        <div className="flex items-center justify-between">
-          <Logo />
+        <div className="drawer-top">
+          <img className="drawer-logo" src={logoImage} alt="Joyzone" />
           <button type="button" className="drawer-close" onClick={onClose} aria-label="Menyuni yopish">
-            ×
+            x
           </button>
         </div>
         <div className="drawer-status">
-          <span>{userState.isAuthed ? (userState.isPartner ? "Partner akkaunt" : "Mijoz akkaunti") : "Mehmon rejimi"}</span>
-          <strong>{userState.isAuthed ? "Joyzone kabineti" : "Joyzone imkoniyatlari"}</strong>
+          <span>{status}</span>
+          <strong>{title}</strong>
+          <p>{userState.isAuthed ? "Profil, bronlar va joylaringiz menyudan boshqariladi." : "Kirish, ro'yxatdan o'tish va partnerlik imkoniyatlari shu yerda."}</p>
         </div>
-        <div className="mt-8 grid gap-2">
-          {primaryItems.concat(navItems).map((item) => (
-            <a key={item.label} href={item.href} className="drawer-link" onClick={onClose}>
+        <div className="drawer-links">
+          {primary.map((item, index) => (
+            <a key={item.label} href={item.href} className={`drawer-link ${index === 0 ? "is-primary" : ""}`} onClick={onClose}>
+              {item.label}
+              <span>{"->"}</span>
+            </a>
+          ))}
+        </div>
+        <div className="drawer-nav">
+          {navLinks.slice(0, 4).map((item) => (
+            <a key={item.label} href={item.href} onClick={onClose}>
               {item.label}
             </a>
           ))}
@@ -108,7 +205,7 @@ function BurgerDrawer({ open, onClose, userState, setUserState }) {
           {userState.isAuthed ? (
             <>
               <button type="button" onClick={() => { window.location.hash = userState.isPartner ? "partner" : "profile"; onClose(); }}>
-                {userState.isPartner ? "Partner kabineti" : "Profil"}
+                {userState.isPartner ? "Kabinet" : "Profil"}
               </button>
               <button type="button" onClick={() => setUserState({ isAuthed: false, isPartner: false })}>
                 Chiqish
@@ -120,7 +217,7 @@ function BurgerDrawer({ open, onClose, userState, setUserState }) {
                 Kirish
               </button>
               <button type="button" onClick={() => { window.location.hash = "partner-start"; onClose(); }}>
-                Partner bo'lish
+                Partner
               </button>
             </>
           )}
@@ -130,142 +227,274 @@ function BurgerDrawer({ open, onClose, userState, setUserState }) {
   );
 }
 
-function HomeHeader({ userState, setUserState }) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  return (
-    <header className="home-container home-header">
-      <a href="#home" className="home-logo-wrap" aria-label="Joyzone home">
-        <Logo />
-      </a>
-      <LiquidNav activeIndex={0} />
-      <div className="flex items-center gap-2">
-        {userState.isAuthed ? (
-          <a href={userState.isPartner ? "#partner" : "#profile"} className="header-pill hidden sm:inline-flex">
-            {userState.isPartner ? "Partner" : "Profil"}
-          </a>
-        ) : (
-          <a href="#login" className="header-login">
-            Kirish
-          </a>
-        )}
-        <button type="button" className="burger-button" onClick={() => setDrawerOpen(true)} aria-label="Menyuni ochish">
-          <MenuIcon />
-        </button>
-      </div>
-      <BurgerDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} userState={userState} setUserState={setUserState} />
-    </header>
-  );
-}
-
-function ComboSelect({ label, placeholder, options }) {
+function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {
   const [value, setValue] = useState("");
-  const [open, setOpen] = useState(false);
-  const filteredOptions = options.filter((option) => option.toLowerCase().includes(value.toLowerCase())).slice(0, 4);
+  const isOpen = openFilter === name;
 
   return (
-    <label className="combo-field">
-      <span>{label}</span>
-      <div className="combo-box">
+    <div className={`filter-select ${isOpen ? "open" : ""} ${value ? "has-value" : ""}`}>
+      <div className="filter-header" onClick={() => setOpenFilter(isOpen ? null : name)}>
+        <span className="filter-label">{label}</span>
+        <span className="filter-value">{value} {unit}</span>
+        <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true">
+          <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div className="filter-dropdown">
+        <ul className="options">
+          {options.map((option) => (
+            <li key={option} onClick={() => { setValue(option); setOpenFilter(null); }}>
+              {option}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function PriceFilter() {
+  const MIN = 0;
+  const MAX = 3000000;
+  const [minVal, setMinVal] = useState(0);
+  const [maxVal, setMaxVal] = useState(1500000);
+  const fillRef = useRef(null);
+
+  useEffect(() => {
+    if (!fillRef.current) return;
+    const leftPct = (minVal / MAX) * 100;
+    const rightPct = 100 - (maxVal / MAX) * 100;
+    fillRef.current.style.left = `${leftPct}%`;
+    fillRef.current.style.right = `${rightPct}%`;
+  }, [minVal, maxVal]);
+
+  const fmt = (v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v);
+
+  return (
+    <div className="price-filter">
+      <div className="price-values">
+        <div className="value-box">
+          <input
+            type="number"
+            value={minVal}
+            min={MIN}
+            max={maxVal - 50000}
+            onChange={(e) => setMinVal(Math.min(Number(e.target.value), maxVal - 50000))}
+          />
+          <span>so'm</span>
+        </div>
+        <span className="price-sep">—</span>
+        <div className="value-box">
+          <input
+            type="number"
+            value={maxVal}
+            min={minVal + 50000}
+            max={MAX}
+            onChange={(e) => setMaxVal(Math.max(Number(e.target.value), minVal + 50000))}
+          />
+          <span>so'm</span>
+        </div>
+      </div>
+      <div className="price-range-track">
+        <span className="price-range-fill" ref={fillRef} />
         <input
-          value={value}
-          placeholder={placeholder}
-          onFocus={() => setOpen(true)}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setOpen(true);
-          }}
+          type="range"
+          min={MIN}
+          max={MAX}
+          step={50000}
+          value={minVal}
+          onChange={(e) => setMinVal(Math.min(Number(e.target.value), maxVal - 50000))}
         />
-        <button type="button" onClick={() => setOpen((current) => !current)} aria-label="Variantlarni ochish">
-          <ChevronIcon open={open} />
-        </button>
-        {open ? (
-          <div className="combo-list">
-            {(filteredOptions.length ? filteredOptions : options.slice(0, 4)).map((option) => (
-              <button key={option} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => { setValue(option); setOpen(false); }}>
-                {option}
-              </button>
-            ))}
+        <input
+          type="range"
+          min={MIN}
+          max={MAX}
+          step={50000}
+          value={maxVal}
+          onChange={(e) => setMaxVal(Math.max(Number(e.target.value), minVal + 50000))}
+        />
+      </div>
+    </div>
+  );
+}
+
+
+function Banner({ slides }) {
+  const [activeTab, setActiveTab] = useState("barchasi");
+  const [typingText, setTypingText] = useState("ofislar");
+  const [cursorVisible, setCursorVisible] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState("");
+  const [isLocationOpen, setIsLocationOpen] = useState(false);
+  const [openFilter, setOpenFilter] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const typingRef = useRef(null);
+  const cursorRef = useRef(null);
+  const wordIndexRef = useRef(0);
+  const charIndexRef = useRef(7);
+  const isDeletingRef = useRef(false);
+  const words = ["ofislar", "kovorking", "zallar", "joylar"];
+
+  useEffect(() => {
+    const cursorInterval = window.setInterval(() => setCursorVisible((current) => !current), 530);
+    charIndexRef.current = 0;
+    setTypingText("");
+    const isPausedRef = { current: false };
+
+    const type = () => {
+      if (isPausedRef.current) return;
+      const currentWord = words[wordIndexRef.current];
+      if (isDeletingRef.current) {
+        charIndexRef.current -= 1;
+        setTypingText(currentWord.substring(0, charIndexRef.current));
+        if (charIndexRef.current === 0) {
+          isDeletingRef.current = false;
+          wordIndexRef.current = (wordIndexRef.current + 1) % words.length;
+          isPausedRef.current = true;
+          typingRef.current = window.setTimeout(() => { isPausedRef.current = false; type(); }, 500);
+        } else {
+          typingRef.current = window.setTimeout(type, 55);
+        }
+      } else {
+        charIndexRef.current += 1;
+        setTypingText(currentWord.substring(0, charIndexRef.current));
+        if (charIndexRef.current === currentWord.length) {
+          isPausedRef.current = true;
+          typingRef.current = window.setTimeout(() => {
+            isPausedRef.current = false;
+            isDeletingRef.current = true;
+            type();
+          }, 2000);
+        } else {
+          typingRef.current = window.setTimeout(type, 100);
+        }
+      }
+    };
+    typingRef.current = window.setTimeout(type, 600);
+    cursorRef.current = cursorInterval;
+    return () => {
+      window.clearInterval(cursorInterval);
+      window.clearTimeout(typingRef.current);
+    };
+  }, []);
+
+
+  const locationOptions = ["Toshkent", "Samarqand", "Buxoro", "Andijon", "Namangan", "Farg'ona"].filter((location) =>
+    location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <section className="banner-section">
+      <div className="banner">
+        <div className="container-fluid">
+          <div className="row equal-cols">
+            <div className="col-lg-6">
+              <div className="info d-flex flex-column">
+                <h1 className="title">
+                  <span className="static-text">O'zbekiston </span>
+                  bo'ylab
+                  <br />
+                  qulay
+                  <span className="typing"> {typingText}</span>
+                  <span className={`cursor ${cursorVisible ? "blink" : ""}`}>|</span>
+                </h1>
+                <p className="desc">
+                  Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab
+                </p>
+
+                <div className="filter">
+                  <div className="filter-tabs">
+                    {tabs.map((tab) => (
+                      <button key={tab.id} className={`tab ${activeTab === tab.id ? "active" : ""}`} onClick={() => setActiveTab(tab.id)} type="button">
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="custom-hr" />
+                  <div className="filter-content">
+                    <div className="tab-content active">
+                      <div className="filter-options">
+                        {(filters[activeTab] || filters.barchasi).map((filter) => (
+                          <FilterSelect key={filter.name} {...filter} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                        ))}
+                        <PriceFilter />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="custom-select-wrapper">
+                    <div className={`custom-select ${isLocationOpen ? "open" : ""}`}>
+                      <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
+                        <img height="38" src={kvIcon} alt="" />
+                        <span>{selectedLocation || "Manzilni tanlang"}</span>
+                      </div>
+                      <div className="dropdown">
+                        <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
+                        <ul className="options">
+                          {locationOptions.map((location) => (
+                            <li key={location} onClick={() => { setSelectedLocation(location); setIsLocationOpen(false); }}>
+                              {location}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                    <button className="search-btn btn-shine" type="button">Izlash</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-lg-6">
+              <div className="img-slider">
+                <JoySlider items={slides} interval={4600} />
+              </div>
+              <div className="infoForReg">
+                <div className="info-text">
+                  <h2 className="title">Joyzone — bu faqat ijara emas.</h2>
+                  <div className="desc">
+                    <p>Bu joyda siz o'zingizning ofisingiz, kovorkingingiz yoki joyingizni joylashtirishingiz mumkin.</p>
+                  </div>
+                </div>
+                <a href="#partner-start" className="btn info-btn">Ro'yxatdan o'tish</a>
+              </div>
+            </div>
           </div>
-        ) : null}
-      </div>
-    </label>
-  );
-}
-
-function ValueBar({ label, value, suffix, percent }) {
-  return (
-    <div className="value-bar">
-      <div className="flex items-center justify-between">
-        <span>{label}</span>
-        <strong>{`${value}${suffix}`}</strong>
-      </div>
-      <div className="bar-track">
-        <span style={{ width: `${percent}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function SpaceTabs() {
-  const visible = spaceTabs.length > 4 ? spaceTabs.slice(0, 3).concat("Hammasi") : spaceTabs;
-  const [active, setActive] = useState("Ofislar");
-
-  return (
-    <div className="space-tabs">
-      {visible.map((tab) => (
-        <button key={tab} type="button" className={tab === active ? "is-active" : ""} onClick={() => setActive(tab)}>
-          {tab}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function HomeFilter() {
-  return (
-    <section className="hero-filter">
-      <p className="hero-eyebrow">Joyzone marketplace</p>
-      <h1>
-        O'zbekistonda <span>joy toping</span> va tez bron qiling
-      </h1>
-      <p className="hero-copy">Ofis, kovorking, konferensiya zali yoki yashash joyini bitta qulay filtr orqali tanlang.</p>
-      <SpaceTabs />
-      <div className="filter-grid">
-        <ComboSelect label="Manzil" placeholder="Tuman yoki shahar" options={["Toshkent", "Samarqand", "Chilonzor", "Yunusobod", "Mirzo Ulug'bek"]} />
-        <ComboSelect label="Format" placeholder="Joy turini yozing" options={["Private office", "Open space", "Meeting room", "Event hall", "Studio apartment"]} />
-      </div>
-      <div className="grid gap-3 min-[720px]:grid-cols-2">
-        <ValueBar label="Maydon" value="120" suffix=" m2" percent={62} />
-        <ValueBar label="Sig'im" value="18" suffix=" kishi" percent={48} />
-      </div>
-      <div className="filter-actions">
-        <button type="button">Joy izlash</button>
-        <a href="#partner-start">Joyingizni joylashtiring</a>
+        </div>
       </div>
     </section>
   );
 }
 
-function PartnerPromo() {
-  return (
-    <aside className="partner-promo">
-      <div>
-        <span>Partnerlar uchun</span>
-        <strong>Maydoningiz daromad keltirsin</strong>
-      </div>
-      <a href="#partner-start">Boshlash</a>
-    </aside>
-  );
-}
-
 export default function HomeHero({ userState, setUserState, slides }) {
   useEffect(() => {
-    gsap.fromTo(".home-header, .hero-filter, .hero-visual", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.08, ease: "power3.out" });
+    gsap.fromTo(".joy-header, .banner .info, .banner .img-slider, .infoForReg", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
+
+    const hero = document.querySelector(".home-viewport");
+    const image = document.querySelector(".banner .img-slider");
+    const info = document.querySelector(".banner .info");
+    const promo = document.querySelector(".infoForReg");
+    const handlePointer = (event) => {
+      if (!hero || window.matchMedia("(max-width: 1180px)").matches) return;
+      const rect = hero.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - 0.5;
+      const y = (event.clientY - rect.top) / rect.height - 0.5;
+      gsap.to(image, { x: x * 16, y: y * 12, scale: 1.012, duration: 0.7, ease: "power3.out" });
+      gsap.to(info, { x: x * -8, y: y * -6, duration: 0.7, ease: "power3.out" });
+      gsap.to(promo, { x: x * 10, y: y * 5, duration: 0.7, ease: "power3.out" });
+    };
+    const resetPointer = () => {
+      gsap.to([image, info, promo], { x: 0, y: 0, scale: 1, duration: 0.8, ease: "power3.out" });
+    };
+    hero?.addEventListener("pointermove", handlePointer);
+    hero?.addEventListener("pointerleave", resetPointer);
 
     const listings = document.querySelector(".listings-section");
-    if (!listings) return undefined;
-
+    if (!listings) {
+      return () => {
+        hero?.removeEventListener("pointermove", handlePointer);
+        hero?.removeEventListener("pointerleave", resetPointer);
+      };
+    }
     let snapTween;
     let lastY = window.scrollY;
     let isSnapping = false;
@@ -274,10 +503,9 @@ export default function HomeHero({ userState, setUserState, slides }) {
       isSnapping = true;
       snapTween?.kill();
       const scrollState = { y: window.scrollY };
-      gsap.fromTo(listings, { "--wave-shift": target > 0 ? "-34px" : "52px" }, { "--wave-shift": "0px", duration: 0.96, ease: "elastic.out(1, 0.7)" });
       snapTween = gsap.to(scrollState, {
         y: target,
-        duration: 1.12,
+        duration: 1,
         ease: "power2.inOut",
         onUpdate: () => window.scrollTo(0, scrollState.y),
         onComplete: () => {
@@ -289,47 +517,35 @@ export default function HomeHero({ userState, setUserState, slides }) {
         }
       });
     };
-
     const handleWheel = (event) => {
       const y = window.scrollY;
       const viewport = window.innerHeight;
-      const goingDown = event.deltaY > 0;
-      const goingUp = event.deltaY < 0;
-
       if (isSnapping) {
         event.preventDefault();
         return;
       }
-
-      if (goingDown && y < viewport - 24) {
+      if (event.deltaY > 0 && y < viewport - 24) {
         event.preventDefault();
         snapTo(viewport);
-      } else if (goingUp && y > 0 && y <= viewport + 64) {
+      } else if (event.deltaY < 0 && y > 0 && y <= viewport + 64) {
         event.preventDefault();
         snapTo(0);
       }
     };
-
     const handleScroll = () => {
       if (isSnapping) return;
       const y = window.scrollY;
       const viewport = window.innerHeight;
       const direction = y > lastY ? "down" : "up";
-      const downGate = y >= 96 && y < viewport - 24;
-      const upGate = direction === "up" && y <= viewport - 96 && y > viewport * 0.34;
-
-      if (direction === "down" && downGate) {
-        snapTo(viewport);
-      } else if (upGate) {
-        snapTo(0);
-      }
-
+      if (direction === "down" && y >= 96 && y < viewport - 24) snapTo(viewport);
+      if (direction === "up" && y <= viewport - 96 && y > viewport * 0.34) snapTo(0);
       lastY = y;
     };
-
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
+      hero?.removeEventListener("pointermove", handlePointer);
+      hero?.removeEventListener("pointerleave", resetPointer);
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("scroll", handleScroll);
       snapTween?.kill();
@@ -339,16 +555,8 @@ export default function HomeHero({ userState, setUserState, slides }) {
   return (
     <main className="home-shell">
       <div className="home-viewport">
-        <HomeHeader userState={userState} setUserState={setUserState} />
-        <section className="home-container home-hero">
-          <HomeFilter />
-          <section className="hero-visual">
-            <div className="home-slider-wrap">
-              <JoySlider items={slides} interval={4600} />
-            </div>
-            <PartnerPromo />
-          </section>
-        </section>
+        <Header userState={userState} setUserState={setUserState} activeIndex={0} />
+        <Banner slides={slides} />
       </div>
       <ListingsSection />
     </main>
