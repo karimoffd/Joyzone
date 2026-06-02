@@ -8,9 +8,10 @@ function getSpaceHref(title) {
   return `#space-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-export function PropertyCard({ item, index, href = "#filter" }) {
+export function PropertyCard({ item, index, href }) {
   const [activeImage, setActiveImage] = useState(0);
   const [liked, setLiked] = useState(false);
+  const cardHref = href || getSpaceHref(item.title);
   const mediaRef = useRef(null);
   const likeRef = useRef(null);
   const manualSlideAt = useRef(0);
@@ -38,7 +39,7 @@ export function PropertyCard({ item, index, href = "#filter" }) {
 
   return (
     <article className="property-card" style={{ "--delay": `${index * 0.055}s` }}>
-      <a className="property-card-link" href={href} aria-label={`${item.title} filtr sahifasini ochish`} />
+      <a className="property-card-link" href={cardHref} aria-label={`${item.title} sahifasini ochish`} />
       <div ref={mediaRef} className="property-media">
         {item.images.map((image, imageIndex) => (
           <img

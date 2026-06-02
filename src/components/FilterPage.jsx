@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { PropertyCard } from "./ListingsSection.jsx";
@@ -10,43 +10,65 @@ const locationOptions = [...new Set(propertyCards.map((item) => item.location))]
 const workspaceOptions = [...new Set(propertyCards.map((item) => item.category))];
 const priceOptions = ["Byudjet < 500 000 so'm", "500 000-2 000 000 so'm", "2 000 000-8 000 000 so'm", "8 000 000+ so'm"];
 const capacityOptions = ["1-5 kishi", "6-12 kishi", "13-24 kishi", "25+ kishi"];
-const tabs = ["Hammasi", "Ijaraga joylar", "Bron", "Kovorking zal", "Muzokara xona"];
+const categoryOptions = ["Bron", "Kovorking zal", "Muzokara xona", "Ijaraga joylar"];
+const extraOptions = ["Tavsiya etilgan", "Katta maydon", "Kichik jamoa uchun"];
 
 function FilterDropdown({ label, options, selectedOptions, onToggle }) {
   const [open, setOpen] = useState(false);
-  const selectedLabel = selectedOptions.length === 0 ? "" : `${selectedOptions.length} ta tanlangan`;
+  const dropdownRef = useRef(null);
+  const selectedLabel = selectedOptions.length === 0 ? label : `${selectedOptions.length} ta tanlangan`;
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   return (
-    <div className="filter-dropdown">
-      <button type="button" className="filter-dropdown-button" onClick={() => setOpen((current) => !current)}>
-        <span>{label}</span>
-        <strong>{selectedLabel}</strong>
+    <div className={`fp-filter-dropdown ${open ? "is-open" : ""}`} ref={dropdownRef}>
+      <button type="button" className="fp-filter-button" onClick={() => setOpen((current) => !current)}>
+        <span className="fp-button-label">{selectedLabel}</span>
         <ChevronIcon open={open} />
       </button>
-      {open ? (
-        <div className="filter-dropdown-panel">
-          {options.map((option) => (
-            <label key={option} className="filter-option">
-              <input
-                type="checkbox"
-                checked={selectedOptions.includes(option)}
-                onChange={() => onToggle(option)}
-              />
-              <span>{option}</span>
-            </label>
-          ))}
-        </div>
-      ) : null}
+
+      <div className={`fp-filter-panel ${open ? "is-visible" : ""}`}>
+        {options.map((option) => (
+          <button
+            type="button"
+            key={option}
+            className={`fp-filter-option ${selectedOptions.includes(option) ? "is-selected" : ""}`}
+            onClick={() => onToggle(option)}
+          >
+            <span className="fp-filter-option-text">{option}</span>
+            <span className="fp-filter-option-state">{selectedOptions.includes(option) ? "Tanlangan" : "Tanlash"}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
 function SearchField({ value, onChange }) {
   return (
-    <label className="filter-field filter-search">
-      <span>Qidiruv</span>
-      <input value={value} placeholder="Joy nomi, shahar yoki tip" onChange={(event) => onChange(event.target.value)} />
-    </label>
+    <div className="filter-field filter-search">
+      <div className="search-input-wrapper">
+        <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input value={value} placeholder="Joy nomi, shahar yoki tip..." onChange={(event) => onChange(event.target.value)} />
+        {value && (
+          <button type="button" className="search-clear" onClick={() => onChange("")} aria-label="Tozalash">
+            &times;
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -66,30 +88,33 @@ function ProductSkeletonGrid() {
 }
 
 export default function FilterPage({ userState, setUserState }) {
-  const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], workspace: [] });
-  const [activeTab, setActiveTab] = useState("Hammasi");
+  const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], workspace: [], category: [], extra: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const timer = window.setTimeout(() => setLoading(false), 520);
     return () => window.clearTimeout(timer);
-  }, [filters, activeTab]);
+  }, [filters]);
 
   const filteredCards = useMemo(() => {
     return propertyCards.filter((item) => {
-      if (activeTab === "Kovorking zal" && item.category !== "Kovorking") return false;
-      if (activeTab === "Muzokara xona" && !["Konferensiya", "Kovorking"].includes(item.category)) return false;
-      if (activeTab === "Ijaraga joylar" && item.category === "Tadbir joyi") return false;
       const searchTerm = filters.search.trim().toLowerCase();
       if (searchTerm) {
         const matchText = [item.title, item.location, item.category, item.price].join(" ").toLowerCase();
-        if (!matchText.includes(searchTerm)) {
-          return false;
-        }
+        if (!matchText.includes(searchTerm)) return false;
       }
       if (filters.location.length && !filters.location.includes(item.location)) return false;
       if (filters.workspace.length && !filters.workspace.includes(item.category)) return false;
+      if (filters.category.length) {
+        const categoryMap = {
+          "Bron": () => item.category !== "Tadbir joyi",
+          "Kovorking zal": () => item.category === "Kovorking",
+          "Muzokara xona": () => ["Konferensiya", "Kovorking"].includes(item.category),
+        };
+        const matches = filters.category.some((cat) => categoryMap[cat] ? categoryMap[cat]() : true);
+        if (!matches) return false;
+      }
       if (filters.capacity.length) {
         const count = item.people;
         const matchesCapacity = filters.capacity.some((range) => {
@@ -100,6 +125,15 @@ export default function FilterPage({ userState, setUserState }) {
           return false;
         });
         if (!matchesCapacity) return false;
+      }
+      if (filters.extra.length) {
+        const matchesExtra = filters.extra.some((option) => {
+          if (option === "Tavsiya etilgan") return Boolean(item.promoted);
+          if (option === "Katta maydon") return item.area >= 100;
+          if (option === "Kichik jamoa uchun") return item.people <= 12;
+          return false;
+        });
+        if (!matchesExtra) return false;
       }
       if (filters.price.length) {
         const priceValue = Number(item.price.replace(/\D/g, ""));
@@ -114,79 +148,92 @@ export default function FilterPage({ userState, setUserState }) {
       }
       return true;
     });
-  }, [filters, activeTab]);
+  }, [filters]);
 
   const clearFilters = () => {
-    setFilters({ search: "", location: [], price: [], capacity: [], workspace: [] });
-    setActiveTab("Hammasi");
+    setFilters({ search: "", location: [], price: [], capacity: [], workspace: [], category: [], extra: [] });
   };
 
   return (
     <main className="filter-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
-      <section className="filter-hero">
-        <div>
-          <span>Joyzone katalogi</span>
-          <h1>Joylarni tez toping</h1>
-          <p>Manzil, narx, sig'im va joy turiga qarab kerakli ofis yoki kovorkingni tanlang.</p>
-        </div>
-        <button type="button" onClick={clearFilters}>Tozalash</button>
-      </section>
 
-      <section className="filter-tabs">
-        {tabs.map((tab) => (
-          <button key={tab} type="button" className={tab === activeTab ? "filter-tab is-active" : "filter-tab"} onClick={() => setActiveTab(tab)}>
-            {tab}
+      <section className="filter-bar-section">
+        <div className="filter-bar-head">
+          <SearchField value={filters.search} onChange={(value) => setFilters((current) => ({ ...current, search: value }))} />
+          <button type="button" className="filter-clear-btn" onClick={clearFilters}>
+            Tozalash
           </button>
-        ))}
-      </section>
+        </div>
 
-      <section className="filter-form">
-        <SearchField value={filters.search} onChange={(value) => setFilters((current) => ({ ...current, search: value }))} />
-        <FilterDropdown
-          label="Manzil"
-          options={locationOptions}
-          selectedOptions={filters.location}
-          onToggle={(value) => setFilters((current) => ({
-            ...current,
-            location: current.location.includes(value)
-              ? current.location.filter((item) => item !== value)
-              : [...current.location, value]
-          }))}
-        />
-        <FilterDropdown
-          label="Narx"
-          options={priceOptions}
-          selectedOptions={filters.price}
-          onToggle={(value) => setFilters((current) => ({
-            ...current,
-            price: current.price.includes(value)
-              ? current.price.filter((item) => item !== value)
-              : [...current.price, value]
-          }))}
-        />
-        <FilterDropdown
-          label="Sig'im"
-          options={capacityOptions}
-          selectedOptions={filters.capacity}
-          onToggle={(value) => setFilters((current) => ({
-            ...current,
-            capacity: current.capacity.includes(value)
-              ? current.capacity.filter((item) => item !== value)
-              : [...current.capacity, value]
-          }))}
-        />
-        <FilterDropdown
-          label="Joy turi"
-          options={workspaceOptions}
-          selectedOptions={filters.workspace}
-          onToggle={(value) => setFilters((current) => ({
-            ...current,
-            workspace: current.workspace.includes(value)
-              ? current.workspace.filter((item) => item !== value)
-              : [...current.workspace, value]
-          }))}
-        />
+        <div className="filter-dropdown-grid">
+          <FilterDropdown
+            label="Kategoriya"
+            options={categoryOptions}
+            selectedOptions={filters.category}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              category: current.category.includes(value)
+                ? current.category.filter((item) => item !== value)
+                : [...current.category, value]
+            }))}
+          />
+          <FilterDropdown
+            label="Manzil"
+            options={locationOptions}
+            selectedOptions={filters.location}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              location: current.location.includes(value)
+                ? current.location.filter((item) => item !== value)
+                : [...current.location, value]
+            }))}
+          />
+          <FilterDropdown
+            label="Narx"
+            options={priceOptions}
+            selectedOptions={filters.price}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              price: current.price.includes(value)
+                ? current.price.filter((item) => item !== value)
+                : [...current.price, value]
+            }))}
+          />
+          <FilterDropdown
+            label="Sig'im"
+            options={capacityOptions}
+            selectedOptions={filters.capacity}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              capacity: current.capacity.includes(value)
+                ? current.capacity.filter((item) => item !== value)
+                : [...current.capacity, value]
+            }))}
+          />
+          <FilterDropdown
+            label="Joy turi"
+            options={workspaceOptions}
+            selectedOptions={filters.workspace}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              workspace: current.workspace.includes(value)
+                ? current.workspace.filter((item) => item !== value)
+                : [...current.workspace, value]
+            }))}
+          />
+          <FilterDropdown
+            label="Qo'shimcha"
+            options={extraOptions}
+            selectedOptions={filters.extra}
+            onToggle={(value) => setFilters((current) => ({
+              ...current,
+              extra: current.extra.includes(value)
+                ? current.extra.filter((item) => item !== value)
+                : [...current.extra, value]
+            }))}
+          />
+        </div>
       </section>
 
       <section className="filter-results">

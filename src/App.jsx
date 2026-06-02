@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import HomeHero, { Header as JoyNavbar } from "./components/HomeHero.jsx";
 import FilterPage from "./components/FilterPage.jsx";
 import JoySlider from "./components/JoySlider.jsx";
+import SpaceDetail from "./components/SpaceDetail.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
 import { slides } from "./data/content.js";
@@ -11,6 +12,7 @@ function useAuthRoute() {
   const knownRoutes = new Set(["home", "filter", "register", "login", "forgot", "verify"]);
   const readRoute = () => {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
+    if (hash.startsWith("space-")) return hash;
     return knownRoutes.has(hash) ? hash : "home";
   };
   const [route, setRoute] = useState(readRoute);
@@ -174,6 +176,17 @@ function App() {
       <>
         <div className="route-screen route-screen-filter app-route-shell">
           <FilterPage userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute.startsWith("space-")) {
+    return (
+      <>
+        <div className="route-screen route-screen-space-detail app-route-shell">
+          <SpaceDetail route={displayedRoute} userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
       </>
