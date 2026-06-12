@@ -1,22 +1,11 @@
-:root {
-  color: #294a6d;
-  background: #12283f;
-  font-synthesis: none;
-  text-rendering: geometricPrecision;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 /* Adjusted filter-shell background to match home page */
 .filter-shell {
   min-height: 100vh;
   min-height: 100dvh;
   overflow: visible;
   overflow-x: clip;
-  padding: 10px clamp(14px, 4.7vw, 78px) clamp(34px, 5vw, 58px);
-  background:
-    radial-gradient(circle at 14% 8%, rgba(246, 241, 238, 0.12), transparent 24rem),
-    linear-gradient(135deg, #294a6d 0%, #12283f 100%);
+  padding: 96px clamp(18px, 5.7vw, 100px) 0;
+  background: #294a6d;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -481,6 +470,10 @@
   box-shadow: 0 24px 70px rgba(7, 20, 35, 0.2);
 }
 
+.filter-shell .joy-footer-section {
+  margin-top: clamp(42px, 5vw, 72px);
+}
+
 .results-top {
   display: flex;
   flex-wrap: wrap;
@@ -628,7 +621,7 @@
 
 @media (max-width: 600px) {
   .filter-shell {
-    padding: 8px 8px 32px;
+    padding: 76px 8px 0;
   }
 
   .filter-hero {

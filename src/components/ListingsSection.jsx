@@ -1,19 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { CategoryIcon, HeartIcon } from "./ui/Shared.jsx";
+import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
+import logoImage from "../assets/img/Logo.png";
 import "./ListingsSection.css";
 
 function getSpaceHref(title) {
   return `#space-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
+function getAgentHref(name) {
+  return `#agent-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 export function PropertyCard({ item, index, href }) {
   const [activeImage, setActiveImage] = useState(0);
-  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const cardHref = href || getSpaceHref(item.title);
   const mediaRef = useRef(null);
-  const likeRef = useRef(null);
+  const saveRef = useRef(null);
   const manualSlideAt = useRef(0);
 
   useEffect(() => {
@@ -32,9 +37,9 @@ export function PropertyCard({ item, index, href }) {
     return undefined;
   }, [activeImage]);
 
-  const toggleLike = () => {
-    setLiked((value) => !value);
-    gsap.fromTo(likeRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
+  const toggleSave = () => {
+    setSaved((value) => !value);
+    gsap.fromTo(saveRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
   };
 
   return (
@@ -53,14 +58,14 @@ export function PropertyCard({ item, index, href }) {
         <span className="property-slide-glow" />
         {item.promoted ? <span className="property-badge">Reklama</span> : null}
         <button
-          ref={likeRef}
+          ref={saveRef}
           type="button"
-          className={`like-button ${liked ? "is-liked" : ""}`}
-          onClick={toggleLike}
-          aria-label={liked ? "Yoqtirildi" : "Yoqtirish"}
-          aria-pressed={liked}
+          className={`save-note-button ${saved ? "is-saved" : ""}`}
+          onClick={toggleSave}
+          aria-label={saved ? "Eslatmaga saqlandi" : "Eslatmaga saqlash"}
+          aria-pressed={saved}
         >
-          <HeartIcon filled={liked} />
+          <NoteIcon filled={saved} />
         </button>
         <div className="property-slide-dots" aria-label="Rasmni tanlash">
           {item.images.map((_, imageIndex) => (
@@ -250,10 +255,10 @@ function PartnerAgents() {
                   <span>{agent.rating}</span>
                   <p>{agent.reviews} ta sharh</p>
                 </div>
-                <div className="agent-bottom-btn">
-                  <span className="agent-btn-text">Joylar</span>
+                <a className="agent-bottom-btn" href={getAgentHref(agent.name)} aria-label={`${agent.name} profilini ochish`}>
+                  <span className="agent-btn-text">Profil</span>
                   <strong className="agent-btn-count">{agent.spaces}</strong>
-                </div>
+                </a>
               </article>
             );
           })}
@@ -378,25 +383,25 @@ function PartnerStartSection() {
       tl.set(steps, { autoAlpha: 0, y: 18, scale: 0.96 })
         .set(steps[0], { autoAlpha: 1, y: 0, scale: 1 })
         .set(progressRef.current, { scaleX: 0.12 })
-        .set(statusRef.current, { textContent: "Akkaunt tanlanmoqda" })
+        .set(statusRef.current, { textContent: "Ro'yxatdan o'tish" })
         .set(cursorRef.current, { x: 86, y: 116, scale: 1 })
         .to(cursorRef.current, { x: 292, y: 154, duration: 1.15 })
         .set(pulseRef.current, { scale: 0.4, opacity: 0.78 }, "-=0.02")
         .to(pulseRef.current, { x: 292, y: 154, scale: 1.8, opacity: 0, duration: 0.44, ease: "power2.out" }, "-=0.22")
         .to(progressRef.current, { scaleX: 0.32, duration: 0.55 }, "-=0.3")
-        .set(statusRef.current, { textContent: "Maydon ma'lumotlari" })
+        .set(statusRef.current, { textContent: "Profil tasdiqlanmoqda" })
         .to(steps[0], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.15")
         .to(steps[1], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
         .to(cursorRef.current, { x: 186, y: 236, duration: 1.05 })
         .to(section.querySelector(".motion-input-line"), { width: "82%", duration: 0.7, ease: "power2.out" }, "-=0.35")
         .to(progressRef.current, { scaleX: 0.58, duration: 0.5 }, "-=0.25")
-        .set(statusRef.current, { textContent: "Narx va jadval" })
+        .set(statusRef.current, { textContent: "Joy tanlanmoqda" })
         .to(steps[1], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.2")
         .to(steps[2], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
         .to(cursorRef.current, { x: 360, y: 254, duration: 1.05 })
         .to(section.querySelector(".motion-range-fill"), { width: "74%", duration: 0.7, ease: "power2.out" }, "-=0.35")
         .to(progressRef.current, { scaleX: 0.78, duration: 0.48 }, "-=0.25")
-        .set(statusRef.current, { textContent: "Tekshiruvga yuborildi" })
+        .set(statusRef.current, { textContent: "Bron so'rovi yuborilmoqda" })
         .to(steps[2], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.2")
         .to(steps[3], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
         .to(cursorRef.current, { x: 302, y: 304, duration: 0.9 })
@@ -415,35 +420,35 @@ function PartnerStartSection() {
   return (
     <section ref={sectionRef} className="partner-start-section" id="partner-start">
       <div className="partner-start-head">
-        <p>Instruksiya</p>
+        <p>Bron qilish jarayoni</p>
         <h2>
-          <span>Partner</span> bo'lish jarayoni
+          Ro'yxatdan o'ting va <span>bron</span> qiling
         </h2>
       </div>
 
       <div className="partner-start-panel">
-        <div className="partner-motion-card" aria-label="Partner ro'yxatdan o'tish demo animatsiyasi">
+        <div className="partner-motion-card" aria-label="Joyzone joy tanlash demo animatsiyasi">
           <div className="motion-browser">
             <div className="motion-topbar">
               <span />
               <span />
               <span />
-              <strong>joyzone.uz/partner</strong>
+              <strong>joyzone.uz/register</strong>
             </div>
             <div className="motion-screen">
               <div className="partner-motion-step motion-step-one">
                 <small>1-qadam</small>
-                <h3>Rolni tanlang</h3>
+                <h3>Tez ro'yxatdan o'ting</h3>
                 <div className="motion-role-grid">
-                  <span>Mehmon</span>
-                  <span>Mijoz</span>
-                  <span className="is-selected">Partner</span>
+                  <span>Telefon</span>
+                  <span className="is-selected">Kod</span>
+                  <span>Profil</span>
                 </div>
               </div>
 
               <div className="partner-motion-step motion-step-two">
                 <small>2-qadam</small>
-                <h3>Joyingizni kiriting</h3>
+                <h3>Profilni tasdiqlang</h3>
                 <div className="motion-form-lines">
                   <span className="motion-input-line" />
                   <span />
@@ -458,7 +463,7 @@ function PartnerStartSection() {
 
               <div className="partner-motion-step motion-step-three">
                 <small>3-qadam</small>
-                <h3>Narx va jadval</h3>
+                <h3>Joy va vaqtni tanlang</h3>
                 <div className="motion-calendar">
                   {Array.from({ length: 12 }).map((_, index) => (
                     <span key={`calendar-${index}`} className={index > 4 && index < 9 ? "is-active" : ""} />
@@ -471,10 +476,10 @@ function PartnerStartSection() {
 
               <div className="partner-motion-step motion-step-four">
                 <small>4-qadam</small>
-                <h3>Tekshiruvga yuboring</h3>
+                <h3>Bron so'rovini yuboring</h3>
                 <div className="motion-success">
-                  <span>✓</span>
-                  <strong>Joy e'lon qilindi</strong>
+                  <span>OK</span>
+                  <strong>Bron boshlandi</strong>
                 </div>
               </div>
 
@@ -482,7 +487,7 @@ function PartnerStartSection() {
               <span ref={cursorRef} className="motion-cursor" />
             </div>
             <div className="motion-footer">
-              <span ref={statusRef}>Akkaunt tanlanmoqda</span>
+              <span ref={statusRef}>Ro'yxatdan o'tish</span>
               <b><i ref={progressRef} /></b>
             </div>
           </div>
@@ -492,42 +497,282 @@ function PartnerStartSection() {
           <div className="partner-start-card">
             <span>01</span>
             <div>
-              <h3>Partner akkaunt oching</h3>
-              <p>Telefon orqali kiring, rolni partner qilib tanlang va kabinetni faollashtiring.</p>
+              <h3>Akkaunt yarating</h3>
+              <p>Telefon yoki email orqali kiring, tasdiqlash kodini kiriting va Joyzone profilini ishga tushiring.</p>
             </div>
           </div>
           <div className="partner-start-card">
             <span>02</span>
             <div>
-              <h3>Maydon kartasini to'ldiring</h3>
-              <p>Rasm, manzil, sig'im, qulayliklar va bron qilish qoidalari bitta oqimda yig'iladi.</p>
+              <h3>Joyni tanlang</h3>
+              <p>Manzil, narx, sig'im va qulayliklarni ko'rib, uchrashuv yoki ish kuni uchun mos joyni belgilang.</p>
             </div>
           </div>
           <div className="partner-start-card">
             <span>03</span>
             <div>
-              <h3>Narx va vaqtni sozlang</h3>
-              <p>Soatlik, kunlik yoki haftalik tariflarni belgilab, band kunlarni yopib qo'ying.</p>
+              <h3>Bron so'rovini yuboring</h3>
+              <p>Sana, vaqt va qisqa izohni qo'shing. Partner so'rovni ko'radi va tasdiqlash uchun javob beradi.</p>
             </div>
           </div>
 
           <div className="partner-start-stats">
             <div className="partner-start-stat">
-              <strong>10 daqiqa</strong>
-              <span>birinchi e'longacha</span>
+              <strong>2 daqiqa</strong>
+              <span>ro'yxatdan o'tish</span>
             </div>
             <div className="partner-start-stat">
-              <strong>24/7</strong>
-              <span>so'rovlarni qabul qilish</span>
+              <strong>1 so'rov</strong>
+              <span>bron jarayonini boshlash</span>
             </div>
           </div>
 
-          <a className="partner-start-action" href="#register">
-            Partner sifatida boshlash
+          <a className="partner-start-action" href="#filter">
+            Bron qilishni boshlash
           </a>
         </div>
       </div>
     </section>
+  );
+}
+
+const reviewHighlights = [
+  {
+    name: "Malika",
+    text: "Vorkshop uchun zalni 7 daqiqada topdik. Joy, narx va sig'im bir qarashda tushunarli.",
+    tone: "light"
+  },
+  {
+    name: "Akmal",
+    text: "Kartochkalar aniq: darhol narx, joylashuv va imkoniyatlarni ko'rasan.",
+    tone: "dark"
+  },
+  {
+    name: "Dilshod",
+    text: "Partner sifatida joy qo'shdik va birinchi so'rovlar o'sha kuniyoq keldi.",
+    tone: "light"
+  },
+  {
+    name: "Sevara",
+    text: "FAQ va bron oqimi oddiy, mijozlarga ortiqcha tushuntirish kerak bo'lmadi.",
+    tone: "dark"
+  },
+  {
+    name: "Jasur",
+    text: "Bir nechta joyni solishtirib, uchrashuv uchun eng qulay variantni tez tanladik.",
+    tone: "light"
+  }
+];
+
+const faqItems = [
+  {
+    question: "Obyektimni Joyzone'ga qo'sha olamanmi?",
+    answer: "Ha. Partner sifatida ro'yxatdan o'tib, ofis, kovorking, zal yoki boshqa joyingizni kabinet orqali moderatsiyaga yuborasiz."
+  },
+  {
+    question: "Joylar xaritada ko'rinadimi?",
+    answer: "Joy manzili va hududi kartochkada ko'rinadi. Keyingi bosqichda xarita orqali yaqin joylarni tez tanlash oqimi ham qo'shiladi."
+  },
+  {
+    question: "Bron qilish qanday ishlaydi?",
+    answer: "Mijoz kerakli joyni tanlaydi, sanani yoki vaqtni belgilaydi va so'rov yuboradi. Partner kabinetda so'rovni tasdiqlaydi."
+  },
+  {
+    question: "Partnerlar uchun tariflar bormi?",
+    answer: "Ha, joy egasi o'sish bosqichiga qarab oddiy joylashtirish yoki ko'proq ko'rinish beradigan paketlarni tanlashi mumkin."
+  }
+];
+
+function ReviewsFaqSection() {
+  const [openIndex, setOpenIndex] = useState(0);
+  const [firstReview, setFirstReview] = useState(0);
+  const [isReviewSliding, setIsReviewSliding] = useState(false);
+  const sectionRef = useRef(null);
+  const reviewTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        section.classList.add("is-visible");
+        observer.disconnect();
+      },
+      { threshold: 0.28 }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setIsReviewSliding(true);
+      reviewTimeoutRef.current = window.setTimeout(() => {
+        setFirstReview((current) => (current + 1) % reviewHighlights.length);
+        setIsReviewSliding(false);
+      }, 560);
+    }, 3400);
+
+    return () => {
+      window.clearInterval(timer);
+      if (reviewTimeoutRef.current) {
+        window.clearTimeout(reviewTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const visibleReviews = Array.from({ length: 4 }, (_, position) => ({
+    position,
+    review: reviewHighlights[(firstReview + position) % reviewHighlights.length]
+  }));
+
+  return (
+    <section ref={sectionRef} className="reviews-faq-section" id="faq">
+      <div className="reviews-faq-inner">
+        <div className="reviews-panel" aria-label="Joyzone foydalanuvchi sharhlari">
+          <div className="reviews-label">Sharhlar</div>
+          <div className={`review-stage ${isReviewSliding ? "is-sliding" : ""}`}>
+            {visibleReviews.map(({ review, position }) => (
+              <article
+                key={review.name}
+                className={`review-bubble review-position-${position} ${review.tone === "dark" ? "is-dark" : ""}`}
+              >
+                <strong>{review.name}</strong>
+                <p>{review.text}</p>
+                <span aria-label="5 yulduzli baho">★★★★★</span>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="faq-panel">
+          <p className="section-kicker">FAQ</p>
+          <h2>Qisqacha asosiylari</h2>
+          <div className="faq-list">
+            {faqItems.map((item, index) => {
+              const isOpen = openIndex === index;
+              return (
+                <article key={item.question} className={`faq-item ${isOpen ? "is-open" : ""}`}>
+                  <button type="button" onClick={() => setOpenIndex(isOpen ? -1 : index)} aria-expanded={isOpen}>
+                    <span>{item.question}</span>
+                    <b aria-hidden="true">{isOpen ? "-" : "+"}</b>
+                  </button>
+                  <div className="faq-answer">
+                    <p>{item.answer}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FooterIcon({ type }) {
+  const paths = {
+    phone: ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6.4 6.4l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2.1Z"],
+    mail: ["M4 6h16v12H4z", "m4 7 8 6 8-6"],
+    chat: ["M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4.4A8 8 0 1 1 21 12Z", "M8 11h8M8 14h5"],
+    arrow: ["M5 12h14", "m13 6 6 6-6 6"],
+    instagram: ["M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z", "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z", "M17.5 6.5h.01"],
+    facebook: ["M15 8h-2a2 2 0 0 0-2 2v2H9v3h2v6h3v-6h2.5l.5-3h-3v-1.4c0-.8.2-1.1 1-1.1h2V8Z"],
+    telegram: ["M21 4 3 11.5l6.8 2.3L17 8.2l-4.7 7.1 5.2 4.7L21 4Z"],
+    whatsapp: ["M20 11.8A8 8 0 0 1 8.2 18.9L4 20l1.1-4.1A8 8 0 1 1 20 11.8Z", "M9 8.8c.2 3 2.2 5.2 5.2 6 .7.2 1.6-.8 1.3-1.4l-1-1c-.3-.2-.7-.1-1 .1l-.4.3c-.9-.4-1.8-1.2-2.3-2.2l.3-.4c.3-.3.4-.7.1-1l-.9-1c-.5-.5-1.4-.1-1.3.6Z"]
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {(paths[type] || paths.chat).map((path) => (
+        <path key={path} d={path} />
+      ))}
+    </svg>
+  );
+}
+
+export function JoyFooter() {
+  const socials = [
+    ["instagram", "#instagram"],
+    ["facebook", "#facebook"],
+    ["telegram", "#telegram"],
+    ["whatsapp", "#whatsapp"]
+  ];
+  const openPage = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
+
+  return (
+    <footer className="joy-footer-section">
+      <div className="footer-question-strip">
+        <div>
+          <span>Joyzone yordam markazi</span>
+          <h2>Savolingiz bormi?</h2>
+          <p>Ofis, kovorking yoki zal tanlashda yordam beramiz.</p>
+        </div>
+        <a href="#contact">
+          Biz bilan bog'laning
+          <FooterIcon type="arrow" />
+        </a>
+      </div>
+
+      <div className="joy-footer-card">
+        <div className="joy-footer-top">
+          <a href="#home" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
+            <img src={logoImage} alt="Joyzone" />
+          </a>
+          <a href="tel:+998770444000" className="joy-footer-contact">
+            <FooterIcon type="phone" />
+            +998 77 044 40 00
+          </a>
+          <a href="mailto:info@joyzone.uz" className="joy-footer-contact">
+            <FooterIcon type="mail" />
+            info@joyzone.uz
+          </a>
+          <a href="#partner" className="joy-footer-cta">Ariza qoldirish</a>
+        </div>
+
+        <div className="joy-footer-grid">
+          <div>
+            <p>Bizning maqsadimiz qulay ish joylarini va saytni ijarachilarga yaqinlashtirish.</p>
+          </div>
+          <nav aria-label="Ma'lumotlar">
+            <strong>Ma'lumotlar</strong>
+            <a href={openPage("#about-us")} target="_blank" rel="noreferrer">Biz haqimizda</a>
+            <a href="#features">Yo'nalishlar</a>
+            <a href="#contact">Kontaktlar</a>
+            <a href="#policy">Maxfiylik siyosati</a>
+          </nav>
+          <nav aria-label="Xizmatlar">
+            <strong>Xizmatlar</strong>
+            <a href="#filter">Ijaraga ofislar</a>
+            <a href="#filter">Konferensiyalar zali</a>
+            <a href={openPage("#partner-guide")} target="_blank" rel="noreferrer">Hamkor bo'lish</a>
+          </nav>
+          <div>
+            <strong>Ijtimoiy tarmoqlarimiz</strong>
+            <div className="joy-footer-socials">
+              {socials.map(([type, href]) => (
+                <a key={type} href={href} aria-label={type}>
+                  <FooterIcon type={type} />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="joy-footer-bottom">
+          <span>©2026 JOY HUB. Barcha huquqlar himoyalangan.</span>
+          <span>Powered by IT Comfort</span>
+        </div>
+      </div>
+
+      <a href="#contact" className="joy-floating-contact" aria-label="Joyzone bilan bog'lanish">
+        <FooterIcon type="chat" />
+        <span>Yordam kerakmi?</span>
+      </a>
+    </footer>
   );
 }
 
@@ -553,6 +798,8 @@ export default function ListingsSection() {
         <PartnerAgents />
         <BenefitsSection />
         <PartnerStartSection />
+        <ReviewsFaqSection />
+        <JoyFooter />
       </div>
     </section>
   );

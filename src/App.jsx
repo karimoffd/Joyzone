@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { gsap } from "gsap";
-import HomeHero, { Header as JoyNavbar } from "./components/HomeHero.jsx";
+import HomeHero from "./components/HomeHero.jsx";
 import FilterPage from "./components/FilterPage.jsx";
+import PartnerOnboarding from "./components/PartnerOnboarding.jsx";
 import JoySlider from "./components/JoySlider.jsx";
 import SpaceDetail from "./components/SpaceDetail.jsx";
+import AgentDetail from "./components/AgentDetail.jsx";
+import UserProfile, { ProfileQuestionnaireEdit } from "./components/UserProfile.jsx";
+import AccountSettings from "./components/AccountSettings.jsx";
+import HostDashboard from "./components/HostDashboard.jsx";
+import CardVariants from "./components/CardVariants.jsx";
+import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
 import { slides } from "./data/content.js";
 
 function useAuthRoute() {
-  const knownRoutes = new Set(["home", "filter", "register", "login", "forgot", "verify"]);
+  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify"]);
   const readRoute = () => {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
     if (hash.startsWith("space-")) return hash;
+    if (hash.startsWith("agent-")) return hash;
     return knownRoutes.has(hash) ? hash : "home";
   };
   const [route, setRoute] = useState(readRoute);
@@ -182,6 +190,17 @@ function App() {
     );
   }
 
+  if (displayedRoute === "partner") {
+    return (
+      <>
+        <div className="route-screen route-screen-partner app-route-shell">
+          <PartnerOnboarding />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
   if (displayedRoute.startsWith("space-")) {
     return (
       <>
@@ -193,11 +212,109 @@ function App() {
     );
   }
 
+  if (displayedRoute.startsWith("agent-")) {
+    return (
+      <>
+        <div className="route-screen route-screen-agent-detail app-route-shell">
+          <AgentDetail route={displayedRoute} userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "profile") {
+    return (
+      <>
+        <div className="route-screen route-screen-profile app-route-shell">
+          <UserProfile userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "profile-edit") {
+    return (
+      <>
+        <div className="route-screen route-screen-profile-edit app-route-shell">
+          <ProfileQuestionnaireEdit userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "settings") {
+    return (
+      <>
+        <div className="route-screen route-screen-settings app-route-shell">
+          <AccountSettings />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "card-variants") {
+    return (
+      <>
+        <div className="route-screen route-screen-card-variants app-route-shell">
+          <CardVariants />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "about-us") {
+    return (
+      <>
+        <div className="route-screen route-screen-about app-route-shell">
+          <AboutUsPage />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "partner-guide") {
+    return (
+      <>
+        <div className="route-screen route-screen-partner-guide app-route-shell">
+          <PartnerGuidePage />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "footer-variant") {
+    return (
+      <>
+        <div className="route-screen route-screen-footer-variant app-route-shell">
+          <FooterVariantPage />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute.startsWith("host-")) {
+    return (
+      <>
+        <div className="route-screen route-screen-host app-route-shell">
+          <HostDashboard page={displayedRoute.replace("host-", "")} userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
   if (displayedRoute === "verify") {
     return (
       <>
         <div className="auth-page-shell app-route-shell">
-          <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
           <div className="joy-auth-shell flex justify-center">
             <div className="auth-screen-panel joy-card joy-card-center overflow-hidden rounded-[26px]">
               <VerifyCodeForm />
@@ -218,7 +335,6 @@ function App() {
   return (
     <>
       <div className="auth-page-shell app-route-shell">
-        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
         <div className="joy-auth-shell flex justify-center">
           <div className="auth-screen-panel joy-card grid overflow-hidden rounded-[26px] min-[900px]:grid-cols-[49%_51%]">
             {displayedRoute === "register" ? (

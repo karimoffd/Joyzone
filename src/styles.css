@@ -35,7 +35,8 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
 }
 
@@ -924,7 +925,7 @@ select {
   font-weight: 850;
 }
 
-.like-button {
+.save-note-button {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -933,31 +934,29 @@ select {
   width: 32px;
   height: 32px;
   place-items: center;
-  border: 0;
+  border: 1.5px solid #1f78d1;
   border-radius: 999px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(246, 241, 238, 0.88));
-  color: #e46630;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1f78d1;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(7, 20, 35, 0.18);
+  box-shadow: 0 12px 28px rgba(31, 120, 209, 0.18);
   transition:
     background 220ms ease,
+    border-color 220ms ease,
     color 220ms ease,
     transform 220ms ease;
 }
 
-.like-button svg {
-  filter: drop-shadow(0 5px 10px rgba(228, 102, 48, 0.16));
+.save-note-button svg {
+  filter: drop-shadow(0 5px 10px rgba(31, 120, 209, 0.16));
 }
 
-.like-button.is-liked {
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.34), transparent 34%),
-    #e46630;
-  color: #ffffff;
+.save-note-button.is-saved {
+  background: #ffffff;
+  color: #1f78d1;
 }
 
-.like-button:hover {
+.save-note-button:hover {
   transform: translateY(-1px) scale(1.04);
 }
 

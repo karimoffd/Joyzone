@@ -58,6 +58,15 @@ export function HeartIcon({ filled = false }) {
   );
 }
 
+export function NoteIcon({ filled = false }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6.5 4.5h11a1.5 1.5 0 0 1 1.5 1.5v14l-7-3.6L5 20V6a1.5 1.5 0 0 1 1.5-1.5Z" />
+      <path d="M8.7 8.3h6.6M8.7 11.4h4.4" fill="none" />
+    </svg>
+  );
+}
+
 export function LangButton() {
   const getInitialLanguage = () => {
     try {

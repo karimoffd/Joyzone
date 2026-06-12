@@ -1,0 +1,676 @@
+.agent-detail-shell {
+  min-height: 100vh;
+  overflow-x: hidden;
+  --agent-page-gutter: clamp(18px, 5.7vw, 100px);
+  padding: 112px var(--agent-page-gutter) 0;
+  background: #294a6d;
+  color: #12283f;
+}
+
+.agent-detail-shell .joy-header {
+  color: #ffffff;
+}
+
+.agent-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.58fr) minmax(330px, 0.42fr);
+  gap: 16px;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.agent-detail-content {
+  max-width: none;
+  margin: clamp(18px, 2.3vw, 30px) auto 0;
+  border: 1px solid rgba(246, 241, 238, 0.72);
+  border-radius: 28px;
+  background: #ffffff;
+  padding: clamp(18px, 3vw, 42px);
+  box-shadow: 0 18px 46px rgba(2, 14, 27, 0.16);
+}
+
+.agent-hero-card,
+.agent-trust-card,
+.agent-info-tile,
+.agent-detail-section,
+.agent-extra-card,
+.agent-safety-actions {
+  border: 1px solid rgba(246, 241, 238, 0.72);
+  background: #ffffff;
+  box-shadow: 0 18px 46px rgba(2, 14, 27, 0.16);
+}
+
+.agent-hero-card {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.86fr) minmax(0, 1.14fr);
+  gap: clamp(20px, 3vw, 44px);
+  min-height: 438px;
+  padding: clamp(18px, 2vw, 28px);
+  border-radius: 24px;
+}
+
+.agent-hero-photo {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #294a6d;
+}
+
+.agent-hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.agent-hero-card:hover .agent-hero-photo img {
+  transform: scale(1.045);
+}
+
+.agent-hero-photo span {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  max-width: calc(100% - 36px);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #12283f;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 18px 42px rgba(2, 14, 27, 0.2);
+}
+
+.agent-hero-copy {
+  display: grid;
+  align-content: center;
+  gap: 16px;
+  padding: clamp(8px, 2vw, 18px) clamp(4px, 1.4vw, 18px);
+}
+
+.agent-kicker,
+.agent-section-head span,
+.agent-extra-card span {
+  color: #e46630;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agent-hero-copy h1 {
+  color: #12283f;
+  font-size: clamp(42px, 4.4vw, 62px);
+  font-weight: 950;
+  line-height: 0.92;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.agent-hero-copy > p:not(.agent-kicker) {
+  max-width: 560px;
+  color: rgba(18, 40, 63, 0.68);
+  font-size: clamp(17px, 1.3vw, 21px);
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.agent-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.agent-hero-actions a,
+.agent-section-link,
+.agent-show-all-btn {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(41, 74, 109, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #12283f;
+  padding: 0 22px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.agent-hero-actions a:first-child {
+  border-color: #12283f;
+  background: #12283f;
+  color: #ffffff;
+}
+
+.agent-hero-actions a:hover,
+.agent-section-link:hover,
+.agent-show-all-btn:hover {
+  border-color: #e46630;
+  box-shadow: 0 16px 36px rgba(228, 102, 48, 0.16);
+  transform: translateY(-2px);
+}
+
+.agent-trust-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  border-radius: 24px;
+  padding: clamp(22px, 2.4vw, 34px);
+}
+
+.agent-avatar-mark {
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  border-radius: 24px;
+  background: var(--agent-tone);
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 950;
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--agent-tone) 28%, transparent);
+}
+
+.agent-trust-card h2 {
+  color: #12283f;
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: 950;
+  line-height: 1.02;
+}
+
+.agent-rating-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid rgba(41, 74, 109, 0.1);
+  border-bottom: 1px solid rgba(41, 74, 109, 0.1);
+  padding: 16px 0;
+}
+
+.agent-rating-row strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #12283f;
+  font-size: 34px;
+  font-weight: 950;
+}
+
+.agent-rating-row svg,
+.agent-info-tile svg,
+.agent-review-card svg,
+.agent-review-controls svg,
+.agent-safety-actions svg {
+  width: 20px;
+  height: 20px;
+}
+
+.agent-rating-row strong svg,
+.agent-review-card b svg {
+  color: #e46630;
+  fill: rgba(228, 102, 48, 0.12);
+}
+
+.agent-rating-row span {
+  color: rgba(18, 40, 63, 0.62);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.agent-quick-facts {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-quick-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(18, 40, 63, 0.74);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.agent-quick-facts svg {
+  width: 18px;
+  height: 18px;
+  color: #294a6d;
+}
+
+.agent-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid rgba(41, 74, 109, 0.1);
+  border-radius: 20px;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.agent-info-tile {
+  display: grid;
+  gap: 10px;
+  min-height: 132px;
+  border-right: 1px solid rgba(41, 74, 109, 0.1);
+  border-radius: 0;
+  background: transparent;
+  padding: clamp(18px, 2vw, 26px);
+  box-shadow: none;
+  transition:
+    background 220ms ease,
+    border-color 220ms ease;
+}
+
+.agent-info-tile:last-child {
+  border-right: 0;
+}
+
+.agent-info-tile:hover {
+  border-color: rgba(41, 74, 109, 0.1);
+  background: rgba(248, 250, 252, 0.88);
+  box-shadow: none;
+  transform: none;
+}
+
+.agent-info-tile > span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(228, 102, 48, 0.1);
+  color: #e46630;
+}
+
+.agent-info-tile p {
+  color: rgba(18, 40, 63, 0.58);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.agent-info-tile strong {
+  color: #12283f;
+  font-size: clamp(19px, 1.65vw, 27px);
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.agent-detail-section {
+  max-width: none;
+  margin: clamp(24px, 3vw, 42px) 0 0;
+  border: 0;
+  border-top: 1px solid rgba(41, 74, 109, 0.1);
+  border-radius: 0;
+  background: transparent;
+  padding: clamp(22px, 3vw, 42px) 0 0;
+  box-shadow: none;
+}
+
+.agent-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: clamp(18px, 2.4vw, 32px);
+}
+
+.agent-section-head h2,
+.agent-extra-card h2 {
+  margin-top: 6px;
+  color: #12283f;
+  font-size: clamp(30px, 3vw, 46px);
+  font-weight: 950;
+  line-height: 1.02;
+}
+
+.agent-review-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.agent-review-controls button {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid rgba(41, 74, 109, 0.12);
+  border-radius: 999px;
+  background: #f6f1ee;
+  color: #12283f;
+  cursor: pointer;
+  transition:
+    transform 220ms ease,
+    background 220ms ease,
+    color 220ms ease;
+}
+
+.agent-review-controls button:first-child svg {
+  transform: rotate(180deg);
+}
+
+.agent-review-controls button:hover {
+  background: #12283f;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.agent-review-window {
+  overflow: hidden;
+}
+
+.agent-review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.8vw, 22px);
+  will-change: transform, opacity;
+}
+
+.agent-review-grid.is-expanded {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  animation: agentReviewsOpen 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.agent-review-grid.is-moving-next {
+  animation: agentReviewsNext 520ms cubic-bezier(0.18, 0.9, 0.2, 1);
+}
+
+.agent-review-grid.is-moving-prev {
+  animation: agentReviewsPrev 520ms cubic-bezier(0.18, 0.9, 0.2, 1);
+}
+
+.agent-review-card {
+  display: grid;
+  align-content: space-between;
+  gap: 18px;
+  min-height: 226px;
+  border: 1px solid rgba(41, 74, 109, 0.1);
+  border-radius: 18px;
+  background: #f8fafc;
+  padding: clamp(18px, 2vw, 24px);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease;
+}
+
+.agent-review-card:hover {
+  border-color: rgba(228, 102, 48, 0.32);
+  background: #ffffff;
+  transform: translateY(-3px);
+}
+
+.agent-review-card div {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.agent-review-card strong {
+  color: #12283f;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.agent-review-card div span {
+  flex: 0 0 auto;
+  color: rgba(18, 40, 63, 0.5);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.agent-review-card p {
+  color: rgba(18, 40, 63, 0.72);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.agent-review-card b {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: rgba(228, 102, 48, 0.1);
+  color: #12283f;
+  padding: 8px 11px;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.agent-show-all-btn {
+  margin: 24px auto 0;
+}
+
+.agent-listings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(14px, 1.6vw, 22px);
+}
+
+.agent-extra-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: clamp(16px, 2vw, 24px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: clamp(22px, 3vw, 42px) 0 0;
+}
+
+.agent-extra-card,
+.agent-safety-actions {
+  border-radius: 24px;
+  padding: clamp(24px, 3vw, 40px);
+  border-color: rgba(41, 74, 109, 0.1);
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.agent-extra-card p {
+  max-width: 760px;
+  margin-top: 14px;
+  color: rgba(18, 40, 63, 0.68);
+  font-size: clamp(16px, 1.15vw, 19px);
+  font-weight: 650;
+  line-height: 1.6;
+}
+
+.agent-safety-actions {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.agent-safety-actions button {
+  display: inline-flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(41, 74, 109, 0.14);
+  border-radius: 16px;
+  background: #ffffff;
+  color: #12283f;
+  padding: 0 18px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease;
+}
+
+.agent-safety-actions button:first-child {
+  color: #c4332c;
+}
+
+.agent-safety-actions button:hover {
+  border-color: #e46630;
+  transform: translateY(-2px);
+}
+
+.agent-detail-shell .joy-footer-section {
+  margin-top: clamp(42px, 5vw, 72px);
+}
+
+@keyframes agentReviewsNext {
+  0% {
+    opacity: 0;
+    transform: translateX(42px) scale(0.985);
+    filter: blur(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agentReviewsPrev {
+  0% {
+    opacity: 0;
+    transform: translateX(-42px) scale(0.985);
+    filter: blur(8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes agentReviewsOpen {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1180px) {
+  .agent-detail-hero,
+  .agent-extra-section {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-profile-grid,
+  .agent-listings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agent-info-tile {
+    border-bottom: 1px solid rgba(41, 74, 109, 0.1);
+  }
+
+  .agent-info-tile:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .agent-info-tile:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 860px) {
+  .agent-detail-shell {
+    --agent-page-gutter: 14px;
+    padding-top: 92px;
+  }
+
+  .agent-hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-hero-photo {
+    min-height: 280px;
+  }
+
+  .agent-profile-grid,
+  .agent-review-grid,
+  .agent-review-grid.is-expanded,
+  .agent-listings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-section-head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .agent-review-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 560px) {
+  .agent-detail-shell {
+    padding-bottom: 0;
+  }
+
+  .agent-hero-card,
+  .agent-trust-card,
+  .agent-detail-section,
+  .agent-extra-card,
+  .agent-safety-actions {
+    border-radius: 22px;
+  }
+
+  .agent-hero-copy h1 {
+    font-size: 42px;
+  }
+
+  .agent-hero-actions,
+  .agent-hero-actions a,
+  .agent-section-link,
+  .agent-show-all-btn {
+    width: 100%;
+  }
+
+  .agent-rating-row {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-info-tile {
+    min-height: 132px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(41, 74, 109, 0.1);
+  }
+
+  .agent-info-tile:nth-last-child(-n + 2) {
+    border-bottom: 1px solid rgba(41, 74, 109, 0.1);
+  }
+
+  .agent-info-tile:last-child {
+    border-bottom: 0;
+  }
+
+  .agent-review-card div {
+    display: grid;
+  }
+}

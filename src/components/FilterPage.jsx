@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
-import { PropertyCard } from "./ListingsSection.jsx";
+import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
 import "./FilterPage.css";
 import "./ListingsSection.css";
@@ -256,6 +256,8 @@ export default function FilterPage({ userState, setUserState }) {
           </div>
         )}
       </section>
+
+      <JoyFooter />
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import JoySlider from "./JoySlider.jsx";
 import ListingsSection from "./ListingsSection.jsx";
@@ -12,6 +13,13 @@ const navLinks = [
   { href: "#guide", label: "Yoriqnoma" },
   { href: "#services", label: "Kontaktlar" },
   { href: "#contacts", label: "Kontaktlar" }
+];
+
+const dashboardNavLinks = [
+  { href: "#host-today", label: "Сегодня" },
+  { href: "#host-calendar", label: "График" },
+  { href: "#host-listings", label: "Мои места" },
+  { href: "#host-messages", label: "Диалоги" }
 ];
 
 const tabs = [
@@ -75,11 +83,13 @@ function MenuIcon({ open = false }) {
   );
 }
 
-export function Header({ userState, setUserState, activeIndex = 0 }) {
+export function Header({ userState, setUserState, activeIndex = 0, variant = "default" }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navRef = useRef(null);
   const waveRef = useRef(null);
   const headerRef = useRef(null);
+  const isDashboard = variant === "dashboard";
+  const navigationLinks = isDashboard ? dashboardNavLinks : navLinks;
 
   useEffect(() => {
     const nav = navRef.current;
@@ -97,20 +107,32 @@ export function Header({ userState, setUserState, activeIndex = 0 }) {
         ease: "power3.out"
       });
     };
-    moveWave(links[activeIndex]);
-    links.forEach((link) => link.addEventListener("mouseenter", () => moveWave(link)));
-    nav.addEventListener("mouseleave", () => moveWave(links[activeIndex]));
-  }, []);
+    const activeLink = activeIndex >= 0 ? links[Math.min(activeIndex, links.length - 1)] : null;
+    moveWave(activeLink);
+    const listeners = [];
+    links.forEach((link) => {
+      const listener = () => moveWave(link);
+      link.addEventListener("mouseenter", listener);
+      listeners.push([link, listener]);
+    });
+    const leaveListener = () => moveWave(activeLink);
+    nav.addEventListener("mouseleave", leaveListener);
+    return () => {
+      listeners.forEach(([link, listener]) => link.removeEventListener("mouseenter", listener));
+      nav.removeEventListener("mouseleave", leaveListener);
+    };
+  }, [activeIndex, navigationLinks]);
 
   useEffect(() => {
     gsap.fromTo(headerRef.current, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" });
   }, []);
 
-  const statusLabel = userState.isAuthed ? (userState.isPartner ? "Partner" : "Profil") : "Kirish";
+  const statusLabel = isDashboard ? "Home" : userState.isAuthed ? (userState.isPartner ? "Partner" : "Profil") : "Kirish";
+  const statusHref = isDashboard ? "#home" : userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login";
 
   return (
     <>
-      <header ref={headerRef} className="joy-header">
+      <header ref={headerRef} className={`joy-header ${isDashboard ? "joy-header-dashboard" : ""}`}>
         <div className="container-fluid">
           <div className="nav-hover-zone">
             <nav className="navbar d-flex justify-content-between align-items-center">
@@ -120,7 +142,7 @@ export function Header({ userState, setUserState, activeIndex = 0 }) {
 
               <div className="nav-center" ref={navRef}>
                 <span className="nav-wave" ref={waveRef} />
-                {navLinks.map((link, index) => (
+                {navigationLinks.map((link, index) => (
                   <a key={`${link.label}-${index}`} href={link.href} className={`nav-link ${index === activeIndex ? "active" : ""}`}>
                     {link.label}
                   </a>
@@ -128,7 +150,7 @@ export function Header({ userState, setUserState, activeIndex = 0 }) {
               </div>
 
               <div className="nav-right">
-                <a className="login-button btn-shine" href={userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login"}>
+                <a className="login-button btn-shine" href={statusHref}>
                   {statusLabel}
                 </a>
                 <button className={`burger-menu ${isMenuOpen ? "open" : ""}`} type="button" onClick={() => setIsMenuOpen(true)} aria-label="Menyuni ochish">
@@ -139,100 +161,304 @@ export function Header({ userState, setUserState, activeIndex = 0 }) {
           </div>
         </div>
       </header>
-      <SideDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} userState={userState} setUserState={setUserState} />
+      <SideDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} userState={userState} setUserState={setUserState} variant={variant} />
     </>
   );
 }
 
-function SideDrawer({ open, onClose, userState, setUserState }) {
-  const drawerRef = useRef(null);
+const menuNavLinks = [
+  { href: "#about",    label: "Biz haqimizda", num: "01", desc: "Kompaniya haqida batafsil ma'lumot" },
+  { href: "#filter",   label: "Ijaraga joylar", num: "02", desc: "Barcha turdagi ofis va kovorkinglar" },
+  { href: "#guide",    label: "Yo'riqnoma",    num: "03", desc: "Platformadan foydalanish qoidalari" },
+  { href: "#contacts", label: "Kontaktlar",    num: "04", desc: "Biz bilan tezkor bog'lanish" },
+];
+
+const dashboardMenuLinks = [
+  { href: "#host-today", label: "Сегодня", num: "01", desc: "Брони, задачи и быстрые действия на день" },
+  { href: "#host-calendar", label: "График", num: "02", desc: "Цены, скидки и доступность пространств" },
+  { href: "#host-listings", label: "Мои места", num: "03", desc: "Объявления, статусы и публикация" },
+  { href: "#host-messages", label: "Диалоги", num: "04", desc: "Чаты с резидентами и командами" }
+];
+
+const profileMenuLinks = [
+  { href: "#profile", label: "Profil", num: "01", desc: "Anketa, bronlar va saqlangan joylar" },
+  { href: "#settings", label: "Sozlamalar", num: "02", desc: "Akkaunt, xavfsizlik va bildirishnomalar" },
+  { href: "#filter", label: "Joy topish", num: "03", desc: "Ofis, kovorking va zallar katalogi" },
+  { href: "#home", label: "Bosh sahifa", num: "04", desc: "Joyzone asosiy sahifasiga qaytish" }
+];
+
+function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
+  const overlayRef = useRef(null);
+  const bgRef = useRef(null);
+  const tlRef = useRef(null);
+  const isDashboard = variant === "dashboard";
+  const drawerLinks = isDashboard ? profileMenuLinks : menuNavLinks;
 
   useEffect(() => {
-    if (!drawerRef.current) return;
-    gsap.to(drawerRef.current, {
-      x: open ? 0 : "104%",
-      opacity: open ? 1 : 0,
-      duration: 0.42,
-      ease: "power3.out"
-    });
+    const overlay = overlayRef.current;
+    const bg = bgRef.current;
+    if (!overlay || !bg) return;
+
+    if (open) {
+      gsap.set(overlay, { display: "flex", pointerEvents: "auto" });
+      document.body.style.overflow = "hidden";
+
+      tlRef.current = gsap.timeline({ defaults: { ease: "power4.out" } });
+      // Glassmorphic fade in
+      tlRef.current.fromTo(overlay, { opacity: 0, backdropFilter: "blur(0px)" }, { opacity: 1, backdropFilter: "blur(12px)", duration: 0.4 })
+                   .fromTo(bg, { x: "100%", opacity: 0 }, { x: "0%", opacity: 1, duration: 0.6 }, "-=0.2");
+      
+      // Staggered reveal for menu items
+      tlRef.current.fromTo(".premium-nav-item", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1 }, "-=0.3");
+      tlRef.current.fromTo(".premium-block", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1 }, "-=0.4");
+    } else {
+      document.body.style.overflow = "";
+      gsap.to(bg, {
+        x: "100%",
+        opacity: 0,
+        duration: 0.4,
+        ease: "power3.in",
+      });
+      gsap.to(overlay, {
+        opacity: 0,
+        backdropFilter: "blur(0px)",
+        duration: 0.4,
+        ease: "power3.in",
+        delay: 0.1,
+        onComplete: () => gsap.set(overlay, { display: "none", pointerEvents: "none" }),
+      });
+    }
   }, [open]);
 
-  const title = userState.isAuthed ? (userState.isPartner ? "Partner kabineti" : "Shaxsiy profil") : "Joyzone hisobingiz";
-  const status = userState.isAuthed ? (userState.isPartner ? "Partner akkaunt" : "Mijoz akkaunti") : "Mehmon rejimi";
-  const primary = userState.isAuthed
-    ? [
-        { label: userState.isPartner ? "Partner kabineti" : "Profilga o'tish", href: userState.isPartner ? "#partner" : "#profile" },
-        { label: "Bronlarim", href: "#bookings" },
-        userState.isPartner ? { label: "Joylarim", href: "#spaces" } : { label: "Partner bo'lish", href: "#partner-start" }
-      ]
-    : [
-        { label: "Kirish", href: "#login" },
-        { label: "Ro'yxatdan o'tish", href: "#register" },
-        { label: "Partner bo'lish", href: "#partner-start" }
-      ];
+  useEffect(() => () => { document.body.style.overflow = ""; }, []);
 
-  return (
-    <>
-      <button type="button" className={`drawer-shade ${open ? "is-visible" : ""}`} onClick={onClose} aria-label="Menyuni yopish" />
-      <aside ref={drawerRef} className="side-drawer" aria-hidden={open ? "false" : "true"}>
-        <div className="drawer-top">
-          <img className="drawer-logo" src={logoImage} alt="Joyzone" />
-          <button type="button" className="drawer-close" onClick={onClose} aria-label="Menyuni yopish">
-            x
-          </button>
+  return createPortal(
+    <div
+      ref={overlayRef}
+      className="premium-menu-overlay"
+      style={{ display: "none", pointerEvents: "none" }}
+      onClick={onClose}
+    >
+      <div ref={bgRef} className="premium-menu-container" onClick={(e) => e.stopPropagation()}>
+        
+        {/* Header with Close */}
+        <div className="premium-menu-header">
+          <img src={logoImage} alt="Joyzone" className="premium-menu-logo" />
+          <div className="premium-menu-close-btn" onClick={onClose} title="Yopish">
+            <span className="close-text">Yopish</span>
+            <div className="close-icon">✕</div>
+          </div>
         </div>
-        <div className="drawer-status">
-          <span>{status}</span>
-          <strong>{title}</strong>
-          <p>{userState.isAuthed ? "Profil, bronlar va joylaringiz menyudan boshqariladi." : "Kirish, ro'yxatdan o'tish va partnerlik imkoniyatlari shu yerda."}</p>
+
+        <div className="premium-menu-content">
+          {/* Left: Main Navigation */}
+          <div className="premium-menu-nav">
+	            <p className="premium-section-title">{isDashboard ? "Profil menyusi" : "Asosiy menyu"}</p>
+            <nav className="premium-nav-list">
+              {drawerLinks.map((link) => (
+                <a key={link.href} href={link.href} className="premium-nav-item" onClick={onClose}>
+                  <span className="nav-num">{link.num}</span>
+                  <div className="nav-text-wrapper">
+                    <span className="nav-label">{link.label}</span>
+                    <span className="nav-desc">{link.desc}</span>
+                  </div>
+                </a>
+              ))}
+            </nav>
+          </div>
+
+          {/* Right: Info Blocks */}
+	          <div className={`premium-menu-info ${isDashboard ? "is-profile-menu" : "is-home-menu"}`}>
+	            <div className="profile-menu-only premium-block profile-account-block">
+	              <div className="profile-menu-avatar">AK</div>
+	              <div>
+	                <p className="premium-section-title">Shaxsiy kabinet</p>
+	                <h3>Aziz Karimov</h3>
+	                <p>Profil anketasi, sozlamalar, bron tarixi va saqlangan joylar bitta joyda.</p>
+	              </div>
+	              <div className="profile-menu-actions">
+	                <a href="#profile" className="premium-btn primary" onClick={onClose}>
+	                  Profilni ochish
+	                </a>
+	                <a href="#settings" className="premium-btn outline" onClick={onClose}>
+	                  Sozlamalar
+	                </a>
+	              </div>
+	            </div>
+
+	            <div className="profile-menu-only profile-dashboard-grid">
+	              <a href="#profile" className="premium-block profile-quick-card" onClick={onClose}>
+	                <span>01</span>
+	                <h3>Anketa</h3>
+	                <p>Shaxsiy ma'lumotlar va Joyzone profilini to'ldirish.</p>
+	              </a>
+	              <a href="#settings" className="premium-block profile-quick-card" onClick={onClose}>
+	                <span>02</span>
+	                <h3>Akkaunt sozlamalari</h3>
+	                <p>Xavfsizlik, aloqa, til, to'lov va bildirishnomalar.</p>
+	              </a>
+	              <a href="#filter" className="premium-block profile-quick-card" onClick={onClose}>
+	                <span>03</span>
+	                <h3>Joy qidirish</h3>
+	                <p>Yangi ofis, kovorking yoki zalni tez topish.</p>
+	              </a>
+	              <button className="premium-block profile-quick-card profile-logout-card" onClick={() => { setUserState({ isAuthed: false, isPartner: false }); onClose(); }}>
+	                <span>04</span>
+	                <h3>Chiqish</h3>
+	                <p>Akkauntdan chiqish va bosh sahifaga qaytish.</p>
+	              </button>
+	            </div>
+	            
+	            {/* Partner Block */}
+            <div className="premium-block partner-block">
+              <div className="partner-content">
+                <div className="partner-badge">Hamkorlik</div>
+	                <h3>{isDashboard ? "Kabinetni boshqaring" : "Joyingizni ijaraga bering"}</h3>
+	                <p>{isDashboard ? "Barcha bronlar, narxlar, e'lonlar va dialoglar bitta boshqaruv maydonida." : "Joyzone tizimiga qo'shiling va o'z ofis, kovorking yoki zallaringizni ijaraga berib, barqaror daromad toping."}</p>
+	                <a href={isDashboard ? "#profile" : "#partner-start"} className="premium-btn primary" onClick={onClose}>
+	                  {isDashboard ? "Profilga o'tish" : "Hamkor bo'lish"}
+                  <span className="btn-arrow">→</span>
+                </a>
+              </div>
+              <div className="partner-bg-shape"></div>
+            </div>
+
+            <div className="premium-info-grid">
+              {/* Contacts Block */}
+              <div className="premium-block contacts-block">
+                <p className="premium-section-title">Kontaktlar</p>
+                <div className="contact-items">
+                  <a href="tel:+998711234567" className="contact-link">
+                    <div className="contact-icon-wrapper">📞</div>
+                    <div className="contact-text">
+                      <span className="contact-hint">Telefon</span>
+                      <span className="contact-val">+998 71 123 45 67</span>
+                    </div>
+                  </a>
+                  <a href="mailto:info@joyzone.uz" className="contact-link">
+                    <div className="contact-icon-wrapper">✉️</div>
+                    <div className="contact-text">
+                      <span className="contact-hint">E-mail</span>
+                      <span className="contact-val">info@joyzone.uz</span>
+                    </div>
+                  </a>
+                  <div className="contact-link location">
+                    <div className="contact-icon-wrapper">📍</div>
+                    <div className="contact-text">
+                      <span className="contact-hint">Manzil</span>
+                      <span className="contact-val">Toshkent sh., Chilonzor 12</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social & User Block */}
+              <div className="premium-block user-block">
+                <p className="premium-section-title">Profil va faollik</p>
+                
+                {userState.isAuthed ? (
+                  <div className="profile-stats">
+                    <div className="stat-item">
+                      <span className="stat-icon">❤️</span>
+                      <div className="stat-text">
+                        <span className="stat-label">Saqlanganlar</span>
+                        <span className="stat-val">12 ta joy</span>
+                      </div>
+                    </div>
+                    <div className="stat-item">
+                      <span className="stat-icon">📅</span>
+                      <div className="stat-text">
+                        <span className="stat-label">Mening bandlarim</span>
+                        <span className="stat-val">2 ta faol</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="guest-promo">
+                    <p>Platformaning barcha imkoniyatlaridan foydalanish uchun ro'yxatdan o'ting.</p>
+                  </div>
+                )}
+
+                <div className="social-links" style={{ marginTop: '16px' }}>
+                  <a href="#tg" className="social-btn tg">Telegram</a>
+                  <a href="#ig" className="social-btn ig">Instagram</a>
+                  <a href="#fb" className="social-btn fb">Facebook</a>
+                </div>
+                
+	                  <div className="user-actions">
+	                  {userState.isAuthed ? (
+	                    <>
+	                      <a href={userState.isPartner ? "#partner" : "#profile"} className="premium-btn outline" onClick={onClose}>
+	                        Shaxsiy kabinet
+	                      </a>
+	                      <a href="#settings" className="premium-btn outline" onClick={onClose}>
+	                        Sozlamalar
+	                      </a>
+	                      <button className="premium-btn ghost" onClick={() => { setUserState({ isAuthed: false, isPartner: false }); onClose(); }}>
+	                        Chiqish
+	                      </button>
+	                    </>
+                  ) : (
+                    <>
+                      <a href="#login" className="premium-btn primary" onClick={onClose}>
+                        Tizimga kirish
+                      </a>
+                      <a href="#register" className="premium-btn outline" onClick={onClose}>
+                        Ro'yxatdan o'tish
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
-        <div className="drawer-links">
-          {primary.map((item, index) => (
-            <a key={item.label} href={item.href} className={`drawer-link ${index === 0 ? "is-primary" : ""}`} onClick={onClose}>
-              {item.label}
-              <span>{"->"}</span>
-            </a>
-          ))}
-        </div>
-        <div className="drawer-nav">
-          {navLinks.slice(0, 4).map((item) => (
-            <a key={item.label} href={item.href} onClick={onClose}>
-              {item.label}
-            </a>
-          ))}
-        </div>
-        <div className="drawer-actions">
-          {userState.isAuthed ? (
-            <>
-              <button type="button" onClick={() => { window.location.hash = userState.isPartner ? "partner" : "profile"; onClose(); }}>
-                {userState.isPartner ? "Kabinet" : "Profil"}
-              </button>
-              <button type="button" onClick={() => setUserState({ isAuthed: false, isPartner: false })}>
-                Chiqish
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" onClick={() => { window.location.hash = "login"; onClose(); }}>
-                Kirish
-              </button>
-              <button type="button" onClick={() => { window.location.hash = "partner-start"; onClose(); }}>
-                Partner
-              </button>
-            </>
-          )}
-        </div>
-      </aside>
-    </>
+      </div>
+    </div>,
+    document.body
   );
 }
 
 function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {
   const [value, setValue] = useState("");
+  const [openAbove, setOpenAbove] = useState(false);
+  const containerRef = useRef(null);
   const isOpen = openFilter === name;
 
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+
+    const timer = setTimeout(() => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const dropdownHeight = 170; // approximate height of dropdown
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      // Open above if not enough space below (with buffer)
+      setOpenAbove(spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpenFilter(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, setOpenFilter]);
+
   return (
-    <div className={`filter-select ${isOpen ? "open" : ""} ${value ? "has-value" : ""}`}>
+    <div ref={containerRef} className={`filter-select ${isOpen ? "open" : ""} ${value ? "has-value" : ""} ${openAbove ? "open-above" : ""}`}>
       <div className="filter-header" onClick={() => setOpenFilter(isOpen ? null : name)}>
         <span className="filter-label">{label}</span>
         <span className="filter-value">{value} {unit}</span>
@@ -325,6 +551,7 @@ function Banner({ slides }) {
   const [cursorVisible, setCursorVisible] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [isLocationOpen, setIsLocationOpen] = useState(false);
+  const [locationOpenAbove, setLocationOpenAbove] = useState(false);
   const [openFilter, setOpenFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const typingRef = useRef(null);
@@ -332,7 +559,40 @@ function Banner({ slides }) {
   const wordIndexRef = useRef(0);
   const charIndexRef = useRef(7);
   const isDeletingRef = useRef(false);
+  const locationSelectRef = useRef(null);
   const words = ["ofislar", "kovorking", "zallar", "joylar"];
+
+  // Handle location dropdown position
+  useEffect(() => {
+    if (!isLocationOpen || !locationSelectRef.current) return;
+
+    const timer = setTimeout(() => {
+      const rect = locationSelectRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const dropdownHeight = 250; // approximate height of location dropdown
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      setLocationOpenAbove(spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [isLocationOpen]);
+
+  // Handle click outside for location dropdown
+  useEffect(() => {
+    if (!isLocationOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (locationSelectRef.current && !locationSelectRef.current.contains(event.target)) {
+        setIsLocationOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isLocationOpen]);
 
   useEffect(() => {
     const cursorInterval = window.setInterval(() => setCursorVisible((current) => !current), 530);
@@ -422,7 +682,7 @@ function Banner({ slides }) {
                   </div>
 
                   <div className="custom-select-wrapper">
-                    <div className={`custom-select ${isLocationOpen ? "open" : ""}`}>
+                    <div ref={locationSelectRef} className={`custom-select ${isLocationOpen ? "open" : ""} ${locationOpenAbove ? "open-above" : ""}`}>
                       <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
                         <img height="38" src={kvIcon} alt="" />
                         <span>{selectedLocation || "Manzilni tanlang"}</span>
@@ -467,32 +727,17 @@ function Banner({ slides }) {
 
 export default function HomeHero({ userState, setUserState, slides }) {
   useEffect(() => {
-    gsap.fromTo(".joy-header, .banner .info, .banner .img-slider, .infoForReg", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
+    gsap.fromTo(".joy-header > .container-fluid, .banner .info, .banner .img-slider, .infoForReg", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
 
     const hero = document.querySelector(".home-viewport");
     const image = document.querySelector(".banner .img-slider");
     const info = document.querySelector(".banner .info");
     const promo = document.querySelector(".infoForReg");
-    const handlePointer = (event) => {
-      if (!hero || window.matchMedia("(max-width: 1180px)").matches) return;
-      const rect = hero.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width - 0.5;
-      const y = (event.clientY - rect.top) / rect.height - 0.5;
-      gsap.to(image, { x: x * 16, y: y * 12, scale: 1.012, duration: 0.7, ease: "power3.out" });
-      gsap.to(info, { x: x * -8, y: y * -6, duration: 0.7, ease: "power3.out" });
-      gsap.to(promo, { x: x * 10, y: y * 5, duration: 0.7, ease: "power3.out" });
-    };
-    const resetPointer = () => {
-      gsap.to([image, info, promo], { x: 0, y: 0, scale: 1, duration: 0.8, ease: "power3.out" });
-    };
-    hero?.addEventListener("pointermove", handlePointer);
-    hero?.addEventListener("pointerleave", resetPointer);
 
     const listings = document.querySelector(".listings-section");
     if (!listings) {
       return () => {
-        hero?.removeEventListener("pointermove", handlePointer);
-        hero?.removeEventListener("pointerleave", resetPointer);
+        // Cleanup
       };
     }
     let snapTween;
@@ -544,8 +789,6 @@ export default function HomeHero({ userState, setUserState, slides }) {
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
-      hero?.removeEventListener("pointermove", handlePointer);
-      hero?.removeEventListener("pointerleave", resetPointer);
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("scroll", handleScroll);
       snapTween?.kill();
@@ -554,8 +797,8 @@ export default function HomeHero({ userState, setUserState, slides }) {
 
   return (
     <main className="home-shell">
+      <Header userState={userState} setUserState={setUserState} activeIndex={0} />
       <div className="home-viewport">
-        <Header userState={userState} setUserState={setUserState} activeIndex={0} />
         <Banner slides={slides} />
       </div>
       <ListingsSection />
