@@ -1,0 +1,62 @@
+[
+  {
+    "id": "user-1781774296896",
+    "name": "aziz.karimov",
+    "email": "aziz.karimov@mail.com",
+    "role": "User",
+    "isOnline": true,
+    "lastLogin": "2026-06-18T09:18:16.896Z",
+    "created_at": "2026-06-18T09:18:16.896Z"
+  },
+  {
+    "id": "user-1781518462233",
+    "name": "Yangi Foydalanuvchi",
+    "email": "new_user@joyzone.uz",
+    "role": "User",
+    "isOnline": false,
+    "lastLogin": "2026-06-15T10:14:22.233Z",
+    "created_at": "2026-06-15T10:14:22.233Z"
+  },
+  {
+    "id": "user-1781518136078",
+    "name": "diyorkarimov083",
+    "email": "diyorkarimov083@gmail.com",
+    "role": "User",
+    "isOnline": true,
+    "lastLogin": "2026-06-18T10:13:07.508Z",
+    "created_at": "2026-06-15T10:08:56.078Z"
+  },
+  {
+    "id": "user-1781517957824",
+    "name": "verify_tester",
+    "email": "verify_tester@joyzone.uz",
+    "role": "User",
+    "isOnline": true,
+    "lastLogin": "2026-06-15T10:05:57.824Z",
+    "created_at": "2026-06-15T10:05:57.824Z"
+  },
+  {
+    "id": "user-1",
+    "name": "Shaxzod A.",
+    "email": "shaxzod@joyzone.uz",
+    "role": "Dizayner",
+    "isOnline": false,
+    "lastLogin": "2026-06-15T09:00:58.216Z"
+  },
+  {
+    "id": "user-2",
+    "name": "Malika Toshkent",
+    "email": "malika@joyzone.uz",
+    "role": "Tashkilotchi",
+    "isOnline": false,
+    "lastLogin": "2026-06-15T08:00:58.216Z"
+  },
+  {
+    "id": "user-3",
+    "name": "sardor",
+    "email": "sardor@joyzone.uz",
+    "role": "Developer",
+    "isOnline": true,
+    "lastLogin": "2026-06-15T10:14:02.197Z"
+  }
+]

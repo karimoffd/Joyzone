@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Logo, GoogleIcon, ChevronIcon, CheckIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
 
-
 function AuthTitle({ title, accent = "", centered = false, compact = false }) {
   return (
     <h1 className={`${centered ? "text-center" : ""} ${compact ? "text-[33px] xl:text-[42px] min-[1400px]:text-[48px]" : "text-[37px] sm:text-[40px] xl:text-[50px] min-[1400px]:text-[64px]"} font-extrabold leading-[0.95] tracking-normal text-joyBlue`}>
@@ -20,8 +19,8 @@ function AuthSubtitle({ children, centered = false }) {
   );
 }
 
-function TextInput({ placeholder, type = "text", autoComplete }) {
-  return <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder={placeholder} type={type} autoComplete={autoComplete} />;
+function TextInput({ placeholder, type = "text", autoComplete, value, onChange }) {
+  return <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder={placeholder} type={type} autoComplete={autoComplete} value={value} onChange={onChange} />;
 }
 
 function PrimaryButton({ children, type = "button", onClick }) {
@@ -118,12 +117,19 @@ export function AuthForm({ onRegister }) {
 }
 
 export function LoginForm({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const handleLogin = (event) => {
     if (event) {
       event.preventDefault();
     }
+    if (!email) return;
+
+    const name = email.split("@")[0] || "Foydalanuvchi";
+
     if (typeof onLogin === "function") {
-      onLogin();
+      onLogin({ name, email });
     } else {
       window.location.hash = "#home";
     }
@@ -136,8 +142,21 @@ export function LoginForm({ onLogin }) {
         <AuthSubtitle>Joyzone hisobingizga kiring va bronlaringizni bir joydan boshqaring.</AuthSubtitle>
       </div>
       <form onSubmit={handleLogin} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
-        <TextInput placeholder="Email | Telefon raqami" autoComplete="email" />
-        <TextInput placeholder="Parol" type="password" autoComplete="current-password" />
+        <TextInput
+          placeholder="Email | Telefon raqami"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <TextInput
+          placeholder="Parol"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <div className="auth-motion-item text-right text-[10px] font-extrabold xl:text-[12px] min-[1400px]:text-[14px]">
           <a href="#forgot" className="auth-link">Parolni unutdingizmi?</a>
         </div>

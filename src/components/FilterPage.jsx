@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
+import axios from "axios";
+import { sendClientAction } from "../socket.js";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
@@ -90,6 +92,37 @@ function ProductSkeletonGrid() {
 export default function FilterPage({ userState, setUserState }) {
   const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], workspace: [], category: [], extra: [] });
   const [loading, setLoading] = useState(true);
+  const [spaces, setSpaces] = useState(propertyCards);
+
+  // Fetch spaces from API on mount
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/spaces")
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setSpaces(res.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("REST API orqali joylarni yuklab bo'lmadi, mock ma'lumotlar ishlatilmoqda:", err.message);
+      });
+  }, []);
+
+  // Send search action log to WebSocket server when filters change (debounced)
+  useEffect(() => {
+    const activeFilters = [];
+    if (filters.search) activeFilters.push(`nomi: "${filters.search}"`);
+    if (filters.location.length) activeFilters.push(`manzil: ${filters.location.join(', ')}`);
+    if (filters.workspace.length) activeFilters.push(`tur: ${filters.workspace.join(', ')}`);
+    if (filters.price.length) activeFilters.push(`narx: ${filters.price.join(', ')}`);
+    
+    const queryDescription = activeFilters.join(' | ') || 'Barcha joylar';
+
+    const delayDebounce = setTimeout(() => {
+      sendClientAction("search", { query: queryDescription });
+    }, 850);
+
+    return () => clearTimeout(delayDebounce);
+  }, [filters.search, filters.location, filters.price, filters.workspace]);
 
   useEffect(() => {
     setLoading(true);
@@ -98,19 +131,24 @@ export default function FilterPage({ userState, setUserState }) {
   }, [filters]);
 
   const filteredCards = useMemo(() => {
-    return propertyCards.filter((item) => {
+    return spaces.filter((item) => {
       const searchTerm = filters.search.trim().toLowerCase();
       if (searchTerm) {
-        const matchText = [item.title, item.location, item.category, item.price].join(" ").toLowerCase();
+        // Handle name or title, category or type
+        const itemTitle = item.title || item.name || "";
+        const itemCategory = item.category || item.type || "";
+        const matchText = [itemTitle, item.location, itemCategory, item.price].join(" ").toLowerCase();
         if (!matchText.includes(searchTerm)) return false;
       }
       if (filters.location.length && !filters.location.includes(item.location)) return false;
-      if (filters.workspace.length && !filters.workspace.includes(item.category)) return false;
+      
+      const itemCategory = item.category || item.type || "";
+      if (filters.workspace.length && !filters.workspace.includes(itemCategory)) return false;
       if (filters.category.length) {
         const categoryMap = {
-          "Bron": () => item.category !== "Tadbir joyi",
-          "Kovorking zal": () => item.category === "Kovorking",
-          "Muzokara xona": () => ["Konferensiya", "Kovorking"].includes(item.category),
+          "Bron": () => itemCategory !== "Tadbir joyi",
+          "Kovorking zal": () => itemCategory === "Kovorking",
+          "Muzokara xona": () => ["Konferensiya", "Kovorking"].includes(itemCategory),
         };
         const matches = filters.category.some((cat) => categoryMap[cat] ? categoryMap[cat]() : true);
         if (!matches) return false;
@@ -148,7 +186,7 @@ export default function FilterPage({ userState, setUserState }) {
       }
       return true;
     });
-  }, [filters]);
+  }, [filters, spaces]);
 
   const clearFilters = () => {
     setFilters({ search: "", location: [], price: [], capacity: [], workspace: [], category: [], extra: [] });

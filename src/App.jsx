@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
 import FilterPage from "./components/FilterPage.jsx";
@@ -10,13 +11,14 @@ import UserProfile, { ProfileQuestionnaireEdit } from "./components/UserProfile.
 import AccountSettings from "./components/AccountSettings.jsx";
 import HostDashboard from "./components/HostDashboard.jsx";
 import CardVariants from "./components/CardVariants.jsx";
+import AdminDashboardIntegration from "../admin-dashboard-example/admin-integration.jsx";
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
 import { slides } from "./data/content.js";
 
 function useAuthRoute() {
-  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify"]);
+  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify", "admin"]);
   const readRoute = () => {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
     if (hash.startsWith("space-")) return hash;
@@ -39,20 +41,35 @@ function useUserState() {
     try {
       return {
         isAuthed: localStorage.getItem("joyzone-auth") === "true",
-        isPartner: localStorage.getItem("joyzone-role") === "partner"
+        isPartner: localStorage.getItem("joyzone-role") === "partner",
+        name: localStorage.getItem("joyzone-name") || "Mehmon",
+        email: localStorage.getItem("joyzone-email") || ""
       };
     } catch (error) {
-      return { isAuthed: false, isPartner: false };
+      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "" };
     }
   };
 
   const [state, setState] = useState(readState);
 
   const updateState = (nextState) => {
+    // Call backend logout if logging out
+    if (state.isAuthed && !nextState.isAuthed && state.email) {
+      axios.post("http://localhost:5000/api/users/logout", { email: state.email })
+        .catch(err => console.warn("Logout backend warning:", err.message));
+    }
+
     setState(nextState);
     try {
       localStorage.setItem("joyzone-auth", nextState.isAuthed ? "true" : "false");
       localStorage.setItem("joyzone-role", nextState.isPartner ? "partner" : "client");
+      if (nextState.isAuthed) {
+        if (nextState.name) localStorage.setItem("joyzone-name", nextState.name);
+        if (nextState.email) localStorage.setItem("joyzone-email", nextState.email);
+      } else {
+        localStorage.removeItem("joyzone-name");
+        localStorage.removeItem("joyzone-email");
+      }
     } catch (error) {
       // UI still updates if storage is unavailable.
     }
@@ -66,6 +83,28 @@ function App() {
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
   const [userState, setUserState] = useUserState();
+  const [banners, setBanners] = useState(slides);
+
+  useEffect(() => {
+    // Dynamic import to keep app bundle light
+    import("axios").then(({ default: axios }) => {
+      axios.get("http://localhost:5000/api/banners")
+        .then((res) => {
+          if (res.data && res.data.length > 0) {
+            // Map backend banner fields to frontend slide properties
+            const mappedBanners = res.data.map((banner, index) => ({
+              eyebrow: banner.platform || "Joyzone Choice",
+              title: banner.title,
+              image: banner.img // 'img' in db -> 'image' in slides
+            }));
+            setBanners(mappedBanners);
+          }
+        })
+        .catch((err) => {
+          console.warn("REST API orqali sliderlarni yuklab bo'lmadi:", err.message);
+        });
+    });
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -158,13 +197,19 @@ function App() {
       );
   }, [displayedRoute, bootLoading]);
 
-  const handleRegister = () => {
-    setUserState({ isAuthed: true, isPartner: false });
+  const handleRegister = (data) => {
+    const userData = data || { name: "Yangi Foydalanuvchi", email: "new_user@joyzone.uz" };
+    setUserState({ isAuthed: true, isPartner: false, name: userData.name, email: userData.email });
+    axios.post("http://localhost:5000/api/users/login", { name: userData.name, email: userData.email })
+      .catch(err => console.warn("Backend login session warning:", err.message));
     window.location.hash = "#home";
   };
 
-  const handleLogin = () => {
-    setUserState({ isAuthed: true, isPartner: false });
+  const handleLogin = (data) => {
+    const userData = data || { name: "Foydalanuvchi", email: "user@joyzone.uz" };
+    setUserState({ isAuthed: true, isPartner: false, name: userData.name, email: userData.email });
+    axios.post("http://localhost:5000/api/users/login", { name: userData.name, email: userData.email })
+      .catch(err => console.warn("Backend login session warning:", err.message));
     window.location.hash = "#home";
   };
 
@@ -172,7 +217,7 @@ function App() {
     return (
       <>
         <div className="route-screen route-screen-home app-route-shell">
-          <HomeHero userState={userState} setUserState={setUserState} slides={slides} />
+          <HomeHero userState={userState} setUserState={setUserState} slides={banners} />
         </div>
         <JoyLoader active={bootLoading} />
       </>
@@ -311,6 +356,17 @@ function App() {
     );
   }
 
+if (displayedRoute === "admin") {
+  return (
+    <>
+      <div className="route-screen route-screen-admin app-route-shell">
+        <AdminDashboardIntegration />
+      </div>
+      <JoyLoader active={bootLoading} />
+    </>
+  );
+}
+
   if (displayedRoute === "verify") {
     return (
       <>
@@ -343,7 +399,7 @@ function App() {
               <div className="order-1 min-h-[inherit] min-[900px]:order-2">{formByRoute[displayedRoute] || formByRoute.login}</div>
             )}
             <div className={displayedRoute === "register" ? "order-2 flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:order-1 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2" : "flex min-h-[420px] overflow-hidden p-2 sm:p-3 min-[900px]:min-h-[660px] min-[1024px]:min-h-[820px] lg:p-2"}>
-              <JoySlider items={slides} />
+              <JoySlider items={banners} />
             </div>
           </div>
         </div>

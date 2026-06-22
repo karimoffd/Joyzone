@@ -502,6 +502,23 @@
   pointer-events: none;
 }
 
+.host-day.is-selected {
+  background: #294a6d;
+  border-color: #e46630;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(41, 74, 109, 0.28);
+  transform: translateY(-2px) scale(1.02);
+  z-index: 2;
+}
+
+.host-day.is-selected strong {
+  color: #ffffff;
+}
+
+.host-day.is-selected small {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .host-listings-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -1,22 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
+import axios from "axios";
+import { sendClientAction } from "../socket.js";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { HeartIcon } from "./ui/Shared.jsx";
-import { PropertyCard } from "./ListingsSection.jsx";
+import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
 import "./ListingsSection.css";
 import "./SpaceDetail.css";
 
 const amenityList = [
-  "Tez Wi-Fi",
-  "Konditsioner",
-  "Proyektor",
-  "Avtoturargoh",
-  "Coffee point",
-  "Self check-in",
-  "Toza zona",
-  "24/7 yordam"
+  { name: "Tez Wi-Fi", icon: "wifi" },
+  { name: "Konditsioner", icon: "wind" },
+  { name: "Proyektor", icon: "tv" },
+  { name: "Avtoturargoh", icon: "parking" },
+  { name: "Coffee point", icon: "coffee" },
+  { name: "Self check-in", icon: "key" },
+  { name: "Toza zona", icon: "sparkles" },
+  { name: "24/7 yordam", icon: "help" },
+  { name: "Printer / Skaner", icon: "printer" },
+  { name: "Playstation 5", icon: "gamepad" },
+  { name: "Kutubxona", icon: "book" },
+  { name: "Xavfsiz hudud", icon: "lock" },
+  { name: "Oshxona / Bufet", icon: "utensils" },
+  { name: "Doska / Whiteboard", icon: "board" }
 ];
 
 const reviewList = [
@@ -44,7 +53,8 @@ const reviewList = [
 ];
 
 function slugify(text) {
-  return text
+  if (!text) return "";
+  return String(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -80,7 +90,22 @@ function Icon({ type, className = "" }) {
     check: "m20 6-11 11-5-5",
     calendar: "M7 3v4M17 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z",
     shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z",
-    phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"
+    phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z",
+    wifi: "M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0M2 9.5a15 15 0 0 1 20 0M12 20h.01",
+    wind: "M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2",
+    tv: "M2 5h20v12H2zm10 12v4M8 21h8",
+    parking: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm4 14V7h4a3 3 0 0 1 0 6H9",
+    coffee: "M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4ZM6 1v3M10 1v3M14 1v3",
+    key: "m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4",
+    sparkles: "m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z",
+    help: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z",
+    printer: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5M6 14h12v6H6z",
+    gamepad: "M18 11h.01M15 14h.01M10 10v4M8 12h4M2 12a10 10 0 0 1 20 0v2a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z",
+    book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14.5H6.5a2.5 2.5 0 0 0-2.5 2.5z",
+    lock: "M3 11a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm4-2V7a5 5 0 0 1 10 0v2",
+    utensils: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v4M12 18V2M12 18h3.5a2.5 2.5 0 0 0 2.5-2.5V2",
+    board: "M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm8 14v4m-4 0h8",
+    x: "M18 6 6 18M6 6l12 12"
   };
 
   return (
@@ -115,10 +140,53 @@ function Stars({ value = 5 }) {
 }
 
 export default function SpaceDetail({ route, userState, setUserState }) {
-  const space = useMemo(() => resolveSpace(route), [route]);
+  const fallbackSpace = useMemo(() => resolveSpace(route), [route]);
+  const [space, setSpace] = useState(fallbackSpace);
+
+  useEffect(() => {
+    setSpace(fallbackSpace);
+  }, [fallbackSpace]);
+
+  // Fetch from REST API to align route with real database objects
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/spaces")
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          const value = (route || "").replace(/^space-/, "");
+          const index = Number(value);
+          let dbSpace;
+          
+          if (Number.isInteger(index) && index >= 0 && index < res.data.length) {
+            dbSpace = res.data[index];
+          } else {
+            dbSpace = res.data.find((item) => {
+              if (!item) return false;
+              const titleSlug = slugify(item.title || item.name || "");
+              return (titleSlug && titleSlug === value) || String(item.id || item._id) === value;
+            });
+          }
+          
+          if (dbSpace) {
+            setSpace(dbSpace);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn("REST API orqali joy tafsilotini yuklab bo'lmadi:", err.message);
+      });
+  }, [route, fallbackSpace]);
+
+  // Send view event to live traffic monitor via socket.io
+  useEffect(() => {
+    if (space) {
+      sendClientAction("view_space", { spaceName: space.title || space.name });
+    }
+  }, [space]);
+
   const [activeImage, setActiveImage] = useState(0);
   const [liked, setLiked] = useState(false);
   const likeBtnRef = useRef(null);
+  const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
 
   const handleLikeToggle = () => {
     setLiked(!liked);
@@ -129,10 +197,134 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     );
   };
   const [days, setDays] = useState(1);
-  const [guests, setGuests] = useState(Math.min(space.people, 4));
-  const basePrice = parsePrice(space.price);
-  const serviceFee = Math.max(25000, Math.round(basePrice * 0.08));
-  const total = basePrice * days + serviceFee;
+  const [guests, setGuests] = useState(Math.min(space.people || 4, 4));
+  const [allBookings, setAllBookings] = useState([]);
+  const [calYear, setCalYear] = useState(2026);
+  const [calMonth, setCalMonth] = useState(5); // June
+  const [checkInDate, setCheckInDate] = useState("2026-06-12");
+
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/bookings")
+      .then(res => {
+        if (res.data) setAllBookings(res.data);
+      })
+      .catch(err => console.warn("Failed to fetch bookings inside space detail:", err));
+  }, [space]);
+
+  const spaceBookings = useMemo(() => {
+    if (!space || !Array.isArray(allBookings)) return [];
+    const targetId = space.id || space._id;
+    return allBookings.filter(b => {
+      if (!b) return false;
+      const spaceId = typeof b.space_id === 'object' && b.space_id !== null ? b.space_id?.id || b.space_id?._id : b.space_id;
+      return spaceId && spaceId === targetId;
+    });
+  }, [allBookings, space]);
+
+  const calendarDays = useMemo(() => {
+    const date = new Date(Date.UTC(calYear, calMonth, 1));
+    const daysArr = [];
+    let startDay = date.getUTCDay();
+    startDay = startDay === 0 ? 6 : startDay - 1;
+    
+    for (let i = 0; i < startDay; i++) {
+      daysArr.push({ label: "", dateStr: null, isMuted: true });
+    }
+    
+    const totalDays = new Date(Date.UTC(calYear, calMonth + 1, 0)).getUTCDate();
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      daysArr.push({
+        label: d,
+        dateStr,
+        isMuted: false
+      });
+    }
+    return daysArr;
+  }, [calYear, calMonth]);
+
+  const parsedBasePrice = useMemo(() => {
+    if (!space || !space.price) return 0;
+    return Number(String(space.price).replace(/\D/g, "")) || 0;
+  }, [space]);
+
+  const { totalPrice, hasBlockedDay, dailyRatesBreakdown } = useMemo(() => {
+    if (!checkInDate) return { totalPrice: 0, hasBlockedDay: false, dailyRatesBreakdown: [] };
+    
+    let sum = 0;
+    let blocked = false;
+    const breakdown = [];
+    
+    const start = new Date(checkInDate + "T00:00:00Z");
+    for (let i = 0; i < days; i++) {
+      const current = new Date(start);
+      current.setUTCDate(start.getUTCDate() + i);
+      const dStr = current.toISOString().split("T")[0];
+      
+      const isBooked = spaceBookings.some(b => {
+        if (!b || !b.start_date || !b.end_date) return false;
+        const bStart = String(b.start_date).split("T")[0];
+        const bEnd = String(b.end_date).split("T")[0];
+        return dStr >= bStart && dStr <= bEnd && (b.status === "booked" || b.status === "closed" || b.status === "Paid" || b.status === "Pending");
+      });
+      if (isBooked) blocked = true;
+      
+      const overridePrice = space.priceOverrides?.[dStr];
+      const rate = overridePrice !== undefined ? Number(overridePrice) : parsedBasePrice;
+      sum += rate;
+      breakdown.push({ date: dStr, rate });
+    }
+    
+    return { totalPrice: sum, hasBlockedDay: blocked, dailyRatesBreakdown: breakdown };
+  }, [checkInDate, days, spaceBookings, space, parsedBasePrice]);
+
+  const serviceFee = Math.max(25000, Math.round(totalPrice * 0.08));
+  const finalTotal = totalPrice + serviceFee;
+
+  const handleBooking = async () => {
+    if (hasBlockedDay) {
+      alert("Kechirasiz, tanlangan sanalarda band qilingan kunlar bor. Boshqa sanalarni tanlang.");
+      return;
+    }
+
+    try {
+      const bookingData = {
+        user_id: userState.isAuthed ? userState.email : "anonymous_client",
+        space_id: space.id || space._id,
+        start_date: checkInDate,
+        end_date: (() => {
+          const start = new Date(checkInDate + "T00:00:00Z");
+          const end = new Date(start);
+          end.setUTCDate(start.getUTCDate() + (days - 1));
+          return end.toISOString().split("T")[0];
+        })(),
+        total_price: finalTotal,
+        status: "Pending"
+      };
+
+      const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
+      
+      if (res.status === 201) {
+        sendClientAction("booking", {
+          spaceName: space.title || space.name,
+          price: formatMoney(finalTotal)
+        });
+        alert(`Muvaffaqiyatli band qilindi! Jami to'lov: ${formatMoney(finalTotal)}. So'rov kutilmoqda (Pending)`);
+        
+        const bookingsRes = await axios.get("http://localhost:5000/api/bookings");
+        if (bookingsRes.data) setAllBookings(bookingsRes.data);
+      }
+    } catch (err) {
+      console.error("Booking failed, running simulation:", err);
+      sendClientAction("booking", {
+        spaceName: space.title || space.name,
+        price: formatMoney(finalTotal)
+      });
+      alert(`Bron so'rovi yuborildi (Simulyatsiya)! Jami to'lov: ${formatMoney(finalTotal)}.`);
+    }
+  };
+
+  const monthNames = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
 
   const [reviews, setReviews] = useState(reviewList);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -143,6 +335,25 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [newReviewText, setNewReviewText] = useState("");
   const [helpfulCounts, setHelpfulCounts] = useState({});
 
+  // Fetch reviews from backend API on mount or space change
+  useEffect(() => {
+    if (space) {
+      const spaceId = space.id || space._id || "648312e0f40a1b2c3d4e5f67";
+      axios.get(`http://localhost:5000/api/reviews/space/${spaceId}`)
+        .then(res => {
+          if (res.data && res.data.length > 0) {
+            setReviews(res.data);
+          } else {
+            setReviews(reviewList);
+          }
+        })
+        .catch(err => {
+          console.warn("Fikrlar yuklashda xatolik, mock ma'lumotlardan foydalaniladi:", err);
+          setReviews(reviewList);
+        });
+    }
+  }, [space]);
+
   const handleHelpful = (name) => {
     setHelpfulCounts(prev => ({
       ...prev,
@@ -150,18 +361,42 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     }));
   };
 
-  const handleAddReview = (e) => {
+  const handleAddReview = async (e) => {
     e.preventDefault();
     if (!newReviewName.trim() || !newReviewText.trim()) return;
-    const newReview = {
-      name: newReviewName,
-      role: newReviewRole || "Mehmon",
-      date: "Hozirgina",
+
+    const spaceId = space.id || space._id || "648312e0f40a1b2c3d4e5f67";
+    const spaceName = space.title || space.name || "Focus Hub Coworking";
+
+    const newReviewData = {
+      space_id: spaceId,
+      space_name: spaceName,
+      name: newReviewName.trim(),
+      role: newReviewRole.trim() || "Mehmon",
       rating: newReviewRating,
-      text: newReviewText
+      text: newReviewText.trim()
     };
-    setReviews([newReview, ...reviews]);
-    // reset form
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/reviews", newReviewData);
+      if (res.status === 201) {
+        setReviews(prev => [res.data, ...prev]);
+      }
+    } catch (err) {
+      console.error("Fikr yuborishda xatolik, local simulyatsiya:", err);
+      const simulatedReview = {
+        space_id: spaceId,
+        space_name: spaceName,
+        name: newReviewName.trim(),
+        role: newReviewRole.trim() || "Mehmon",
+        rating: newReviewRating,
+        text: newReviewText.trim(),
+        date: "Hozirgina"
+      };
+      setReviews(prev => [simulatedReview, ...prev]);
+    }
+
+    // Reset form
     setNewReviewName("");
     setNewReviewRole("");
     setNewReviewRating(5);
@@ -322,13 +557,22 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               <h2>Kerakli servislar tayyor</h2>
             </div>
             <div className="sd-amenities">
-              {amenityList.map((item) => (
-                <span key={item}>
-                  <Icon type="check" />
-                  {item}
+              {amenityList.slice(0, 8).map((item) => (
+                <span key={item.name}>
+                  <Icon type={item.icon} />
+                  {item.name}
                 </span>
               ))}
             </div>
+            {amenityList.length > 8 && (
+              <button 
+                type="button" 
+                className="sd-more-amenities-btn"
+                onClick={() => setShowAmenitiesModal(true)}
+              >
+                Barcha qulayliklar ({amenityList.length})
+              </button>
+            )}
           </section>
 
           <section className="sd-section sd-animate">
@@ -525,10 +769,64 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               </span>
             </div>
 
-            <label>
-              <span>Sana</span>
-              <input type="date" defaultValue="2026-06-12" />
-            </label>
+            <div className="sd-checkout-datepicker" style={{ marginBottom: "14px" }}>
+              <span style={{ fontSize: "11px", fontWeight: "850", color: "#12283f", display: "block", marginBottom: "6px", textTransform: "uppercase" }}>Sanani tanlang</span>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "10px", border: "1px solid rgba(41, 74, 109, 0.08)" }}>
+                <button type="button" onClick={() => calMonth === 0 ? (setCalMonth(11), setCalYear(y => y-1)) : setCalMonth(m => m-1)} style={{ fontSize: "14px", fontWeight: "950", color: "#e46630", padding: "0 6px", cursor: "pointer", border: "none", background: "transparent" }}>‹</button>
+                <span style={{ fontSize: "12px", fontWeight: "800", color: "#12283f" }}>{monthNames[calMonth]} {calYear}</span>
+                <button type="button" onClick={() => calMonth === 11 ? (setCalMonth(0), setCalYear(y => y+1)) : setCalMonth(m => m+1)} style={{ fontSize: "14px", fontWeight: "950", color: "#e46630", padding: "0 6px", cursor: "pointer", border: "none", background: "transparent" }}>›</button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", fontSize: "10px", fontWeight: "900", color: "rgba(18,40,63,0.5)", textAlign: "center", marginBottom: "4px" }}>
+                {["D", "S", "Ch", "P", "J", "Sh", "Ya"].map(w => <span key={w}>{w}</span>)}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
+                {calendarDays.map((day, i) => {
+                  if (day.isMuted) return <div key={`muted-${i}`} />;
+                  
+                  const dateStr = day.dateStr;
+                  const isBooked = spaceBookings.some(b => {
+                    if (!b || !b.start_date || !b.end_date) return false;
+                    const bStart = String(b.start_date).split("T")[0];
+                    const bEnd = String(b.end_date).split("T")[0];
+                    return dateStr >= bStart && dateStr <= bEnd && (b.status === "booked" || b.status === "closed" || b.status === "Paid" || b.status === "Pending");
+                  });
+                  
+                  const isSelected = dateStr === checkInDate;
+                  
+                  let bg = "bg-white border-slate-200 hover:border-joyOrange";
+                  let text = "text-joyBlue";
+                  let cursor = "cursor-pointer";
+                  let title = "";
+                  
+                  if (isBooked) {
+                    bg = "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed";
+                    text = "text-slate-300 line-through";
+                    cursor = "cursor-not-allowed";
+                    title = "Band qilingan";
+                  } else if (isSelected) {
+                    bg = "bg-joyOrange border-joyOrange text-white font-bold";
+                    text = "text-white";
+                  }
+                  
+                  return (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      disabled={isBooked}
+                      onClick={() => setCheckInDate(dateStr)}
+                      className={`text-[12px] p-1.5 rounded-lg border text-center transition-all ${bg} ${text} ${cursor}`}
+                      style={{ minWidth: "24px", fontSize: "11px", fontWeight: "750", cursor: isBooked ? "not-allowed" : "pointer" }}
+                      title={title}
+                    >
+                      {day.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             <div className="sd-booking-controls">
               <label>
@@ -542,21 +840,35 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </div>
 
             <div className="sd-total-box">
+              <div style={{ fontSize: "11px", color: "rgba(18,40,63,0.5)", marginBottom: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "6px" }}>
+                <span style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Kunlik narxlar hisobi:</span>
+                {dailyRatesBreakdown.map((item, idx) => (
+                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginTop: "2px" }}>
+                    <span>{item.date}</span>
+                    <span>{formatMoney(item.rate)}</span>
+                  </div>
+                ))}
+              </div>
               <p>
-                <span>{space.price} x {days} kun</span>
-                <b>{formatMoney(basePrice * days)}</b>
+                <span>Ijara summasi</span>
+                <b>{formatMoney(totalPrice)}</b>
               </p>
               <p>
                 <span>Servis to'lovi</span>
                 <b>{formatMoney(serviceFee)}</b>
               </p>
+              {hasBlockedDay && (
+                <div style={{ fontSize: "12px", color: "#ef4444", fontWeight: "bold", margin: "8px 0", background: "#fef2f2", padding: "6px 10px", borderRadius: "8px", border: "1px solid #fee2e2" }}>
+                  Diqqat: Tanlangan kunlar ichida band qilingan kunlar bor!
+                </div>
+              )}
               <strong>
                 <span>Jami</span>
-                <b>{formatMoney(total)}</b>
+                <b>{formatMoney(finalTotal)}</b>
               </strong>
             </div>
 
-            <button type="button" className="sd-primary-btn">
+            <button type="button" className="sd-primary-btn" onClick={handleBooking}>
               <Icon type="calendar" />
               Bron qilish
             </button>
@@ -579,6 +891,37 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           ))}
         </div>
       </section>
+
+      <JoyFooter />
+
+      {showAmenitiesModal && createPortal(
+        <div className="sd-modal-overlay" onClick={() => setShowAmenitiesModal(false)}>
+          <div className="sd-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="sd-modal-header">
+              <h3>Barcha qulayliklar</h3>
+              <button 
+                type="button" 
+                className="sd-modal-close" 
+                onClick={() => setShowAmenitiesModal(false)}
+                aria-label="Yopish"
+              >
+                <Icon type="x" />
+              </button>
+            </div>
+            <div className="sd-modal-body">
+              <div className="sd-modal-amenities-grid">
+                {amenityList.map((item) => (
+                  <div key={item.name} className="sd-modal-amenity-card">
+                    <Icon type={item.icon} />
+                    <span>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </main>
   );
 }

@@ -1,0 +1,133 @@
+[
+  {
+    "id": "space-1781865717004",
+    "name": "Focus Loft",
+    "type": "Ofis",
+    "price": "450,000 so'm",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "Toshkent, Mirobod",
+    "people": 12,
+    "area": 90,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {
+      "2026-06-19": 600000
+    },
+    "created_at": "2026-06-19T10:41:57.004Z"
+  },
+  {
+    "id": "space-1781865125747",
+    "name": "Test Space 123",
+    "type": "Ofis",
+    "price": "350 000 so'm500000",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "ToshkentToshkent City",
+    "people": 105,
+    "area": 8040,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {},
+    "created_at": "2026-06-19T10:32:05.747Z"
+  },
+  {
+    "id": "space-1781773596781",
+    "name": "Premium Test Cabin",
+    "type": "Kovorking",
+    "price": "450,000 so'm",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "Toshkent, Chimyon",
+    "people": 8,
+    "area": 120,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {},
+    "created_at": "2026-06-18T09:06:36.781Z"
+  },
+  {
+    "id": "space-1781773291318",
+    "name": "Premium Test Cabin",
+    "type": "Kovorking",
+    "price": "450,000 so'm",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "Toshkent, Chimyon",
+    "people": 8,
+    "area": 120,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {},
+    "created_at": "2026-06-18T09:01:31.318Z"
+  },
+  {
+    "id": "space-1781773042738",
+    "name": "Premium Test Cabin",
+    "type": "Dacha",
+    "price": "500,000 so'm",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "Toshkent markazi",
+    "people": 12,
+    "area": 90,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {},
+    "created_at": "2026-06-18T08:57:22.738Z"
+  },
+  {
+    "id": "space-1",
+    "name": "Focus Hub Coworking",
+    "type": "Kovorking",
+    "price": "499 000 so'm",
+    "status": "Active",
+    "owner_id": "host_1",
+    "location": "Toshkent, Mirzo Ulug'bek",
+    "people": 24,
+    "area": 180,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": true,
+    "priceOverrides": {
+      "2026-06-01": 23,
+      "2026-06-19": 12000000,
+      "2026-06-20": 12000000
+    }
+  },
+  {
+    "id": "space-2",
+    "name": "Atlas Meeting Room",
+    "type": "Konferensiya",
+    "price": "320 000 so'm",
+    "status": "Active",
+    "owner_id": "host_2",
+    "location": "Toshkent, Yunusobod",
+    "people": 12,
+    "area": 64,
+    "images": [
+      "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=86"
+    ],
+    "priceOverrides": {
+      "2026-06-01": 4
+    }
+  }
+]

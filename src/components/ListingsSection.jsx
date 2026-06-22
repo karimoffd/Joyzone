@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+import axios from "axios";
 import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
 import logoImage from "../assets/img/Logo.png";
 import "./ListingsSection.css";
 
 function getSpaceHref(title) {
-  return `#space-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  const t = title || "";
+  return `#space-${t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
 function getAgentHref(name) {
@@ -777,6 +779,20 @@ export function JoyFooter() {
 }
 
 export default function ListingsSection() {
+  const [spaces, setSpaces] = useState(propertyCards);
+
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/spaces")
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setSpaces(res.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("REST API orqali joylarni yuklab bo'lmadi, mock ma'lumotlar ishlatilmoqda:", err.message);
+      });
+  }, []);
+
   return (
     <section className="listings-section">
       <div className="listings-inner">
@@ -788,8 +804,8 @@ export default function ListingsSection() {
           <p>Kovorking, ofis va uchrashuv xonalarini real ehtiyojga qarab tanlang.</p>
         </div>
         <div className="property-grid">
-          {propertyCards.map((item, index) => (
-            <PropertyCard key={item.title} item={item} index={index} />
+          {spaces.map((item, index) => (
+            <PropertyCard key={item.title || item.name} item={item} index={index} />
           ))}
         </div>
         <div className="more-row">

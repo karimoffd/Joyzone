@@ -1,0 +1,44 @@
+[
+  {
+    "id": "review-1781866376742",
+    "space_id": "space-1781773596781",
+    "space_name": "Premium Test Cabin",
+    "name": "asdfadsf",
+    "role": "sadfasfas",
+    "rating": 3,
+    "text": "asdfasdf",
+    "date": "19-iyun, 2026",
+    "created_at": "2026-06-19T10:52:56.755Z"
+  },
+  {
+    "id": "review-1781518853829",
+    "space_id": "space-2",
+    "space_name": "Atlas Meeting Room",
+    "name": "diyor",
+    "role": "deputat",
+    "rating": 3,
+    "text": "sayti togirlalarin",
+    "date": "15-iyun, 2026",
+    "created_at": "2026-06-15T10:20:53.830Z"
+  },
+  {
+    "id": "review-1",
+    "space_id": "space-1",
+    "space_name": "Focus Hub Coworking",
+    "name": "Malika Toshkent",
+    "role": "Tashkilotchi",
+    "rating": 5,
+    "text": "Uchrashuv xonasi juda shinam, internet tezligi ajoyib! Xizmat ko'rsatish darajasi juda yuqori.",
+    "date": "12-iyun, 2026"
+  },
+  {
+    "id": "review-2",
+    "space_id": "space-2",
+    "space_name": "Atlas Meeting Room",
+    "name": "Dostonbek",
+    "role": "Dasturchi",
+    "rating": 4,
+    "text": "Kovorking hududi juda sokin ekan, ishlash uchun barcha sharoitlar yaratilgan.",
+    "date": "14-iyun, 2026"
+  }
+]

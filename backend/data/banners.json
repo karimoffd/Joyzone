@@ -1,0 +1,29 @@
+[
+  {
+    "id": "banner-1781783412538",
+    "title": "cho tam ",
+    "img": "http://localhost:5000/uploads/1781783391128_Pixel_technology_logo_designs_concept__Network_Internet_logo_symbol.png",
+    "redirect": "3",
+    "platform": "Hammasi",
+    "status": "Inactive",
+    "created_at": "2026-06-18T11:50:12.538Z"
+  },
+  {
+    "id": "banner-1",
+    "title": "Premium uchrashuvlar uchun tayyor zallar",
+    "img": "https://images.unsplash.com/photo-1758711516684-e7a87556015e?auto=format&fit=crop&w=1400&q=88",
+    "redirect": "space-1",
+    "platform": "All",
+    "status": "Active",
+    "created_at": "2026-06-15T10:00:41.576Z"
+  },
+  {
+    "id": "banner-2",
+    "title": "Jamoalar uchun yorug' va qulay ish maydoni",
+    "img": "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=88",
+    "redirect": "space-0",
+    "platform": "All",
+    "status": "Active",
+    "created_at": "2026-06-15T10:00:41.577Z"
+  }
+]
