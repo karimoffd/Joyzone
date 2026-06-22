@@ -1,5 +1,23 @@
 [
   {
+    "id": "space-1782107514515",
+    "name": "Test Space 456",
+    "type": "Ofis",
+    "price": "400,000 so'm",
+    "status": "Active",
+    "owner_id": "aziz.karimov@mail.com",
+    "location": "Toshkent, Chilonzor",
+    "people": 1015,
+    "area": 8080,
+    "images": [
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
+      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
+    ],
+    "promoted": false,
+    "priceOverrides": {},
+    "created_at": "2026-06-22T05:51:54.515Z"
+  },
+  {
     "id": "space-1781865717004",
     "name": "Focus Loft",
     "type": "Ofis",
