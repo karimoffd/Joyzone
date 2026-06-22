@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import axios from "axios";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
 import logoImage from "../assets/img/Logo.png";
@@ -362,176 +365,104 @@ function BenefitsSection() {
 
 function PartnerStartSection() {
   const sectionRef = useRef(null);
-  const cursorRef = useRef(null);
-  const progressRef = useRef(null);
-  const statusRef = useRef(null);
-  const pulseRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     const section = sectionRef.current;
-    if (!section || !cursorRef.current || !progressRef.current || !statusRef.current || !pulseRef.current) return undefined;
+    if (!section) return undefined;
 
     const ctx = gsap.context(() => {
-      const steps = section.querySelectorAll(".partner-motion-step");
-      const cards = section.querySelectorAll(".partner-start-card, .partner-start-stat, .partner-start-action");
-      const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.55, defaults: { ease: "power3.inOut" } });
-
+      const cards = section.querySelectorAll(".soul-step-card");
+      
       gsap.fromTo(
         cards,
-        { y: 26, opacity: 0, filter: "blur(8px)" },
-        { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.72, stagger: 0.06, ease: "power3.out" }
+        { y: 30, opacity: 0 },
+        { 
+          y: 0, opacity: 1, 
+          duration: 0.6, stagger: 0.1, 
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: section,
+            start: "top 75%",
+          }
+        }
       );
-
-      tl.set(steps, { autoAlpha: 0, y: 18, scale: 0.96 })
-        .set(steps[0], { autoAlpha: 1, y: 0, scale: 1 })
-        .set(progressRef.current, { scaleX: 0.12 })
-        .set(statusRef.current, { textContent: "Ro'yxatdan o'tish" })
-        .set(cursorRef.current, { x: 86, y: 116, scale: 1 })
-        .to(cursorRef.current, { x: 292, y: 154, duration: 1.15 })
-        .set(pulseRef.current, { scale: 0.4, opacity: 0.78 }, "-=0.02")
-        .to(pulseRef.current, { x: 292, y: 154, scale: 1.8, opacity: 0, duration: 0.44, ease: "power2.out" }, "-=0.22")
-        .to(progressRef.current, { scaleX: 0.32, duration: 0.55 }, "-=0.3")
-        .set(statusRef.current, { textContent: "Profil tasdiqlanmoqda" })
-        .to(steps[0], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.15")
-        .to(steps[1], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
-        .to(cursorRef.current, { x: 186, y: 236, duration: 1.05 })
-        .to(section.querySelector(".motion-input-line"), { width: "82%", duration: 0.7, ease: "power2.out" }, "-=0.35")
-        .to(progressRef.current, { scaleX: 0.58, duration: 0.5 }, "-=0.25")
-        .set(statusRef.current, { textContent: "Joy tanlanmoqda" })
-        .to(steps[1], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.2")
-        .to(steps[2], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
-        .to(cursorRef.current, { x: 360, y: 254, duration: 1.05 })
-        .to(section.querySelector(".motion-range-fill"), { width: "74%", duration: 0.7, ease: "power2.out" }, "-=0.35")
-        .to(progressRef.current, { scaleX: 0.78, duration: 0.48 }, "-=0.25")
-        .set(statusRef.current, { textContent: "Bron so'rovi yuborilmoqda" })
-        .to(steps[2], { autoAlpha: 0, y: -16, scale: 0.97, duration: 0.42 }, "+=0.2")
-        .to(steps[3], { autoAlpha: 1, y: 0, scale: 1, duration: 0.5 }, "-=0.16")
-        .to(cursorRef.current, { x: 302, y: 304, duration: 0.9 })
-        .set(pulseRef.current, { scale: 0.4, opacity: 0.78 }, "-=0.02")
-        .to(pulseRef.current, { x: 302, y: 304, scale: 2.1, opacity: 0, duration: 0.42, ease: "power2.out" }, "-=0.14")
-        .to(progressRef.current, { scaleX: 1, duration: 0.64 }, "-=0.25")
-        .to(section.querySelector(".motion-success"), { scale: 1.08, duration: 0.32, yoyo: true, repeat: 1, ease: "back.out(2)" }, "-=0.35")
-        .to(cursorRef.current, { scale: 0.92, duration: 0.3 }, "+=0.55")
-        .to(steps[3], { autoAlpha: 0, y: 12, scale: 0.98, duration: 0.4 })
-        .to(steps[0], { autoAlpha: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.08");
+      
+      gsap.to(section.querySelector(".soul-bg-glow-orange"), {
+        rotate: 360,
+        duration: 40,
+        repeat: -1,
+        ease: "linear"
+      });
     }, section);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={sectionRef} className="partner-start-section" id="partner-start">
-      <div className="partner-start-head">
-        <p>Bron qilish jarayoni</p>
-        <h2>
-          Ro'yxatdan o'ting va <span>bron</span> qiling
-        </h2>
-      </div>
-
-      <div className="partner-start-panel">
-        <div className="partner-motion-card" aria-label="Joyzone joy tanlash demo animatsiyasi">
-          <div className="motion-browser">
-            <div className="motion-topbar">
-              <span />
-              <span />
-              <span />
-              <strong>joyzone.uz/register</strong>
-            </div>
-            <div className="motion-screen">
-              <div className="partner-motion-step motion-step-one">
-                <small>1-qadam</small>
-                <h3>Tez ro'yxatdan o'ting</h3>
-                <div className="motion-role-grid">
-                  <span>Telefon</span>
-                  <span className="is-selected">Kod</span>
-                  <span>Profil</span>
-                </div>
-              </div>
-
-              <div className="partner-motion-step motion-step-two">
-                <small>2-qadam</small>
-                <h3>Profilni tasdiqlang</h3>
-                <div className="motion-form-lines">
-                  <span className="motion-input-line" />
-                  <span />
-                  <span />
-                </div>
-                <div className="motion-photo-grid">
-                  <b />
-                  <b />
-                  <b />
-                </div>
-              </div>
-
-              <div className="partner-motion-step motion-step-three">
-                <small>3-qadam</small>
-                <h3>Joy va vaqtni tanlang</h3>
-                <div className="motion-calendar">
-                  {Array.from({ length: 12 }).map((_, index) => (
-                    <span key={`calendar-${index}`} className={index > 4 && index < 9 ? "is-active" : ""} />
-                  ))}
-                </div>
-                <div className="motion-range">
-                  <span className="motion-range-fill" />
-                </div>
-              </div>
-
-              <div className="partner-motion-step motion-step-four">
-                <small>4-qadam</small>
-                <h3>Bron so'rovini yuboring</h3>
-                <div className="motion-success">
-                  <span>OK</span>
-                  <strong>Bron boshlandi</strong>
-                </div>
-              </div>
-
-              <span ref={pulseRef} className="motion-click-pulse" />
-              <span ref={cursorRef} className="motion-cursor" />
-            </div>
-            <div className="motion-footer">
-              <span ref={statusRef}>Ro'yxatdan o'tish</span>
-              <b><i ref={progressRef} /></b>
-            </div>
-          </div>
-        </div>
-
-        <div className="partner-start-copy">
-          <div className="partner-start-card">
-            <span>01</span>
-            <div>
-              <h3>Akkaunt yarating</h3>
-              <p>Telefon yoki email orqali kiring, tasdiqlash kodini kiriting va Joyzone profilini ishga tushiring.</p>
-            </div>
-          </div>
-          <div className="partner-start-card">
-            <span>02</span>
-            <div>
-              <h3>Joyni tanlang</h3>
-              <p>Manzil, narx, sig'im va qulayliklarni ko'rib, uchrashuv yoki ish kuni uchun mos joyni belgilang.</p>
-            </div>
-          </div>
-          <div className="partner-start-card">
-            <span>03</span>
-            <div>
-              <h3>Bron so'rovini yuboring</h3>
-              <p>Sana, vaqt va qisqa izohni qo'shing. Partner so'rovni ko'radi va tasdiqlash uchun javob beradi.</p>
-            </div>
-          </div>
-
-          <div className="partner-start-stats">
-            <div className="partner-start-stat">
+    <section ref={sectionRef} className="soul-partner-section" id="partner-start">
+      <div className="soul-bg-glow-orange"></div>
+      <div className="soul-bg-glow-blue"></div>
+      
+      <div className="soul-partner-inner">
+        <div className="soul-partner-head">
+          <span className="soul-badge">Bron qilish jarayoni</span>
+          <h2>
+            Sizning joyingiz, <br />
+            <span>bizning platforma</span>
+          </h2>
+          <p>
+            Joyzone bilan bron qilish endi shunchaki tugmani bosish emas, balki butun bir tajriba.
+            Biz bilan har bir qadam jonli, issiq va qulay.
+          </p>
+          
+          <div className="soul-stats">
+            <div className="soul-stat">
               <strong>2 daqiqa</strong>
-              <span>ro'yxatdan o'tish</span>
+              <span>Ro'yxatdan o'tish</span>
             </div>
-            <div className="partner-start-stat">
+            <div className="soul-stat">
               <strong>1 so'rov</strong>
-              <span>bron jarayonini boshlash</span>
+              <span>Bron jarayoni</span>
             </div>
           </div>
-
-          <a className="partner-start-action" href="#filter">
-            Bron qilishni boshlash
+          
+          <a className="soul-cta" href="#filter">
+            <span>Hozir boshlash</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
           </a>
+        </div>
+        
+        <div ref={containerRef} className="soul-steps-container">
+          
+          <div className="soul-step-card">
+            <div className="soul-step-number">01</div>
+            <div className="soul-step-content">
+              <h3>Akkaunt yarating</h3>
+              <p>Telefon yoki email orqali kiring, tasdiqlash kodini kiriting va Joyzone profilini soniyalar ichida ishga tushiring.</p>
+            </div>
+            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          
+          <div className="soul-step-card">
+            <div className="soul-step-number">02</div>
+            <div className="soul-step-content">
+              <h3>Sizga mos joyni tanlang</h3>
+              <p>Manzil, narx va qulayliklarni ko'rib, o'z uchrashuvingiz yoki ish kuningiz uchun eng mukammal muhitni belgilang.</p>
+            </div>
+            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          
+          <div className="soul-step-card">
+            <div className="soul-step-number">03</div>
+            <div className="soul-step-content">
+              <h3>Bron so'rovini yuboring</h3>
+              <p>Sana va vaqtni tanlab, qisqacha izoh qoldiring. Partnerimiz so'rovni darhol ko'rib, tasdiqlash uchun javob beradi.</p>
+            </div>
+            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
         </div>
       </div>
     </section>
@@ -791,6 +722,62 @@ export default function ListingsSection() {
       .catch((err) => {
         console.warn("REST API orqali joylarni yuklab bo'lmadi, mock ma'lumotlar ishlatilmoqda:", err.message);
       });
+  }, []);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      let mm = gsap.matchMedia();
+
+      mm.add("(min-width: 768px)", () => {
+        // Text wipe animations
+        const texts = gsap.utils.toArray(
+          ".listings-head h2, .listings-head p, " +
+          ".agents-head h2, .agents-head p, " +
+          ".benefits-head h2, .benefits-head p, " +
+          ".soul-partner-head h2, .soul-partner-head p, " +
+          ".benefit-bento-text h3, .benefit-bento-text p, " +
+          ".faq-panel h2, .property-body h3, .property-body p, .agent-copy h3, .agent-copy p"
+        );
+        
+        texts.forEach(text => {
+          gsap.fromTo(text,
+            { clipPath: "inset(0 100% 0 0)", opacity: 0 },
+            {
+              clipPath: "inset(0 0% 0 0)",
+              opacity: 1,
+              duration: 1.2,
+              ease: "power3.inOut",
+              scrollTrigger: {
+                trigger: text,
+                start: "top 92%",
+                toggleActions: "play none none none"
+              }
+            }
+          );
+        });
+
+        // Block fade-up animations
+        const blocks = gsap.utils.toArray(".property-card, .benefit-bento-card, .faq-item, .soul-step-card");
+        
+        blocks.forEach(block => {
+          gsap.fromTo(block,
+            { opacity: 0, y: 50 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: block,
+                start: "top 90%",
+                toggleActions: "play none none none"
+              }
+            }
+          );
+        });
+      });
+    });
+    return () => ctx.revert();
   }, []);
 
   return (

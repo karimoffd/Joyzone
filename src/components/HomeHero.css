@@ -923,22 +923,32 @@
 }
 
 .infoForReg .info-text p {
-  color: #e46630;
+  color: rgba(41, 74, 109, 0.65);
   font-weight: 500;
-  font-size: clamp(14px, 0.96vw, 18px);
-  line-height: 1.12;
+  font-size: clamp(13px, 0.85vw, 15px);
+  line-height: 1.3;
+  margin-top: 4px;
 }
 
 .info-btn {
   display: flex;
-  height: 76px;
+  height: 60px;
   align-items: center;
   justify-content: center;
-  border-radius: 20px;
-  background: #d8d8d8;
-  color: transparent;
-  font-size: 0;
+  border-radius: 16px;
+  background: #e46630;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
   text-decoration: none;
+  padding: 0 28px;
+  transition: all 0.3s ease;
+}
+
+.info-btn:hover {
+  background: #d35520;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(228, 102, 48, 0.25);
 }
 
 @media (max-width: 1180px) {

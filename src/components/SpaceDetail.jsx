@@ -196,6 +196,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       { scale: 1, duration: 0.5, ease: "elastic.out(1.2, 0.4)" }
     );
   };
+
   const [days, setDays] = useState(1);
   const [guests, setGuests] = useState(Math.min(space.people || 4, 4));
   const [allBookings, setAllBookings] = useState([]);
@@ -868,10 +869,13 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               </strong>
             </div>
 
-            <button type="button" className="sd-primary-btn" onClick={handleBooking}>
+            <a href={`#book-space-${slugify(space.title)}`} className="sd-primary-btn" style={{ textDecoration: "none", display: "flex", justifyContent: "center" }} onClick={(e) => {
+              // Call handleBooking and prevent default if it handles API directly, but user's href might be intentional.
+              // We'll let the user's href work so the checkout page opens.
+            }}>
               <Icon type="calendar" />
               Bron qilish
-            </button>
+            </a>
             <a href="tel:+998901234567" className="sd-secondary-btn">
               <Icon type="phone" />
               Qo'ng'iroq qilish

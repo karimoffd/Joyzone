@@ -1,0 +1,167 @@
+.booking-checkout-shell {
+  min-height: 100vh;
+  background: #294a6d;
+  display: flex;
+  flex-direction: column;
+}
+
+.bc-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 20px 40px;
+}
+
+.bc-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 24px 48px rgba(14, 21, 30, 0.08), 0 0 0 1px rgba(14, 21, 30, 0.05);
+}
+
+.bc-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5c6b7b;
+  text-decoration: none;
+  margin-bottom: 32px;
+  transition: color 0.2s;
+}
+
+.bc-back-btn:hover {
+  color: #0e151e;
+}
+
+.bc-back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.bc-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0e151e;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.bc-header p {
+  font-size: 15px;
+  color: #5c6b7b;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.bc-space-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f0f2f5;
+  border-radius: 16px;
+  margin-bottom: 32px;
+}
+
+.bc-space-preview img {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.bc-space-preview h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0e151e;
+  margin: 0 0 4px 0;
+}
+
+.bc-space-preview p {
+  font-size: 14px;
+  color: #5c6b7b;
+  margin: 0;
+}
+
+.bc-summary-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.bc-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+
+.bc-summary-row span {
+  color: #5c6b7b;
+}
+
+.bc-summary-row strong {
+  color: #0e151e;
+  font-weight: 600;
+}
+
+.bc-summary-divider {
+  height: 1px;
+  background: #edf1f5;
+  margin: 8px 0;
+}
+
+.bc-summary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bc-summary-total span {
+  font-size: 15px;
+  color: #0e151e;
+  font-weight: 600;
+}
+
+.bc-summary-total strong {
+  font-size: 24px;
+  color: #294a6d;
+  font-weight: 700;
+}
+
+.bc-confirm-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #e46630, #ff8e53);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 18px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.bc-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(228, 102, 48, 0.3);
+}
+
+@media (max-width: 576px) {
+  .bc-card {
+    padding: 24px;
+    border-radius: 20px;
+  }
+  
+  .bc-header h1 {
+    font-size: 24px;
+  }
+}

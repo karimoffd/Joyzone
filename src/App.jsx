@@ -15,6 +15,8 @@ import AdminDashboardIntegration from "../admin-dashboard-example/admin-integrat
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
+import BookingCheckout from "./components/BookingCheckout.jsx";
+import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { slides } from "./data/content.js";
 
 function useAuthRoute() {
@@ -23,6 +25,7 @@ function useAuthRoute() {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
     if (hash.startsWith("space-")) return hash;
     if (hash.startsWith("agent-")) return hash;
+    if (hash.startsWith("book-")) return hash;
     return knownRoutes.has(hash) ? hash : "home";
   };
   const [route, setRoute] = useState(readRoute);
@@ -43,10 +46,11 @@ function useUserState() {
         isAuthed: localStorage.getItem("joyzone-auth") === "true",
         isPartner: localStorage.getItem("joyzone-role") === "partner",
         name: localStorage.getItem("joyzone-name") || "Mehmon",
-        email: localStorage.getItem("joyzone-email") || ""
+        email: localStorage.getItem("joyzone-email") || "",
+        activeBooking: JSON.parse(localStorage.getItem("joyzone-booking") || "null")
       };
     } catch (error) {
-      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "" };
+      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", activeBooking: null };
     }
   };
 
@@ -69,6 +73,11 @@ function useUserState() {
       } else {
         localStorage.removeItem("joyzone-name");
         localStorage.removeItem("joyzone-email");
+      }
+      if (nextState.activeBooking) {
+        localStorage.setItem("joyzone-booking", JSON.stringify(nextState.activeBooking));
+      } else {
+        localStorage.removeItem("joyzone-booking");
       }
     } catch (error) {
       // UI still updates if storage is unavailable.
@@ -220,6 +229,7 @@ function App() {
           <HomeHero userState={userState} setUserState={setUserState} slides={banners} />
         </div>
         <JoyLoader active={bootLoading} />
+        <FloatingBookingWidget activeBooking={userState.activeBooking} />
       </>
     );
   }
@@ -231,6 +241,7 @@ function App() {
           <FilterPage userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
+        <FloatingBookingWidget activeBooking={userState.activeBooking} />
       </>
     );
   }
@@ -253,6 +264,7 @@ function App() {
           <SpaceDetail route={displayedRoute} userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
+        <FloatingBookingWidget activeBooking={userState.activeBooking} />
       </>
     );
   }
@@ -262,6 +274,18 @@ function App() {
       <>
         <div className="route-screen route-screen-agent-detail app-route-shell">
           <AgentDetail route={displayedRoute} userState={userState} setUserState={setUserState} />
+        </div>
+        <JoyLoader active={bootLoading} />
+        <FloatingBookingWidget activeBooking={userState.activeBooking} />
+      </>
+    );
+  }
+
+  if (displayedRoute.startsWith("book-")) {
+    return (
+      <>
+        <div className="route-screen route-screen-booking-checkout app-route-shell">
+          <BookingCheckout route={displayedRoute} userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
       </>
@@ -275,6 +299,7 @@ function App() {
           <UserProfile userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
+        <FloatingBookingWidget activeBooking={userState.activeBooking} />
       </>
     );
   }

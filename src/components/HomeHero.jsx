@@ -715,7 +715,7 @@ function Banner({ slides }) {
                     <p>Bu joyda siz o'zingizning ofisingiz, kovorkingingiz yoki joyingizni joylashtirishingiz mumkin.</p>
                   </div>
                 </div>
-                <a href="#partner-start" className="btn info-btn">Ro'yxatdan o'tish</a>
+                <a href="#partner-guide" className="btn info-btn btn-shine">Batafsil</a>
               </div>
             </div>
           </div>
@@ -727,8 +727,22 @@ function Banner({ slides }) {
 
 export default function HomeHero({ userState, setUserState, slides }) {
   useEffect(() => {
-    gsap.fromTo(".joy-header > .container-fluid, .banner .info, .banner .img-slider, .infoForReg", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
+    gsap.fromTo(".joy-header > .container-fluid, .banner .img-slider", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
+    gsap.fromTo(".banner .info, .infoForReg", { opacity: 0 }, { opacity: 1, duration: 0.72, ease: "power3.out" });
 
+    const heroTexts = gsap.utils.toArray(".banner .info h1, .banner .info p.desc, .infoForReg .info-text h2.title, .infoForReg .desc p");
+    heroTexts.forEach(text => {
+      gsap.fromTo(text,
+        { clipPath: "inset(0 100% 0 0)", opacity: 0 },
+        {
+          clipPath: "inset(0 0% 0 0)",
+          opacity: 1,
+          duration: 1.2,
+          ease: "power3.inOut",
+          delay: 0.1
+        }
+      );
+    });
     const hero = document.querySelector(".home-viewport");
     const image = document.querySelector(".banner .img-slider");
     const info = document.querySelector(".banner .info");
