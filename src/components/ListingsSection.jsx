@@ -8,6 +8,7 @@ import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
 import logoImage from "../assets/img/Logo.png";
 import "./ListingsSection.css";
+import "./CardVariants.css";
 
 function getSpaceHref(title) {
   const t = title || "";
@@ -18,13 +19,33 @@ function getAgentHref(name) {
   return `#agent-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-export function PropertyCard({ item, index, href }) {
+const DURATION_LABELS = {
+  soatlik: "/ soat",
+  kunlik: "/ kun",
+  haftalik: "/ hafta",
+  oylik: "/ oy"
+};
+
+export function PropertyCard({ item, index, href, selectedDuration }) {
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
   const cardHref = href || getSpaceHref(item.title);
   const mediaRef = useRef(null);
   const saveRef = useRef(null);
   const manualSlideAt = useRef(0);
+
+  // Resolve displayed price and label
+  const { displayPrice, priceLabel, priceUnavailable } = (() => {
+    if (!selectedDuration) {
+      return { displayPrice: item.price, priceLabel: "/ kun", priceUnavailable: false };
+    }
+    const specificPrice = item.prices?.[selectedDuration];
+    if (specificPrice) {
+      return { displayPrice: specificPrice, priceLabel: DURATION_LABELS[selectedDuration], priceUnavailable: false };
+    }
+    // duration selected but this card doesn't have it
+    return { displayPrice: item.price, priceLabel: "/ kun", priceUnavailable: true };
+  })();
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -42,37 +63,40 @@ export function PropertyCard({ item, index, href }) {
     return undefined;
   }, [activeImage]);
 
-  const toggleSave = () => {
+  const toggleSave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     setSaved((value) => !value);
     gsap.fromTo(saveRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
   };
 
   return (
-    <article className="property-card" style={{ "--delay": `${index * 0.055}s` }}>
-      <a className="property-card-link" href={cardHref} aria-label={`${item.title} sahifasini ochish`} />
-      <div ref={mediaRef} className="property-media">
+    <article className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
+      <a className="property-card-link" href={cardHref} aria-label={`${item.title} sahifasini ochish`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }} />
+      <div className="variant-media" ref={mediaRef} style={{ aspectRatio: 1.35 }}>
         {item.images.map((image, imageIndex) => (
           <img
             key={image}
             src={image}
             alt={item.title}
             loading={imageIndex === 0 ? "eager" : "lazy"}
-            className={`property-slide ${imageIndex === activeImage ? "is-active" : ""}`}
+            className={imageIndex === activeImage ? "is-active" : ""}
           />
         ))}
         <span className="property-slide-glow" />
-        {item.promoted ? <span className="property-badge">Reklama</span> : null}
+        <span className="variant-pill">{item.promoted ? "Reklama" : "Guest favourite"}</span>
         <button
           ref={saveRef}
           type="button"
-          className={`save-note-button ${saved ? "is-saved" : ""}`}
+          className={`variant-save-button ${saved ? "is-saved" : ""}`}
           onClick={toggleSave}
           aria-label={saved ? "Eslatmaga saqlandi" : "Eslatmaga saqlash"}
           aria-pressed={saved}
+          style={{ zIndex: 20 }}
         >
           <NoteIcon filled={saved} />
         </button>
-        <div className="property-slide-dots" aria-label="Rasmni tanlash">
+        <div className="variant-dots" aria-label="Rasmni tanlash" style={{ zIndex: 20 }}>
           {item.images.map((_, imageIndex) => (
             <button
               key={`${imageIndex}-dot`}
@@ -89,23 +113,29 @@ export function PropertyCard({ item, index, href }) {
             />
           ))}
         </div>
-        <div className="property-hover">
-          <span className="spec-chip spec-chip-main">
-            <CategoryIcon category={item.category} />
-            {item.category}
-          </span>
-          <span className="spec-chip">{item.people} kishi</span>
-          <span className="spec-chip">{item.area} m2</span>
-        </div>
       </div>
-      <div className="property-body">
-        <div className="property-topline">
-          <span>{item.category}</span>
+      <div className="variant-body">
+        <div className="variant-title-row">
+          <h3>{item.title}</h3>
+          <div className="variant-price-block">
+            <strong className={priceUnavailable ? "is-muted" : ""}>{displayPrice}</strong>
+            <span className="variant-price-label">{priceUnavailable ? "— bu muddat yo'q" : priceLabel}</span>
+          </div>
         </div>
-        <h3>{item.title}</h3>
         <p>{item.location}</p>
-        <div className="property-bottom">
-          <strong>{item.price}</strong>
+        <div className="variant-spec-row">
+          <span className="variant-spec">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+            {item.people} kishi
+          </span>
+          <span className="variant-spec">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V5a3 3 0 0 1 6 0v1M5 10h16v2a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-2ZM8 21h8" /></svg>
+            2 xona
+          </span>
+          <span className="variant-spec">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8" /></svg>
+            {item.area} m2
+          </span>
         </div>
       </div>
     </article>
@@ -338,7 +368,7 @@ function BenefitsSection() {
   }, []);
 
   return (
-    <section ref={benefitsRef} className="benefits-section" id="benefits">
+    <section ref={benefitsRef} className="benefits-section" id="about">
       <div className="benefits-head">
         <h2>
           <span>Joyzone</span> qulayliklari
@@ -400,7 +430,7 @@ function PartnerStartSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="soul-partner-section" id="partner-start">
+    <section ref={sectionRef} className="soul-partner-section" id="partner">
       <div className="soul-bg-glow-orange"></div>
       <div className="soul-bg-glow-blue"></div>
       
@@ -627,6 +657,28 @@ function FooterIcon({ type }) {
   );
 }
 
+export function SimpleFooter() {
+  return (
+    <footer style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "24px clamp(24px, 4vw, 48px)",
+      background: "#ffffff",
+      borderTop: "1px solid rgba(41, 74, 109, 0.08)",
+      borderRadius: "28px 28px 0 0",
+      marginTop: "auto"
+    }}>
+      <a href="#home" style={{ display: "inline-flex", opacity: 0.9, transition: "opacity 0.2s" }} onMouseOver={(e) => e.currentTarget.style.opacity = "1"} onMouseOut={(e) => e.currentTarget.style.opacity = "0.9"}>
+        <img src={logoImage} alt="Joyzone" style={{ height: "26px" }} />
+      </a>
+      <p style={{ margin: 0, fontSize: "14px", color: "#61707e", fontWeight: "700" }}>
+        © {new Date().getFullYear()} Joyzone. Powered by IT Comfort.
+      </p>
+    </footer>
+  );
+}
+
 export function JoyFooter() {
   const socials = [
     ["instagram", "#instagram"],
@@ -637,7 +689,7 @@ export function JoyFooter() {
   const openPage = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
 
   return (
-    <footer className="joy-footer-section">
+    <footer className="joy-footer-section" id="contact">
       <div className="footer-question-strip">
         <div>
           <span>Joyzone yordam markazi</span>
@@ -672,8 +724,8 @@ export function JoyFooter() {
           </div>
           <nav aria-label="Ma'lumotlar">
             <strong>Ma'lumotlar</strong>
-            <a href={openPage("#about-us")} target="_blank" rel="noreferrer">Biz haqimizda</a>
-            <a href="#features">Yo'nalishlar</a>
+            <a href="#about-us">Biz haqimizda</a>
+            <a href="#filter">Yo'nalishlar</a>
             <a href="#contact">Kontaktlar</a>
             <a href="#policy">Maxfiylik siyosati</a>
           </nav>
@@ -681,7 +733,7 @@ export function JoyFooter() {
             <strong>Xizmatlar</strong>
             <a href="#filter">Ijaraga ofislar</a>
             <a href="#filter">Konferensiyalar zali</a>
-            <a href={openPage("#partner-guide")} target="_blank" rel="noreferrer">Hamkor bo'lish</a>
+            <a href="#partner-guide">Hamkor bo'lish</a>
           </nav>
           <div>
             <strong>Ijtimoiy tarmoqlarimiz</strong>
@@ -713,7 +765,7 @@ export default function ListingsSection() {
   const [spaces, setSpaces] = useState(propertyCards);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/spaces")
+    axios.get("http://localhost:8000/api/places/")
       .then((res) => {
         if (res.data && res.data.length > 0) {
           setSpaces(res.data);
@@ -781,7 +833,7 @@ export default function ListingsSection() {
   }, []);
 
   return (
-    <section className="listings-section">
+    <section className="listings-section" id="home-listings">
       <div className="listings-inner">
         <div className="listings-head">
           <p>Joyzone tanlovi</p>

@@ -1,9 +1,15 @@
 .user-profile-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   overflow-x: clip;
   padding: 112px clamp(18px, 5.7vw, 100px) 0;
   background: #294a6d;
   color: #12283f;
+}
+
+.user-profile-shell > footer {
+  margin: auto 0 0;
 }
 
 .profile-content-panel {
@@ -621,6 +627,10 @@
 
 .profile-edit-page-shell {
   padding-bottom: clamp(42px, 6vw, 86px);
+}
+
+.profile-edit-page-shell > footer {
+  margin: auto 0 0;
 }
 
 .profile-editor-panel {

@@ -537,6 +537,34 @@
   white-space: nowrap;
 }
 
+.variant-price-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.variant-price-block strong.is-muted {
+  text-decoration: line-through;
+  color: rgba(18, 40, 63, 0.35);
+}
+
+.variant-price-label {
+  font-size: 11px;
+  color: #e46630;
+  font-weight: 850;
+  margin-top: 2px;
+}
+
+.is-duration-unavailable .variant-media {
+  opacity: 0.65;
+  filter: grayscale(80%);
+}
+
+.is-duration-unavailable .variant-price-label {
+  color: rgba(18, 40, 63, 0.45);
+  font-weight: 700;
+}
+
 .variant-mini {
   grid-template-rows: minmax(0, 1fr) auto;
   border: 1px solid rgba(18, 40, 63, 0.08);

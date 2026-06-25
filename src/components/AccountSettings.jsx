@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import logoImage from "../assets/img/Logo.png";
+import { SimpleFooter } from "./ListingsSection.jsx";
 import "./AccountSettings.css";
 
 const settingsSections = [
@@ -210,6 +211,7 @@ function AccountSettings() {
           </div>
         </section>
       </section>
+      <SimpleFooter />
     </main>
   );
 }

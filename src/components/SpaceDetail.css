@@ -1,7 +1,6 @@
 .space-detail-shell {
   min-height: 100vh;
   overflow-x: clip;
-  padding: 100px clamp(18px, 5.7vw, 100px) clamp(34px, 5vw, 58px);
   background:
     radial-gradient(circle at 12% 8%, rgba(228, 102, 48, 0.18), transparent 24rem),
     linear-gradient(135deg, #294a6d 0%, #12283f 100%);
@@ -26,8 +25,9 @@
   display: grid;
   grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   gap: clamp(24px, 4vw, 58px);
-  align-items: end;
-  padding: 34px 0 42px;
+  align-items: center;
+  padding: 110px clamp(18px, 5.7vw, 100px) 42px;
+  min-height: 100vh;
 }
 
 .sd-hero-copy {
@@ -186,7 +186,7 @@
   align-items: start;
   border-radius: 30px 30px 0 0;
   background: #f6f1ee;
-  padding: clamp(24px, 4vw, 52px);
+  padding: clamp(24px, 4vw, 52px) clamp(18px, 5.7vw, 100px);
   box-shadow: 0 -24px 80px rgba(7, 20, 35, 0.18);
 }
 
@@ -941,7 +941,7 @@
 }
 
 .sd-similar {
-  padding: 64px 0 82px;
+  padding: 64px clamp(18px, 5.7vw, 100px) 82px;
 }
 
 .sd-similar .sd-section-head {

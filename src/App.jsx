@@ -57,12 +57,6 @@ function useUserState() {
   const [state, setState] = useState(readState);
 
   const updateState = (nextState) => {
-    // Call backend logout if logging out
-    if (state.isAuthed && !nextState.isAuthed && state.email) {
-      axios.post("http://localhost:5000/api/users/logout", { email: state.email })
-        .catch(err => console.warn("Logout backend warning:", err.message));
-    }
-
     setState(nextState);
     try {
       localStorage.setItem("joyzone-auth", nextState.isAuthed ? "true" : "false");
@@ -73,6 +67,8 @@ function useUserState() {
       } else {
         localStorage.removeItem("joyzone-name");
         localStorage.removeItem("joyzone-email");
+        localStorage.removeItem("joyzone-access");
+        localStorage.removeItem("joyzone-refresh");
       }
       if (nextState.activeBooking) {
         localStorage.setItem("joyzone-booking", JSON.stringify(nextState.activeBooking));
@@ -145,6 +141,19 @@ function App() {
 
   useEffect(() => {
     if (bootLoading) return undefined;
+    
+    // Smooth scroll to hash or top on route mount
+    const currentHash = window.location.hash.replace("#", "");
+    const targetEl = currentHash ? document.getElementById(currentHash) : null;
+    
+    if (targetEl) {
+      setTimeout(() => {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    } else {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
     const screen = document.querySelector(".app-route-shell");
     if (screen) {
       gsap.killTweensOf(screen);
@@ -164,7 +173,10 @@ function App() {
           filter: "blur(0px)",
           clipPath: "inset(0% 0% 0% 0% round 0px)",
           duration: 0.64,
-          ease: "expo.out"
+          ease: "expo.out",
+          onComplete: () => {
+            gsap.set(screen, { clearProps: "transform,scale,filter,clipPath" });
+          }
         }
       );
     }
@@ -206,19 +218,13 @@ function App() {
       );
   }, [displayedRoute, bootLoading]);
 
-  const handleRegister = (data) => {
-    const userData = data || { name: "Yangi Foydalanuvchi", email: "new_user@joyzone.uz" };
-    setUserState({ isAuthed: true, isPartner: false, name: userData.name, email: userData.email });
-    axios.post("http://localhost:5000/api/users/login", { name: userData.name, email: userData.email })
-      .catch(err => console.warn("Backend login session warning:", err.message));
-    window.location.hash = "#home";
-  };
-
-  const handleLogin = (data) => {
-    const userData = data || { name: "Foydalanuvchi", email: "user@joyzone.uz" };
-    setUserState({ isAuthed: true, isPartner: false, name: userData.name, email: userData.email });
-    axios.post("http://localhost:5000/api/users/login", { name: userData.name, email: userData.email })
-      .catch(err => console.warn("Backend login session warning:", err.message));
+  const handleAuthSuccess = (profile) => {
+    setUserState({ 
+      isAuthed: true, 
+      isPartner: profile.role === "partner", 
+      name: profile.first_name ? `${profile.first_name} ${profile.last_name}`.trim() : (profile.username || "Foydalanuvchi"), 
+      email: profile.email || profile.phone_number 
+    });
     window.location.hash = "#home";
   };
 
@@ -408,8 +414,8 @@ if (displayedRoute === "admin") {
   }
 
   const formByRoute = {
-    register: <AuthForm key="register" onRegister={handleRegister} />,
-    login: <LoginForm key="login" onLogin={handleLogin} />,
+    register: <AuthForm key="register" onSuccess={handleAuthSuccess} />,
+    login: <LoginForm key="login" onSuccess={handleAuthSuccess} />,
     forgot: <ForgotPasswordForm key="forgot" />
   };
 

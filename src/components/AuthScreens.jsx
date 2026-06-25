@@ -64,111 +64,221 @@ function AuthColumn({ children, narrow = false }) {
   );
 }
 
-export function AuthForm({ onRegister }) {
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (typeof onRegister === "function") {
-      onRegister();
-    } else {
-      window.location.hash = "#home";
+export function AuthForm({ onSuccess }) {
+  const [step, setStep] = useState("phone"); // "phone" | "otp" | "profile"
+  const [phone, setPhone] = useState("+998 ");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [tokens, setTokens] = useState(null);
+
+  const formatPhone = (val) => {
+    if (!val) return "+";
+    let raw = val.replace(/[^\d+]/g, "");
+    if (!raw.startsWith("+")) raw = "+" + raw.replace(/\+/g, "");
+    const digitsOnly = raw.replace(/\D/g, "");
+
+    if (digitsOnly.length === 0) return "+";
+
+    if (digitsOnly.startsWith("998")) {
+      const rest = digitsOnly.slice(3);
+      let formatted = "+998";
+      if (rest.length > 0) formatted += " " + rest.substring(0, 2);
+      if (rest.length > 2) formatted += " " + rest.substring(2, 5);
+      if (rest.length > 5) formatted += " " + rest.substring(5, 7);
+      if (rest.length > 7) formatted += " " + rest.substring(7, 9);
+      return formatted;
+    }
+    
+    if (digitsOnly.startsWith("7")) {
+      const rest = digitsOnly.slice(1);
+      let formatted = "+7";
+      if (rest.length > 0) formatted += " " + rest.substring(0, 3);
+      if (rest.length > 3) formatted += " " + rest.substring(3, 6);
+      if (rest.length > 6) formatted += " " + rest.substring(6, 8);
+      if (rest.length > 8) formatted += " " + rest.substring(8, 10);
+      return formatted;
+    }
+
+    let formatted = "+" + digitsOnly.substring(0, Math.min(3, digitsOnly.length));
+    if (digitsOnly.length > 3) {
+      let groups = digitsOnly.substring(3).match(/.{1,3}/g);
+      if (groups) formatted += " " + groups.join(" ");
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
+  const handlePhoneSubmit = async (e) => {
+    e.preventDefault();
+    const cleanPhone = phone.replace(/\s+/g, "");
+    if (cleanPhone.length < 11) return;
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/send-otp/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: cleanPhone })
+      });
+      if (!res.ok) throw new Error("Xato");
+      setStep("otp");
+    } catch (err) {
+      alert("Xatolik yuz berdi!");
     }
   };
 
-  return (
-    <div className="flex min-h-[inherit] flex-col px-7 pb-10 pt-8 sm:px-9 md:px-10 xl:px-12 xl:pb-9 xl:pt-8 min-[1400px]:px-16 min-[1400px]:pb-14 min-[1400px]:pt-12">
-      <header className="relative z-50 flex items-center justify-between">
-        <Logo />
-        <LangButton />
-      </header>
-      <main className="mx-auto mt-8 flex w-full max-w-[310px] flex-1 flex-col justify-center xl:mt-8 xl:max-w-[450px] min-[1400px]:mt-8 min-[1400px]:max-w-[480px]">
+  const handleOtpChange = (index, value) => {
+    if (value && !/^\d+$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`auth-otp-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`auth-otp-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasteData) return;
+    const newOtp = [...otp];
+    for (let i = 0; i < pasteData.length; i++) {
+      newOtp[i] = pasteData[i];
+    }
+    setOtp(newOtp);
+    const focusIndex = Math.min(pasteData.length, 5);
+    const targetInput = document.getElementById(`auth-otp-${focusIndex}`);
+    if (targetInput) targetInput.focus();
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    const otpString = otp.join("");
+    const cleanPhone = phone.replace(/\s+/g, "");
+    if (otpString.length !== 6) return;
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/verify-otp/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone_number: cleanPhone, otp_code: otpString })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Xato");
+      
+      localStorage.setItem("joyzone-access", data.access);
+      localStorage.setItem("joyzone-refresh", data.refresh);
+      
+      if (data.is_new_user) {
+        setTokens({ access: data.access, refresh: data.refresh });
+        setStep("profile");
+      } else {
+        onSuccess(data.profile);
+      }
+    } catch (err) {
+      alert("Noto'g'ri kod yoki muddat o'tgan!");
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    if (!firstName || !lastName) return;
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/profile/", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${tokens.access}`
+        },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName })
+      });
+      const data = await res.json();
+      onSuccess(data);
+    } catch (err) {
+      alert("Xatolik yuz berdi!");
+    }
+  };
+
+  if (step === "profile") {
+    return (
+      <AuthColumn narrow>
         <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
-          <h1 className="text-[37px] font-extrabold leading-[0.95] tracking-normal text-joyBlue sm:text-[40px] xl:text-[50px] min-[1400px]:text-[64px]">
-            Hush <span className="text-joyOrange">Kelibsiz!</span>
-          </h1>
-          <p className="mt-2 max-w-[290px] text-[12px] font-medium leading-[1.35] text-joyBlue xl:mt-3 xl:max-w-[420px] xl:text-[15px] xl:leading-[1.34] min-[1400px]:mt-4 min-[1400px]:max-w-[450px] min-[1400px]:text-[18px] min-[1400px]:leading-[1.4]">
-            Tadbirkorlar va yirik korxonalar uchun zamonaviy ish maydoni.
-          </p>
+          <AuthTitle title="Ism " accent="familiya" compact />
+          <AuthSubtitle>Joyzone xizmatlaridan foydalanish uchun profilingizni to'ldiring.</AuthSubtitle>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
-          <div className="grid grid-cols-2 gap-2 xl:gap-3 min-[1400px]:gap-4">
-            <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder="Ism" autoComplete="given-name" />
-            <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder="Familiya" autoComplete="family-name" />
-          </div>
-          <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder="Email | Telefon raqami" autoComplete="email" />
-          <input type="password" className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder="Parol" autoComplete="new-password" />
-          <label className="flex items-start gap-2 pt-1 text-[9px] font-bold leading-3 text-joyDeep xl:gap-3 xl:pt-2 xl:text-[11px] xl:leading-[1.25] min-[1400px]:text-[14px]">
-            <input className="mt-[1px] h-[13px] w-[13px] rounded border-joyBlue/20 accent-joyOrange xl:mt-[2px] xl:h-[18px] xl:w-[18px]" type="checkbox" />
-            <span>
-              Men <a className="text-joyOrange" href="#">Foydalanish shartlari</a> bilan tanishdim va roziman.
-            </span>
-          </label>
-          <button type="submit" className="mt-2 h-[39px] w-full rounded-full bg-joyOrange text-[15px] font-extrabold text-white shadow-[0_15px_32px_rgba(228,102,48,0.25)] transition hover:-translate-y-0.5 hover:bg-[#d75d29] focus:outline-none focus:ring-4 focus:ring-joyOrange/25 xl:mt-3 xl:h-[48px] xl:text-[19px] min-[1400px]:h-[64px] min-[1400px]:text-[24px]">
-            Ro'yxatdan o'tish
-          </button>
+        <form onSubmit={handleProfileSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
+          <TextInput placeholder="Ismingiz" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          <TextInput placeholder="Familiyangiz" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+          <PrimaryButton type="submit">Yakunlash</PrimaryButton>
         </form>
-        <Divider />
-        <GoogleButton />
-        <p className="mt-4 text-center text-[10px] font-bold text-joyDeep xl:mt-4 xl:text-[11px] min-[1400px]:mt-4 min-[1400px]:text-[14px]">
-          Akkauntingiz bormi? <a href="#login" className="auth-link">Kirish</a>
-        </p>
-      </main>
-    </div>
-  );
-}
+      </AuthColumn>
+    );
+  }
 
-export function LoginForm({ onLogin }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = (event) => {
-    if (event) {
-      event.preventDefault();
-    }
-    if (!email) return;
-
-    const name = email.split("@")[0] || "Foydalanuvchi";
-
-    if (typeof onLogin === "function") {
-      onLogin({ name, email });
-    } else {
-      window.location.hash = "#home";
-    }
-  };
+  if (step === "otp") {
+    return (
+      <AuthColumn narrow>
+        <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
+          <AuthTitle title="Kodni " accent="kiriting" compact />
+          <AuthSubtitle>Telegram botimizga yuborilgan 6 xonali tasdiqlash kodini kiriting.</AuthSubtitle>
+        </div>
+        <form onSubmit={handleOtpSubmit} className="space-y-5 xl:space-y-6 min-[1400px]:space-y-8">
+          <div className="flex justify-center gap-2 sm:gap-3">
+            {otp.map((digit, index) => (
+              <input
+                key={index}
+                id={`auth-otp-${index}`}
+                className="otp-field"
+                type="text"
+                inputMode="numeric"
+                maxLength="1"
+                value={digit}
+                onChange={(e) => handleOtpChange(index, e.target.value)}
+                onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                onPaste={handleOtpPaste}
+                required
+              />
+            ))}
+          </div>
+          <PrimaryButton type="submit">Tasdiqlash</PrimaryButton>
+        </form>
+      </AuthColumn>
+    );
+  }
 
   return (
     <AuthColumn narrow>
       <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
         <AuthTitle title="Hush " accent="kelibsiz!" compact />
-        <AuthSubtitle>Joyzone hisobingizga kiring va bronlaringizni bir joydan boshqaring.</AuthSubtitle>
+        <AuthSubtitle>Telefon raqamingiz orqali tizimga kiring yoki ro'yxatdan o'ting.</AuthSubtitle>
       </div>
-      <form onSubmit={handleLogin} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
+      <form onSubmit={handlePhoneSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
         <TextInput
-          placeholder="Email | Telefon raqami"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          placeholder="+998 90 123 45 67"
+          autoComplete="tel"
+          value={phone}
+          onChange={handlePhoneChange}
           required
         />
-        <TextInput
-          placeholder="Parol"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <div className="auth-motion-item text-right text-[10px] font-extrabold xl:text-[12px] min-[1400px]:text-[14px]">
-          <a href="#forgot" className="auth-link">Parolni unutdingizmi?</a>
-        </div>
         <Divider />
         <GoogleButton />
-        <PrimaryButton type="submit">Kirish</PrimaryButton>
+        <PrimaryButton type="submit">Kodni Olish</PrimaryButton>
       </form>
-      <p className="mt-4 text-center text-[10px] font-bold text-joyDeep xl:mt-4 xl:text-[11px] min-[1400px]:mt-4 min-[1400px]:text-[14px]">
-        Akkauntingiz yo'qmi? <a href="#register" className="auth-link">Ro'yxatdan o'ting</a>
-      </p>
     </AuthColumn>
   );
+}
+
+export function LoginForm({ onSuccess }) {
+  return <AuthForm onSuccess={onSuccess} />;
 }
 
 export function ForgotPasswordForm() {
@@ -192,6 +302,40 @@ export function ForgotPasswordForm() {
 }
 
 export function VerifyCodeForm() {
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+
+  const handleOtpChange = (index, value) => {
+    if (value && !/^\d+$/.test(value)) return;
+    const newOtp = [...otp];
+    newOtp[index] = value.slice(-1);
+    setOtp(newOtp);
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`verify-otp-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      const prevInput = document.getElementById(`verify-otp-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasteData) return;
+    const newOtp = [...otp];
+    for (let i = 0; i < pasteData.length; i++) {
+      newOtp[i] = pasteData[i];
+    }
+    setOtp(newOtp);
+    const focusIndex = Math.min(pasteData.length, 5);
+    const targetInput = document.getElementById(`verify-otp-${focusIndex}`);
+    if (targetInput) targetInput.focus();
+  };
+
   return (
     <div className="flex min-h-[inherit] flex-col px-7 pb-10 pt-8 sm:px-9 md:px-10 xl:px-12 xl:pb-12 xl:pt-10 min-[1400px]:px-14 min-[1400px]:pt-12">
       <header className="relative z-50 flex items-center justify-between">
@@ -203,9 +347,21 @@ export function VerifyCodeForm() {
         <p className="mx-auto mt-3 max-w-[390px] text-center text-[12px] font-medium leading-[1.45] text-joyBlue xl:text-[15px] min-[1400px]:text-[18px]">
           Email yoki telefon raqamingizga yuborilgan 6 xonali tasdiqlash kodini kiriting.
         </p>
-        <div className="mt-8 flex justify-center gap-3 min-[1400px]:mt-10">
-          {Array.from({ length: 6 }, (_, index) => (
-            <input key={index} className="otp-field" maxLength="1" inputMode="numeric" aria-label={`${index + 1}-raqam`} />
+        <div className="mt-8 flex justify-center gap-2 sm:gap-3 min-[1400px]:mt-10">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              id={`verify-otp-${index}`}
+              className="otp-field"
+              type="text"
+              inputMode="numeric"
+              maxLength="1"
+              value={digit}
+              onChange={(e) => handleOtpChange(index, e.target.value)}
+              onKeyDown={(e) => handleOtpKeyDown(index, e)}
+              onPaste={handleOtpPaste}
+              aria-label={`${index + 1}-raqam`}
+            />
           ))}
         </div>
         <div className="mt-8 w-full max-w-[430px]">

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
-import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
+import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
 import "./HostDashboard.css";
 
@@ -235,71 +235,117 @@ function TodayPage() {
 }
 
 function CalendarPage() {
+  const [activeSpace, setActiveSpace] = useState(hostListings[0]);
   const [price, setPrice] = useState("320000");
   const [period, setPeriod] = useState("за день");
   const [activeDiscounts, setActiveDiscounts] = useState(() => discounts.reduce((acc, item) => ({ ...acc, [item.label]: item.active }), {}));
-  const formattedPrice = useMemo(() => Number(price || 0).toLocaleString("ru-RU"), [price]);
+  
+  // Parse base price from active space if it exists, otherwise fallback
+  const currentBasePrice = useMemo(() => {
+    if (activeSpace && activeSpace.price) {
+      return activeSpace.price.replace(/\D/g, "");
+    }
+    return price;
+  }, [activeSpace, price]);
+
+  const formattedPrice = useMemo(() => Number(currentBasePrice || 0).toLocaleString("ru-RU"), [currentBasePrice]);
 
   return (
-    <div className="host-calendar-layout">
-      <aside className="host-price-panel">
-        <span>Базовая цена</span>
-        <label className="host-price-input">
-          <input value={price} onChange={(event) => setPrice(event.target.value.replace(/\D/g, "").slice(0, 8))} inputMode="numeric" aria-label="Базовая цена" />
-          <small>сум</small>
-        </label>
-        <p>{formattedPrice} сум {period}</p>
-
-        <div className="host-period-group" aria-label="Период цены">
-          {["за час", "за день", "за месяц"].map((item) => (
-            <button key={item} type="button" className={period === item ? "is-active" : ""} onClick={() => setPeriod(item)}>
-              {item}
-            </button>
-          ))}
-        </div>
-
-        <div className="host-discount-stack">
-          <h3>Скидки и надбавки</h3>
-          {discounts.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className={activeDiscounts[item.label] ? "is-active" : ""}
-              onClick={() => setActiveDiscounts((current) => ({ ...current, [item.label]: !current[item.label] }))}
-            >
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      <section className="host-calendar-panel">
-        <div className="host-calendar-top">
+    <div className="host-calendar-page-container">
+      {/* Top: Spaces List */}
+      <div className="host-spaces-top-bar" style={{ marginBottom: "28px" }}>
+        <div className="host-section-head compact" style={{ marginBottom: "16px" }}>
           <div>
-            <span>Июнь 2026</span>
-            <h2>Доступность и цены</h2>
-          </div>
-          <div className="host-calendar-legend">
-            <span><i className="free" />Свободно</span>
-            <span><i className="booked" />Бронь</span>
-            <span><i className="blocked" />Закрыто</span>
+            <span>Объекты</span>
+            <h2>Выберите место</h2>
           </div>
         </div>
+        <div className="host-spaces-list-horizontal">
+          {hostListings.map((space) => {
+            const isActive = activeSpace.title === space.title;
+            return (
+              <button 
+                key={space.title} 
+                className={`space-card-widget-horizontal ${isActive ? "is-active" : ""}`}
+                onClick={() => setActiveSpace(space)}
+                type="button"
+              >
+                <div className="space-widget-img-horizontal">
+                  <img src={space.images[0]} alt={space.title} />
+                </div>
+                <div className="space-widget-info">
+                  <strong>{space.title}</strong>
+                  <small>{space.location}</small>
+                  <span>{space.price}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        <div className="host-calendar-weekdays">
-          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => <span key={day}>{day}</span>)}
-        </div>
-        <div className="host-calendar-grid">
-          {calendarDays.map((day, index) => (
-            <button key={`${day.label}-${index}`} type="button" className={`host-day ${day.status} ${day.discount ? "has-discount" : ""} ${day.label ? "" : "is-muted"}`}>
-              <strong>{day.label}</strong>
-              {day.label ? <small>{day.price}</small> : null}
-              {day.discount ? <em>-10%</em> : null}
-            </button>
-          ))}
-        </div>
-      </section>
+      <div className="host-calendar-layout">
+        {/* Left Column: Price and Discount Panel */}
+        <aside className="host-price-panel">
+          <span>Базовая цена ({activeSpace.title})</span>
+          <label className="host-price-input">
+            <input value={currentBasePrice} onChange={(event) => setPrice(event.target.value.replace(/\D/g, "").slice(0, 8))} inputMode="numeric" aria-label="Базовая цена" />
+            <small>сум</small>
+          </label>
+          <p>{formattedPrice} сум {period}</p>
+
+          <div className="host-period-group" aria-label="Период цены">
+            {["за час", "за день", "за месяц"].map((item) => (
+              <button key={item} type="button" className={period === item ? "is-active" : ""} onClick={() => setPeriod(item)}>
+                {item}
+              </button>
+            ))}
+          </div>
+
+          <div className="host-discount-stack">
+            <h3>Скидки и надбавки</h3>
+            {discounts.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                className={activeDiscounts[item.label] ? "is-active" : ""}
+                onClick={() => setActiveDiscounts((current) => ({ ...current, [item.label]: !current[item.label] }))}
+              >
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        {/* Right Column: Calendar Panel */}
+        <section className="host-calendar-panel">
+          <div className="host-calendar-top">
+            <div>
+              <span>Июнь 2026</span>
+              <h2>{activeSpace.title}</h2>
+            </div>
+            <div className="host-calendar-legend">
+              <span><i className="free" />Свободно</span>
+              <span><i className="booked" />Бронь</span>
+              <span><i className="blocked" />Закрыто</span>
+            </div>
+          </div>
+
+          <div className="host-calendar-weekdays">
+            {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => <span key={day}>{day}</span>)}
+          </div>
+          <div className="host-calendar-grid">
+            {calendarDays.map((day, index) => (
+              <button key={`${day.label}-${index}`} type="button" className={`host-day ${day.status} ${day.discount ? "has-discount" : ""} ${day.label ? "" : "is-muted"}`}>
+                <strong>{day.label}</strong>
+                {day.label ? <small>{day.price}</small> : null}
+                {day.discount ? <em>-10%</em> : null}
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -312,7 +358,7 @@ function ListingsPage() {
           <span>Объявления</span>
           <h2>Мои места</h2>
         </div>
-        <a href="#partner-start"><DashboardIcon type="plus" />Добавить место</a>
+        <a href="#partner"><DashboardIcon type="plus" />Добавить место</a>
       </div>
 
       <div className="host-listings-grid">
@@ -401,7 +447,7 @@ function HostDashboard({ page = "today", userState, setUserState }) {
         {normalizedPage === "listings" ? <ListingsPage /> : null}
         {normalizedPage === "messages" ? <MessagesPage /> : null}
       </section>
-      <JoyFooter />
+      <SimpleFooter />
     </main>
   );
 }

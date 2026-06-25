@@ -3,73 +3,81 @@ import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import JoySlider from "./JoySlider.jsx";
 import ListingsSection from "./ListingsSection.jsx";
+import { propertyCards } from "../data/content.js";
 import logoImage from "../assets/img/Logo.png";
 import kvIcon from "../assets/img/kv.svg";
 import "./HomeHero.css";
 
 const navLinks = [
-  { href: "#about", label: "Biz haqimizda" },
+  { href: "#home", label: "Bosh sahifa" },
+  { href: "#about-us", label: "Biz haqimizda" },
   { href: "#filter", label: "Ijaraga joylar" },
-  { href: "#guide", label: "Yoriqnoma" },
-  { href: "#services", label: "Kontaktlar" },
-  { href: "#contacts", label: "Kontaktlar" }
+  { href: "#faq", label: "FAQ" },
+  { href: "#contact", label: "Kontaktlar" }
 ];
 
 const dashboardNavLinks = [
-  { href: "#host-today", label: "Сегодня" },
-  { href: "#host-calendar", label: "График" },
-  { href: "#host-listings", label: "Мои места" },
-  { href: "#host-messages", label: "Диалоги" }
+  { href: "#host-today", label: "Bugun" },
+  { href: "#host-calendar", label: "Grafik" },
+  { href: "#host-listings", label: "Mening joylarim" },
+  { href: "#host-messages", label: "Xabarlar" }
 ];
 
 const tabs = [
   { id: "barchasi", label: "Barchasi" },
-  { id: "ofislar", label: "Ofislar" },
-  { id: "coworking", label: "Kovorking" },
-  { id: "konf", label: "Konferentsiya zallari" },
-  { id: "muzokara", label: "Muzokara xonalari" },
-  { id: "tadbirlar", label: "Tadbirlar uchun xonalar" },
-  { id: "ijara", label: "Ijaraga joylar" }
+  { id: "ofis", label: "Ofis" },
+  { id: "kovorking", label: "Kovorking" },
+  { id: "zal", label: "Zal / Tadbir" },
+  { id: "tijorat", label: "Tijorat" },
+  { id: "turarjoy", label: "Turar-joy" }
 ];
+
+// Sub-categories per main category
+const subCategories = {
+  barchasi: [],
+  ofis: ["Xususiy kabinet", "Open space", "Virtual ofis"],
+  kovorking: ["Belgilangan joy", "Erkin joy (hot desk)"],
+  zal: ["Konferensiya zali", "Trening / seminar zali", "Banket / tantana zali"],
+  tijorat: ["Do'kon / savdo", "Showroom", "Ombor"],
+  turarjoy: ["Kvartira", "Xona", "Uy / Kottej"]
+};
 
 const filters = {
   barchasi: [
     { name: "Maydon", label: "Maydon (m2)", unit: "m2", options: ["50-100", "100-200", "200-500", "500+"] },
-    { name: "Sigim", label: "Sig'imi", unit: "kishi", options: ["2-8", "8-20", "20-50", "50+"] },
-    { name: "Muddati", label: "Muddati", unit: "", options: ["1 soat", "Kunlik", "Haftalik", "Oylik"] },
-    { name: "Kommunal", label: "Kommunal xizmatlar", unit: "", options: ["Elektr", "Suv", "Internet", "Issiqlik"] },
-    { name: "Avto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] },
-    { name: "Mebel", label: "Mebel/jihoz", unit: "", options: ["Stol", "Stul", "Proyektor", "Wi-Fi"] }
+    { name: "Sigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-12", "13-24", "25+"] },
+    { name: "Muddati", label: "Muddati", unit: "", options: ["Soatlik", "Kunlik", "Haftalik", "Oylik"] },
+    { name: "Avto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] }
   ],
-  ofislar: [
-    { name: "OfisMaydon", label: "Maydon (m2)", unit: "m2", options: ["80-150", "150-300", "300+"] },
-    { name: "OfisXona", label: "Xonalar", unit: "", options: ["2 xona", "4 xona", "Open space"] },
-    { name: "OfisMebel", label: "Mebel/jihoz", unit: "", options: ["Tayyor", "Bo'sh", "Premium"] }
+  ofis: [
+    { name: "OfisMaydon", label: "Maydon (m2)", unit: "m2", options: ["50-100", "100-200", "200-300", "300+"] },
+    { name: "OfisSigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-12", "13-24", "25+"] },
+    { name: "OfisMebel", label: "Mebel", unit: "", options: ["Mebellanmagan", "Meballangan", "Premium"] },
+    { name: "OfisAvto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] },
+    { name: "OfisInternet", label: "Internet", unit: "", options: ["Bor", "Yo'q"] }
   ],
-  coworking: [
-    { name: "CoworkingJoy", label: "Joylar soni", unit: "", options: ["1 joy", "4 joy", "10 joy"] },
+  kovorking: [
+    { name: "CoworkingSigim", label: "Joylar soni", unit: "", options: ["1 joy", "2-5 joy", "10+ joy"] },
     { name: "CoworkingMuddat", label: "Muddati", unit: "", options: ["Soatlik", "Kunlik", "Oylik"] },
-    { name: "CoworkingXizmat", label: "Xizmatlar", unit: "", options: ["Wi-Fi", "Printer", "Coffee point"] }
+    { name: "CoworkingXizmat", label: "Qo'shimcha", unit: "", options: ["Wi-Fi", "Printer", "Kofe burchagi"] }
   ],
-  konf: [
-    { name: "KonfSigim", label: "Sig'imi", unit: "kishi", options: ["10", "30", "80"] },
-    { name: "KonfMuddat", label: "Muddati", unit: "", options: ["2 soat", "4 soat", "Kunlik"] },
-    { name: "KonfJihoz", label: "Jihozlar", unit: "", options: ["Proyektor", "Mikrofon", "Ekran"] }
+  zal: [
+    { name: "ZalSigim", label: "Sig'imi", unit: "kishi", options: ["10-30", "30-80", "80-200", "200+"] },
+    { name: "ZalMuddat", label: "Muddati", unit: "", options: ["2 soat", "4 soat", "Kunlik"] },
+    { name: "ZalJihoz", label: "Jihozlar", unit: "", options: ["Proyektor", "Mikrofon", "Ekran", "Sahna"] },
+    { name: "ZalKeytering", label: "Keytering", unit: "", options: ["Bor", "Yo'q"] }
   ],
-  muzokara: [
-    { name: "MuzokaraSigim", label: "Sig'imi", unit: "kishi", options: ["4", "8", "16"] },
-    { name: "MuzokaraMuddat", label: "Muddati", unit: "", options: ["1 soat", "2 soat", "4 soat"] },
-    { name: "MuzokaraJihoz", label: "Jihozlar", unit: "", options: ["TV", "Doska", "Wi-Fi"] }
+  tijorat: [
+    { name: "TijoratMaydon", label: "Maydon (m2)", unit: "m2", options: ["30-80", "80-200", "200-500", "500+"] },
+    { name: "TijoratSigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-15", "15+"] },
+    { name: "TijoratQavat", label: "Qavat", unit: "", options: ["1-qavat", "2-qavat", "3+ qavat"] },
+    { name: "TijoratVitrina", label: "Vitrina", unit: "", options: ["Bor", "Yo'q"] }
   ],
-  tadbirlar: [
-    { name: "TadbirlarSigim", label: "Sig'imi", unit: "kishi", options: ["50", "100", "200+"] },
-    { name: "TadbirlarMuddat", label: "Muddati", unit: "", options: ["4 soat", "Kunlik", "Dam olish kuni"] },
-    { name: "TadbirlarXizmat", label: "Xizmatlar", unit: "", options: ["Sahna", "Zvuk", "Yoritish"] }
-  ],
-  ijara: [
-    { name: "IjaraMaydon", label: "Maydon", unit: "m2", options: ["50-100", "100-200", "500+"] },
-    { name: "IjaraMuddat", label: "Muddati", unit: "oy", options: ["1-3", "3-6", "12+"] },
-    { name: "IjaraKommunal", label: "Kommunal xizmatlar", unit: "", options: ["Kiritilgan", "Alohida"] }
+  turarjoy: [
+    { name: "TurarMaydon", label: "Maydon (m2)", unit: "m2", options: ["30-60", "60-100", "100-200", "200+"] },
+    { name: "TurarSigim", label: "Sig'imi", unit: "kishi", options: ["1-2", "3-4", "5-6", "7+"] },
+    { name: "TurarXona", label: "Xonalar soni", unit: "", options: ["1 xona", "2 xona", "3 xona", "4+ xona"] },
+    { name: "TurarMebel", label: "Mebel", unit: "", options: ["Mebellanmagan", "Qisman", "To'liq mebellanagan"] }
   ]
 };
 
@@ -96,6 +104,7 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
     const wave = waveRef.current;
     if (!nav || !wave) return;
     const links = nav.querySelectorAll(".nav-link");
+    
     const moveWave = (el) => {
       if (!el) return;
       const rect = el.getBoundingClientRect();
@@ -107,16 +116,35 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
         ease: "power3.out"
       });
     };
-    const activeLink = activeIndex >= 0 ? links[Math.min(activeIndex, links.length - 1)] : null;
-    moveWave(activeLink);
+
+    const activeLink = activeIndex >= 0 && activeIndex < links.length ? links[activeIndex] : null;
+
+    if (activeLink) {
+      gsap.set(wave, { opacity: 1 });
+      moveWave(activeLink);
+    } else {
+      gsap.set(wave, { opacity: 0, width: 0 });
+    }
+
     const listeners = [];
     links.forEach((link) => {
-      const listener = () => moveWave(link);
+      const listener = () => {
+        gsap.to(wave, { opacity: 1, duration: 0.3 });
+        moveWave(link);
+      };
       link.addEventListener("mouseenter", listener);
       listeners.push([link, listener]);
     });
-    const leaveListener = () => moveWave(activeLink);
+
+    const leaveListener = () => {
+      if (activeLink) {
+        moveWave(activeLink);
+      } else {
+        gsap.to(wave, { opacity: 0, width: 0, duration: 0.5, ease: "power3.out" });
+      }
+    };
     nav.addEventListener("mouseleave", leaveListener);
+
     return () => {
       listeners.forEach(([link, listener]) => link.removeEventListener("mouseenter", listener));
       nav.removeEventListener("mouseleave", leaveListener);
@@ -167,32 +195,69 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 }
 
 const menuNavLinks = [
-  { href: "#about",    label: "Biz haqimizda", num: "01", desc: "Kompaniya haqida batafsil ma'lumot" },
-  { href: "#filter",   label: "Ijaraga joylar", num: "02", desc: "Barcha turdagi ofis va kovorkinglar" },
-  { href: "#guide",    label: "Yo'riqnoma",    num: "03", desc: "Platformadan foydalanish qoidalari" },
-  { href: "#contacts", label: "Kontaktlar",    num: "04", desc: "Biz bilan tezkor bog'lanish" },
-];
-
-const dashboardMenuLinks = [
-  { href: "#host-today", label: "Сегодня", num: "01", desc: "Брони, задачи и быстрые действия на день" },
-  { href: "#host-calendar", label: "График", num: "02", desc: "Цены, скидки и доступность пространств" },
-  { href: "#host-listings", label: "Мои места", num: "03", desc: "Объявления, статусы и публикация" },
-  { href: "#host-messages", label: "Диалоги", num: "04", desc: "Чаты с резидентами и командами" }
+  { href: "#home",     label: "Bosh sahifa",   num: "01", desc: "Asosiy sahifa" },
+  { href: "#about-us", label: "Biz haqimizda", num: "02", desc: "Kompaniya haqida" },
+  { href: "#filter",   label: "Ijaraga joylar", num: "03", desc: "Katalog" },
+  { href: "#faq",      label: "FAQ",           num: "04", desc: "Savollar va javoblar" },
+  { href: "#contact",  label: "Kontaktlar",    num: "05", desc: "Bog'lanish" }
 ];
 
 const profileMenuLinks = [
-  { href: "#profile", label: "Profil", num: "01", desc: "Anketa, bronlar va saqlangan joylar" },
-  { href: "#settings", label: "Sozlamalar", num: "02", desc: "Akkaunt, xavfsizlik va bildirishnomalar" },
-  { href: "#filter", label: "Joy topish", num: "03", desc: "Ofis, kovorking va zallar katalogi" },
-  { href: "#home", label: "Bosh sahifa", num: "04", desc: "Joyzone asosiy sahifasiga qaytish" }
+  { href: "#profile",  label: "Profil",        num: "01", desc: "Shaxsiy ma'lumotlar" },
+  { href: "#settings", label: "Sozlamalar",    num: "02", desc: "Xavfsizlik va akkaunt" },
+  { href: "#filter",   label: "Joy qidirish",  num: "03", desc: "Ofis va kovorkinglar" },
+  { href: "#home",     label: "Bosh sahifa",   num: "04", desc: "Bosh sahifaga qaytish" }
 ];
+
+/* SVG icons for profile actions */
+const IconUser = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+const IconSettings = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+);
+const IconSearch = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+const IconHome = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
+  </svg>
+);
+const IconLogout = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
+const IconPhone = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.59 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l1.27-.9a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>
+);
+const IconMail = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+  </svg>
+);
+
+const profileNavIcons = {
+  "Profil": <IconUser />,
+  "Sozlamalar": <IconSettings />,
+  "Joy qidirish": <IconSearch />,
+  "Bosh sahifa": <IconHome />
+};
 
 function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
   const overlayRef = useRef(null);
   const bgRef = useRef(null);
   const tlRef = useRef(null);
   const isDashboard = variant === "dashboard";
-  const drawerLinks = isDashboard ? profileMenuLinks : menuNavLinks;
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -204,13 +269,11 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
       document.body.style.overflow = "hidden";
 
       tlRef.current = gsap.timeline({ defaults: { ease: "power4.out" } });
-      // Glassmorphic fade in
       tlRef.current.fromTo(overlay, { opacity: 0, backdropFilter: "blur(0px)" }, { opacity: 1, backdropFilter: "blur(12px)", duration: 0.4 })
                    .fromTo(bg, { x: "100%", opacity: 0 }, { x: "0%", opacity: 1, duration: 0.6 }, "-=0.2");
       
-      // Staggered reveal for menu items
-      tlRef.current.fromTo(".premium-nav-item", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1 }, "-=0.3");
-      tlRef.current.fromTo(".premium-block", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1 }, "-=0.4");
+      tlRef.current.fromTo(".menu-nav-link", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, stagger: 0.07 }, "-=0.25");
+      tlRef.current.fromTo(".menu-sidebar-col, .menu-widget-partner, .menu-widget-user, .menu-widget-auth", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.06 }, "-=0.3");
     } else {
       document.body.style.overflow = "";
       gsap.to(bg, {
@@ -241,179 +304,164 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
     >
       <div ref={bgRef} className="premium-menu-container" onClick={(e) => e.stopPropagation()}>
         
-        {/* Header with Close */}
-        <div className="premium-menu-header">
-          <img src={logoImage} alt="Joyzone" className="premium-menu-logo" />
-          <div className="premium-menu-close-btn" onClick={onClose} title="Yopish">
-            <span className="close-text">Yopish</span>
-            <div className="close-icon">✕</div>
+        {/* Left Column: Sidebar (Branding, contacts, social) */}
+        <div className="menu-sidebar-col">
+          <div className="menu-sidebar-logo-area">
+            <img src={logoImage} alt="Joyzone" className="premium-menu-logo" />
+          </div>
+          
+          <div className="menu-sidebar-content">
+            <div className="menu-sidebar-quote">
+              <span className="menu-sidebar-tagline">Premium Spaces</span>
+              <h3>O'zbekistondagi eng yaxshi ofislar, kovorkinglar va dam olish maskanlari</h3>
+            </div>
+            
+            <div className="menu-sidebar-footer">
+              <div className="menu-sidebar-contacts">
+                <a href="tel:+998711234567" className="menu-sidebar-contact-item">
+                  <span className="icon"><IconPhone /></span>
+                  <div className="text">
+                    <small>Ishonch telefoni</small>
+                    <strong>+998 71 123 45 67</strong>
+                  </div>
+                </a>
+                <a href="mailto:info@joyzone.uz" className="menu-sidebar-contact-item">
+                  <span className="icon"><IconMail /></span>
+                  <div className="text">
+                    <small>Elektron pochta</small>
+                    <strong>info@joyzone.uz</strong>
+                  </div>
+                </a>
+              </div>
+              
+              <div className="menu-sidebar-socials">
+                <a href="https://t.me/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Telegram</a>
+                <a href="https://instagram.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Instagram</a>
+                <a href="https://facebook.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Facebook</a>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="premium-menu-content">
-          {/* Left: Main Navigation */}
-          <div className="premium-menu-nav">
-	            <p className="premium-section-title">{isDashboard ? "Profil menyusi" : "Asosiy menyu"}</p>
-            <nav className="premium-nav-list">
-              {drawerLinks.map((link) => (
-                <a key={link.href} href={link.href} className="premium-nav-item" onClick={onClose}>
-                  <span className="nav-num">{link.num}</span>
-                  <div className="nav-text-wrapper">
-                    <span className="nav-label">{link.label}</span>
-                    <span className="nav-desc">{link.desc}</span>
-                  </div>
-                </a>
-              ))}
-            </nav>
+        {/* Right Column: Navigation & user panel */}
+        <div className="menu-main-col">
+          <div className="menu-main-header">
+            <img src={logoImage} alt="Joyzone" className="premium-menu-logo mobile-only-logo" />
+            <button className="menu-close-btn" onClick={onClose} aria-label="Yopish">
+              <span className="menu-close-label">Yopish</span>
+              <span className="menu-close-icon">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                </svg>
+              </span>
+            </button>
           </div>
 
-          {/* Right: Info Blocks */}
-	          <div className={`premium-menu-info ${isDashboard ? "is-profile-menu" : "is-home-menu"}`}>
-	            <div className="profile-menu-only premium-block profile-account-block">
-	              <div className="profile-menu-avatar">AK</div>
-	              <div>
-	                <p className="premium-section-title">Shaxsiy kabinet</p>
-	                <h3>Aziz Karimov</h3>
-	                <p>Profil anketasi, sozlamalar, bron tarixi va saqlangan joylar bitta joyda.</p>
-	              </div>
-	              <div className="profile-menu-actions">
-	                <a href="#profile" className="premium-btn primary" onClick={onClose}>
-	                  Profilni ochish
-	                </a>
-	                <a href="#settings" className="premium-btn outline" onClick={onClose}>
-	                  Sozlamalar
-	                </a>
-	              </div>
-	            </div>
+          <div className="menu-main-body">
+            {/* Navigation */}
+            <nav className="menu-nav">
+              <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
+              <ul className="menu-nav-list">
+                {(isDashboard ? profileMenuLinks : menuNavLinks).map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href} className="menu-nav-link" onClick={onClose}>
+                      <span className="menu-nav-num">{link.num}</span>
+                      {isDashboard && <span className="menu-nav-icon">{profileNavIcons[link.label]}</span>}
+                      <span className="menu-nav-label">{link.label}</span>
+                      <span className="menu-nav-desc">{link.desc}</span>
+                      <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                      </svg>
+                    </a>
+                  </li>
+                ))}
+                {userState.isAuthed && (
+                  <li>
+                    <button
+                      className="menu-nav-link menu-nav-logout"
+                      onClick={() => { 
+                        setUserState({ isAuthed: false, isPartner: false });
+                        localStorage.removeItem("joyzone-access");
+                        localStorage.removeItem("joyzone-refresh");
+                        onClose(); 
+                        window.location.hash = "login";
+                      }}
+                    >
+                      <span className="menu-nav-num">{isDashboard ? "05" : "06"}</span>
+                      <span className="menu-nav-icon"><IconLogout /></span>
+                      <span className="menu-nav-label">Chiqish</span>
+                      <span className="menu-nav-desc">Akkauntdan chiqish</span>
+                      <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                      </svg>
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </nav>
 
-	            <div className="profile-menu-only profile-dashboard-grid">
-	              <a href="#profile" className="premium-block profile-quick-card" onClick={onClose}>
-	                <span>01</span>
-	                <h3>Anketa</h3>
-	                <p>Shaxsiy ma'lumotlar va Joyzone profilini to'ldirish.</p>
-	              </a>
-	              <a href="#settings" className="premium-block profile-quick-card" onClick={onClose}>
-	                <span>02</span>
-	                <h3>Akkaunt sozlamalari</h3>
-	                <p>Xavfsizlik, aloqa, til, to'lov va bildirishnomalar.</p>
-	              </a>
-	              <a href="#filter" className="premium-block profile-quick-card" onClick={onClose}>
-	                <span>03</span>
-	                <h3>Joy qidirish</h3>
-	                <p>Yangi ofis, kovorking yoki zalni tez topish.</p>
-	              </a>
-	              <button className="premium-block profile-quick-card profile-logout-card" onClick={() => { setUserState({ isAuthed: false, isPartner: false }); onClose(); }}>
-	                <span>04</span>
-	                <h3>Chiqish</h3>
-	                <p>Akkauntdan chiqish va bosh sahifaga qaytish.</p>
-	              </button>
-	            </div>
-	            
-	            {/* Partner Block */}
-            <div className="premium-block partner-block">
-              <div className="partner-content">
-                <div className="partner-badge">Hamkorlik</div>
-	                <h3>{isDashboard ? "Kabinetni boshqaring" : "Joyingizni ijaraga bering"}</h3>
-	                <p>{isDashboard ? "Barcha bronlar, narxlar, e'lonlar va dialoglar bitta boshqaruv maydonida." : "Joyzone tizimiga qo'shiling va o'z ofis, kovorking yoki zallaringizni ijaraga berib, barqaror daromad toping."}</p>
-	                <a href={isDashboard ? "#profile" : "#partner-start"} className="premium-btn primary" onClick={onClose}>
-	                  {isDashboard ? "Profilga o'tish" : "Hamkor bo'lish"}
-                  <span className="btn-arrow">→</span>
-                </a>
-              </div>
-              <div className="partner-bg-shape"></div>
-            </div>
-
-            <div className="premium-info-grid">
-              {/* Contacts Block */}
-              <div className="premium-block contacts-block">
-                <p className="premium-section-title">Kontaktlar</p>
-                <div className="contact-items">
-                  <a href="tel:+998711234567" className="contact-link">
-                    <div className="contact-icon-wrapper">📞</div>
-                    <div className="contact-text">
-                      <span className="contact-hint">Telefon</span>
-                      <span className="contact-val">+998 71 123 45 67</span>
-                    </div>
-                  </a>
-                  <a href="mailto:info@joyzone.uz" className="contact-link">
-                    <div className="contact-icon-wrapper">✉️</div>
-                    <div className="contact-text">
-                      <span className="contact-hint">E-mail</span>
-                      <span className="contact-val">info@joyzone.uz</span>
-                    </div>
-                  </a>
-                  <div className="contact-link location">
-                    <div className="contact-icon-wrapper">📍</div>
-                    <div className="contact-text">
-                      <span className="contact-hint">Manzil</span>
-                      <span className="contact-val">Toshkent sh., Chilonzor 12</span>
-                    </div>
+            {/* Bottom widgets */}
+            <div className="menu-main-footer">
+              {isDashboard ? (
+                /* Profile card widget */
+                <div className="menu-widget-user">
+                  <div className="menu-user-avatar">
+                    {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
                   </div>
+                  <div className="menu-user-details">
+                    <strong>{userState.name || "Aziz Karimov"}</strong>
+                    <span>{userState.email || "aziz@gmail.com"}</span>
+                  </div>
+                  <a href="#profile" className="menu-user-profile-btn" onClick={onClose}>
+                    <IconUser /> Profile ochish
+                  </a>
                 </div>
-              </div>
-
-              {/* Social & User Block */}
-              <div className="premium-block user-block">
-                <p className="premium-section-title">Profil va faollik</p>
-                
-                {userState.isAuthed ? (
-                  <div className="profile-stats">
-                    <div className="stat-item">
-                      <span className="stat-icon">❤️</span>
-                      <div className="stat-text">
-                        <span className="stat-label">Saqlanganlar</span>
-                        <span className="stat-val">12 ta joy</span>
-                      </div>
+              ) : (
+                /* Auth widget */
+                userState.isAuthed ? (
+                  <div className="menu-widget-user">
+                    <div className="menu-user-avatar">
+                      {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-icon">📅</span>
-                      <div className="stat-text">
-                        <span className="stat-label">Mening bandlarim</span>
-                        <span className="stat-val">2 ta faol</span>
-                      </div>
+                    <div className="menu-user-details">
+                      <strong>{userState.name || "Aziz Karimov"}</strong>
+                      <span>{userState.email || "Mehmon"}</span>
                     </div>
+                    <a href="#profile" className="menu-user-profile-btn" onClick={onClose}>
+                      <IconUser /> Kabinetga o'tish
+                    </a>
                   </div>
                 ) : (
-                  <div className="guest-promo">
-                    <p>Platformaning barcha imkoniyatlaridan foydalanish uchun ro'yxatdan o'ting.</p>
+                  <div className="menu-widget-auth">
+                    <p>Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring</p>
+                    <div className="menu-auth-buttons-row">
+                      <a href="#login" className="menu-btn-auth-primary" onClick={onClose}>Kirish</a>
+                      <a href="#register" className="menu-btn-auth-secondary" onClick={onClose}>Ro'yxatdan o'tish</a>
+                    </div>
                   </div>
-                )}
+                )
+              )}
 
-                <div className="social-links" style={{ marginTop: '16px' }}>
-                  <a href="#tg" className="social-btn tg">Telegram</a>
-                  <a href="#ig" className="social-btn ig">Instagram</a>
-                  <a href="#fb" className="social-btn fb">Facebook</a>
+              {/* Partner banner widget */}
+              {!isDashboard && (
+                <div className="menu-widget-partner">
+                  <div className="partner-widget-content">
+                    <span className="tag">Hamkorlar uchun</span>
+                    <h4>Joyingiz bormi?</h4>
+                    <p>Uni Joyzone-da e'lon qiling va daromad olishni boshlang</p>
+                  </div>
+                  <a href="#partner" className="partner-widget-cta" onClick={onClose}>
+                    Boshlash
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
+                      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                    </svg>
+                  </a>
                 </div>
-                
-	                  <div className="user-actions">
-	                  {userState.isAuthed ? (
-	                    <>
-	                      <a href={userState.isPartner ? "#partner" : "#profile"} className="premium-btn outline" onClick={onClose}>
-	                        Shaxsiy kabinet
-	                      </a>
-	                      <a href="#settings" className="premium-btn outline" onClick={onClose}>
-	                        Sozlamalar
-	                      </a>
-	                      <button className="premium-btn ghost" onClick={() => { setUserState({ isAuthed: false, isPartner: false }); onClose(); }}>
-	                        Chiqish
-	                      </button>
-	                    </>
-                  ) : (
-                    <>
-                      <a href="#login" className="premium-btn primary" onClick={onClose}>
-                        Tizimga kirish
-                      </a>
-                      <a href="#register" className="premium-btn outline" onClick={onClose}>
-                        Ro'yxatdan o'tish
-                      </a>
-                    </>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
-
           </div>
         </div>
+
       </div>
     </div>,
     document.body
@@ -501,22 +549,34 @@ function PriceFilter() {
       <div className="price-values">
         <div className="value-box">
           <input
-            type="number"
-            value={minVal}
-            min={MIN}
-            max={maxVal - 50000}
-            onChange={(e) => setMinVal(Math.min(Number(e.target.value), maxVal - 50000))}
+            type="text"
+            value={minVal !== "" && minVal !== undefined ? new Intl.NumberFormat("ru-RU").format(minVal).replace(",", " ") : ""}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "");
+              const val = raw ? Number(raw) : 0;
+              setMinVal(Math.min(val, maxVal - 50000));
+            }}
           />
           <span>so'm</span>
         </div>
         <span className="price-sep">—</span>
         <div className="value-box">
           <input
-            type="number"
-            value={maxVal}
-            min={minVal + 50000}
-            max={MAX}
-            onChange={(e) => setMaxVal(Math.max(Number(e.target.value), minVal + 50000))}
+            type="text"
+            value={maxVal !== "" && maxVal !== undefined ? new Intl.NumberFormat("ru-RU").format(maxVal).replace(",", " ") : ""}
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "");
+              const val = raw ? Number(raw) : 0;
+              // If they type a small number, don't force it up instantly, allow typing.
+              // Wait, we can just allow it, but cap it at MAX.
+              setMaxVal(Math.min(val, MAX));
+            }}
+            onBlur={() => {
+              // Constrain on blur
+              if (maxVal < minVal + 50000) {
+                setMaxVal(minVal + 50000);
+              }
+            }}
           />
           <span>so'm</span>
         </div>
@@ -547,6 +607,7 @@ function PriceFilter() {
 
 function Banner({ slides }) {
   const [activeTab, setActiveTab] = useState("barchasi");
+  const [selectedSubCat, setSelectedSubCat] = useState("");
   const [typingText, setTypingText] = useState("ofislar");
   const [cursorVisible, setCursorVisible] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState("");
@@ -638,9 +699,26 @@ function Banner({ slides }) {
   }, []);
 
 
-  const locationOptions = ["Toshkent", "Samarqand", "Buxoro", "Andijon", "Namangan", "Farg'ona"].filter((location) =>
-    location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const locationGroups = React.useMemo(() => {
+    const groups = {};
+    propertyCards.forEach(item => {
+      if (!item.location) return;
+      const parts = item.location.split(",").map(s => s.trim());
+      const region = parts[0];
+      const district = parts[1] || "";
+      if (!groups[region]) groups[region] = [];
+      if (district && !groups[region].includes(district)) {
+        groups[region].push(district);
+      }
+    });
+    // Add default popular regions if missing
+    ["Toshkent", "Samarqand", "Buxoro", "Andijon", "Namangan", "Farg'ona"].forEach(r => {
+      if (!groups[r]) groups[r] = [];
+    });
+    return groups;
+  }, []);
+
+  const [expandedRegion, setExpandedRegion] = useState(null);
 
   return (
     <section className="banner-section">
@@ -664,12 +742,37 @@ function Banner({ slides }) {
                 <div className="filter">
                   <div className="filter-tabs">
                     {tabs.map((tab) => (
-                      <button key={tab.id} className={`tab ${activeTab === tab.id ? "active" : ""}`} onClick={() => setActiveTab(tab.id)} type="button">
+                      <button
+                        key={tab.id}
+                        className={`tab ${activeTab === tab.id ? "active" : ""}`}
+                        onClick={() => { setActiveTab(tab.id); setSelectedSubCat(""); }}
+                        type="button"
+                      >
                         {tab.label}
                       </button>
                     ))}
                   </div>
                   <div className="custom-hr" />
+
+                  {/* Sub-categories — faqat kategoria tanlanganda ko'rinadi */}
+                  {subCategories[activeTab] && subCategories[activeTab].length > 0 && (
+                    <div className="filter-subcats">
+                      {subCategories[activeTab].map((sub) => (
+                        <button
+                          key={sub}
+                          type="button"
+                          className={`subcat-pill ${selectedSubCat === sub ? "active" : ""}`}
+                          onClick={() => setSelectedSubCat(selectedSubCat === sub ? "" : sub)}
+                        >
+                          {sub}
+                          {selectedSubCat === sub && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="filter-content">
                     <div className="tab-content active">
                       <div className="filter-options">
@@ -690,11 +793,83 @@ function Banner({ slides }) {
                       <div className="dropdown">
                         <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
                         <ul className="options">
-                          {locationOptions.map((location) => (
-                            <li key={location} onClick={() => { setSelectedLocation(location); setIsLocationOpen(false); }}>
-                              {location}
-                            </li>
-                          ))}
+                          {Object.entries(locationGroups).map(([region, districts]) => {
+                            const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
+                            if (!isMatch) return null;
+
+                            return (
+                              <React.Fragment key={region}>
+                                <li 
+                                  className="region-item" 
+                                  style={{ display: "flex", padding: 0, background: expandedRegion === region ? "#f8fafc" : "transparent" }}
+                                >
+                                  <div 
+                                    style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                                    onClick={() => { setSelectedLocation(region); setIsLocationOpen(false); }}
+                                  >
+                                    <span>{region}</span>
+                                    {selectedLocation === region && (
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                    )}
+                                  </div>
+                                  {districts.length > 0 && (
+                                    <div 
+                                      style={{ padding: "0 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(41, 74, 109, 0.08)" }}
+                                      onClick={(e) => { e.stopPropagation(); setExpandedRegion(expandedRegion === region ? null : region); }}
+                                    >
+                                      <div style={{ transform: expandedRegion === region ? "rotate(180deg)" : "rotate(0deg)", transition: "0.2s", color: "rgba(41, 74, 109, 0.5)" }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                      </div>
+                                    </div>
+                                  )}
+                                </li>
+                                {expandedRegion === region && districts.length > 0 && (
+                                  <div 
+                                    className="districts-list" 
+                                    style={{ 
+                                      margin: "2px 0 6px 14px", 
+                                      padding: "4px 0 4px 10px", 
+                                      borderLeft: "2px solid rgba(41, 74, 109, 0.08)",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px"
+                                    }}
+                                  >
+                                    {districts.map(dist => {
+                                      const fullLoc = `${region}, ${dist}`;
+                                      const isSelected = selectedLocation === fullLoc;
+                                      return (
+                                        <li 
+                                          key={dist} 
+                                          className="district-item" 
+                                          style={{ 
+                                            padding: "8px 12px", 
+                                            fontSize: "14px", 
+                                            color: isSelected ? "#e46630" : "rgba(41, 74, 109, 0.75)", 
+                                            background: isSelected ? "rgba(228, 102, 48, 0.06)" : "transparent",
+                                            fontWeight: isSelected ? "600" : "500",
+                                            border: "none",
+                                            borderRadius: "8px",
+                                            display: "flex", 
+                                            justifyContent: "space-between", 
+                                            alignItems: "center", 
+                                            cursor: "pointer",
+                                            transition: "all 0.2s ease"
+                                          }}
+                                          onClick={() => { setSelectedLocation(fullLoc); setIsLocationOpen(false); }}
+                                        >
+                                          <span>{dist}</span>
+                                          {isSelected && (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                          )}
+                                        </li>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
                         </ul>
                       </div>
                     </div>
