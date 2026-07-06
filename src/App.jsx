@@ -13,6 +13,7 @@ import HostDashboard from "./components/HostDashboard.jsx";
 import CardVariants from "./components/CardVariants.jsx";
 import AdminDashboardIntegration from "../admin-dashboard-example/admin-integration.jsx";
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
+import MobileInfoPage from "./components/MobileInfoPage.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
 import BookingCheckout from "./components/BookingCheckout.jsx";
@@ -20,7 +21,7 @@ import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { slides } from "./data/content.js";
 
 function useAuthRoute() {
-  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify", "admin"]);
+  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify", "admin"]);
   const readRoute = () => {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
     if (hash.startsWith("space-")) return hash;
@@ -348,6 +349,17 @@ function App() {
       <>
         <div className="route-screen route-screen-about app-route-shell">
           <AboutUsPage />
+        </div>
+        <JoyLoader active={bootLoading} />
+      </>
+    );
+  }
+
+  if (displayedRoute === "mobile-info") {
+    return (
+      <>
+        <div className="route-screen route-screen-mobile-info app-route-shell">
+          <MobileInfoPage userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
       </>

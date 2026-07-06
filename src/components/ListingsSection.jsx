@@ -342,7 +342,7 @@ function BenefitIcon({ type }) {
   );
 }
 
-function BenefitsSection() {
+export function BenefitsSection() {
   const benefitsRef = useRef(null);
 
   useEffect(() => {
@@ -546,7 +546,7 @@ const faqItems = [
   }
 ];
 
-function ReviewsFaqSection() {
+export function ReviewsFaqSection() {
   const [openIndex, setOpenIndex] = useState(0);
   const [firstReview, setFirstReview] = useState(0);
   const [isReviewSliding, setIsReviewSliding] = useState(false);
@@ -851,9 +851,7 @@ export default function ListingsSection() {
           <CatalogTrail />
         </div>
         <PartnerAgents />
-        <BenefitsSection />
         <PartnerStartSection />
-        <ReviewsFaqSection />
         <JoyFooter />
       </div>
     </section>

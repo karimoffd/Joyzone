@@ -23,7 +23,6 @@ const navLinks = [
   { href: "#home", label: "Bosh sahifa" },
   { href: "#about-us", label: "Biz haqimizda" },
   { href: "#filter", label: "Ijaraga joylar" },
-  { href: "#faq", label: "FAQ" },
   { href: "#contact", label: "Kontaktlar" }
 ];
 
@@ -235,10 +234,13 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 
 const menuNavLinks = [
   { href: "#home",     label: "Bosh sahifa",   num: "01", desc: "Asosiy sahifa" },
-  { href: "#about-us", label: "Biz haqimizda", num: "02", desc: "Kompaniya haqida" },
+  { href: "#about-us", label: "Biz haqimizda", num: "02", desc: "Kompaniya haqida",
+    subLinks: [
+      { href: "#mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" }
+    ]
+  },
   { href: "#filter",   label: "Ijaraga joylar", num: "03", desc: "Katalog" },
-  { href: "#faq",      label: "FAQ",           num: "04", desc: "Savollar va javoblar" },
-  { href: "#contact",  label: "Kontaktlar",    num: "05", desc: "Bog'lanish" }
+  { href: "#contact",  label: "Kontaktlar",    num: "04", desc: "Bog'lanish" }
 ];
 
 const profileMenuLinks = [
@@ -412,6 +414,17 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
                       </svg>
                     </a>
+                    {link.subLinks && (
+                      <ul className="menu-nav-sublist" style={{ listStyle: "none", paddingLeft: "60px", marginTop: "-4px", marginBottom: "16px" }}>
+                        {link.subLinks.map(sub => (
+                          <li key={sub.href}>
+                            <a href={sub.href} onClick={onClose} style={{ display: "block", padding: "8px 0", color: "#294a6d", textDecoration: "none", fontSize: "15px", fontWeight: "500", opacity: 0.8 }}>
+                              {sub.label}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </li>
                 ))}
                 {userState.isAuthed && (
