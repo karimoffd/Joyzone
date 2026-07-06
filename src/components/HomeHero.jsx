@@ -1,6 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
+import BottomSheet from "./ui/BottomSheet.jsx";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+}
 import JoySlider from "./JoySlider.jsx";
 import ListingsSection from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
@@ -497,6 +508,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
 }
 
 function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {
+  const isMobile = useIsMobile();
   const [value, setValue] = useState("");
   const [openAbove, setOpenAbove] = useState(false);
   const containerRef = useRef(null);
@@ -534,7 +546,7 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
   }, [isOpen, setOpenFilter]);
 
   return (
-    <div ref={containerRef} className={`filter-select ${isOpen ? "open" : ""} ${value ? "has-value" : ""} ${openAbove ? "open-above" : ""}`}>
+    <div ref={containerRef} className={`filter-select ${isOpen && !isMobile ? "open" : ""} ${value ? "has-value" : ""} ${openAbove ? "open-above" : ""}`}>
       <div className="filter-header" onClick={() => setOpenFilter(isOpen ? null : name)}>
         <span className="filter-label">{label}</span>
         <span className="filter-value">{value} {unit}</span>
@@ -542,15 +554,40 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
           <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
         </svg>
       </div>
-      <div className="filter-dropdown">
-        <ul className="options">
-          {options.map((option) => (
-            <li key={option} onClick={() => { setValue(option); setOpenFilter(null); }}>
-              {option}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {isMobile ? (
+        <BottomSheet isOpen={isOpen} onClose={() => setOpenFilter(null)} title={label}>
+          <div style={{ padding: "0 16px 24px" }}>
+            <ul className="options" style={{ background: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
+              {options.map((option) => (
+                <li 
+                  key={option} 
+                  onClick={() => { setValue(option); setOpenFilter(null); }}
+                  style={{ 
+                    padding: "16px", 
+                    borderBottom: "1px solid rgba(41, 74, 109, 0.08)", 
+                    fontSize: "16px",
+                    fontWeight: value === option ? "700" : "500",
+                    color: value === option ? "#e46630" : "#294a6d",
+                    cursor: "pointer"
+                  }}
+                >
+                  {option}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </BottomSheet>
+      ) : (
+        <div className="filter-dropdown">
+          <ul className="options">
+            {options.map((option) => (
+              <li key={option} onClick={() => { setValue(option); setOpenFilter(null); }}>
+                {option}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -634,6 +671,7 @@ function PriceFilter() {
 
 
 function Banner({ slides }) {
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("barchasi");
   const [selectedSubCat, setSelectedSubCat] = useState("");
   const [typingText, setTypingText] = useState("ofislar");
@@ -780,7 +818,6 @@ function Banner({ slides }) {
                       </button>
                     ))}
                   </div>
-                  <div className="custom-hr" />
 
                   {/* Sub-categories — faqat kategoria tanlanganda ko'rinadi */}
                   {subCategories[activeTab] && subCategories[activeTab].length > 0 && (
@@ -818,7 +855,9 @@ function Banner({ slides }) {
                         <img height="38" src={kvIcon} alt="" />
                         <span>{selectedLocation || "Manzilni tanlang"}</span>
                       </div>
-                      <div className="dropdown">
+                      {isMobile ? (
+                        <BottomSheet isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} title="Manzil">
+                          <div className="dropdown" style={{ position: "static", opacity: 1, visibility: "visible", boxShadow: "none", transform: "none", width: "100%", padding: "0 16px 24px", maxHeight: "60vh", overflowY: "auto" }}>
                         <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
                         <ul className="options">
                           {Object.entries(locationGroups).map(([region, districts]) => {
@@ -900,7 +939,93 @@ function Banner({ slides }) {
                           })}
                         </ul>
                       </div>
-                    </div>
+                          </div>
+                        </BottomSheet>
+                      ) : (
+                        <div className="dropdown">
+                        <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
+                        <ul className="options">
+                          {Object.entries(locationGroups).map(([region, districts]) => {
+                            const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
+                            if (!isMatch) return null;
+
+                            return (
+                              <React.Fragment key={region}>
+                                <li 
+                                  className="region-item" 
+                                  style={{ display: "flex", padding: 0, background: expandedRegion === region ? "#f8fafc" : "transparent" }}
+                                >
+                                  <div 
+                                    style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                                    onClick={() => { setSelectedLocation(region); setIsLocationOpen(false); }}
+                                  >
+                                    <span>{region}</span>
+                                    {selectedLocation === region && (
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                    )}
+                                  </div>
+                                  {districts.length > 0 && (
+                                    <div 
+                                      style={{ padding: "0 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(41, 74, 109, 0.08)" }}
+                                      onClick={(e) => { e.stopPropagation(); setExpandedRegion(expandedRegion === region ? null : region); }}
+                                    >
+                                      <div style={{ transform: expandedRegion === region ? "rotate(180deg)" : "rotate(0deg)", transition: "0.2s", color: "rgba(41, 74, 109, 0.5)" }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                      </div>
+                                    </div>
+                                  )}
+                                </li>
+                                {expandedRegion === region && districts.length > 0 && (
+                                  <div 
+                                    className="districts-list" 
+                                    style={{ 
+                                      margin: "2px 0 6px 14px", 
+                                      padding: "4px 0 4px 10px", 
+                                      borderLeft: "2px solid rgba(41, 74, 109, 0.08)",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px"
+                                    }}
+                                  >
+                                    {districts.map(dist => {
+                                      const fullLoc = `${region}, ${dist}`;
+                                      const isSelected = selectedLocation === fullLoc;
+                                      return (
+                                        <li 
+                                          key={dist} 
+                                          className="district-item" 
+                                          style={{ 
+                                            padding: "8px 12px", 
+                                            fontSize: "14px", 
+                                            color: isSelected ? "#e46630" : "rgba(41, 74, 109, 0.75)", 
+                                            background: isSelected ? "rgba(228, 102, 48, 0.06)" : "transparent",
+                                            fontWeight: isSelected ? "600" : "500",
+                                            border: "none",
+                                            borderRadius: "8px",
+                                            display: "flex", 
+                                            justifyContent: "space-between", 
+                                            alignItems: "center", 
+                                            cursor: "pointer",
+                                            transition: "all 0.2s ease"
+                                          }}
+                                          onClick={() => { setSelectedLocation(fullLoc); setIsLocationOpen(false); }}
+                                        >
+                                          <span>{dist}</span>
+                                          {isSelected && (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                          )}
+                                        </li>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                        </div>
+                      )}
                     <button className="search-btn btn-shine" type="button">Izlash</button>
                   </div>
                 </div>
