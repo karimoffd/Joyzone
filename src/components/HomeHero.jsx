@@ -23,6 +23,7 @@ const navLinks = [
   { href: "#home", label: "Bosh sahifa" },
   { href: "#about-us", label: "Biz haqimizda" },
   { href: "#filter", label: "Ijaraga joylar" },
+  { href: "#faq", label: "FAQ" },
   { href: "#contact", label: "Kontaktlar" }
 ];
 

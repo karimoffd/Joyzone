@@ -706,6 +706,9 @@ export function JoyFooter() {
 
   return (
     <footer className="joy-footer-section" id="contact">
+      <div className="hide-on-mobile">
+        <FooterQuestionStrip />
+      </div>
       <div className="joy-footer-card">
         <div className="joy-footer-top">
           <a href="#home" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
@@ -722,7 +725,7 @@ export function JoyFooter() {
           <a href="#partner" className="joy-footer-cta">Ariza qoldirish</a>
         </div>
 
-        <div className="joy-footer-grid">
+        <div className="joy-footer-grid hide-on-mobile">
           <div>
             <p>Bizning maqsadimiz qulay ish joylarini va saytni ijarachilarga yaqinlashtirish.</p>
           </div>
@@ -855,7 +858,13 @@ export default function ListingsSection() {
           <CatalogTrail />
         </div>
         <PartnerAgents />
+        <div className="hide-on-mobile">
+          <BenefitsSection />
+        </div>
         <PartnerStartSection />
+        <div className="hide-on-mobile">
+          <ReviewsFaqSection />
+        </div>
         <JoyFooter />
       </div>
     </section>
