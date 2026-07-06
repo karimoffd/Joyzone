@@ -4,9 +4,34 @@ import { sendClientAction } from "../socket.js";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
+import BottomSheet from "./ui/BottomSheet.jsx";
 import { propertyCards } from "../data/content.js";
 import "./FilterPage.css";
 import "./ListingsSection.css";
+
+function DropdownPanel({ open, setOpen, label, style, children }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  if (isMobile) {
+    return (
+      <BottomSheet isOpen={open} onClose={() => setOpen(false)} title={label}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', ...style, minWidth: 'auto', padding: '0' }}>
+          {children}
+        </div>
+      </BottomSheet>
+    );
+  }
+  return (
+    <div className={`fp-filter-panel ${open ? "is-visible" : ""}`} style={style}>
+      {children}
+    </div>
+  );
+}
 
 const locationOptions = [...new Set(propertyCards.map((item) => item.location))];
 const priceOptions = ["Byudjet < 500 000 so'm", "500 000-2 000 000 so'm", "2 000 000-8 000 000 so'm", "8 000 000+ so'm"];
@@ -110,7 +135,7 @@ function FilterDropdown({ label, options, selectedOptions, onToggle }) {
   const selectedLabel = selectedOptions.length === 0 ? label : `${selectedOptions.length} ta tanlangan`;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || window.innerWidth <= 900) return;
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
@@ -127,7 +152,7 @@ function FilterDropdown({ label, options, selectedOptions, onToggle }) {
         <ChevronIcon open={open} />
       </button>
 
-      <div className={`fp-filter-panel ${open ? "is-visible" : ""}`}>
+      <DropdownPanel open={open} setOpen={setOpen} label={label}>
         {options.map((option) => (
           <button
             type="button"
@@ -141,7 +166,7 @@ function FilterDropdown({ label, options, selectedOptions, onToggle }) {
             )}
           </button>
         ))}
-      </div>
+      </DropdownPanel>
     </div>
   );
 }
@@ -170,7 +195,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
   const selectedLabel = selectedOptions.length === 0 ? label : `${selectedOptions.length} ta tanlangan`;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || window.innerWidth <= 900) return;
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
@@ -192,7 +217,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
         <ChevronIcon open={open} />
       </button>
 
-      <div className={`fp-filter-panel ${open ? "is-visible" : ""}`}>
+      <DropdownPanel open={open} setOpen={setOpen} label={label}>
         {Object.entries(locationGroups).map(([region, districts]) => (
           <div key={region} className="fp-location-group" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
             <div
@@ -269,7 +294,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
             )}
           </div>
         ))}
-      </div>
+      </DropdownPanel>
     </div>
   );
 }
@@ -330,7 +355,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
     : `${formatPrice(priceRange[0])} - ${formatPrice(priceRange[1])}`;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || window.innerWidth <= 900) return;
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpen(false);
@@ -352,7 +377,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
         {isDefault && <ChevronIcon open={open} />}
       </button>
 
-      <div className={`fp-filter-panel ${open ? "is-visible" : ""}`} style={{ padding: "20px 16px", minWidth: "260px" }}>
+      <DropdownPanel open={open} setOpen={setOpen} label={label} style={{ padding: "20px 16px", minWidth: "260px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "10px" }}>
           <div style={{ display: "flex", alignItems: "center", border: "1px solid rgba(41, 74, 109, 0.15)", borderRadius: "8px", padding: "6px 10px", flex: 1, background: "#fff" }}>
             <input 
@@ -393,7 +418,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
         <button type="button" onClick={applyRange} className="btn-shine" style={{ width: "100%", marginTop: "32px", background: "#e46630", color: "#fff", padding: "12px", borderRadius: "10px", fontWeight: "600", border: "none", cursor: "pointer", fontSize: "15px" }}>
           Qo'llash
         </button>
-      </div>
+      </DropdownPanel>
     </div>
   );
 }
@@ -403,7 +428,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || window.innerWidth <= 900) return;
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setOpen(false);
     }
@@ -441,7 +466,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
         {!hasSelection && <ChevronIcon open={open} />}
       </button>
 
-      <div className={`fp-filter-panel ${open ? "is-visible" : ""}`} style={{ padding: "16px", minWidth: "260px" }}>
+      <DropdownPanel open={open} setOpen={setOpen} label={label} style={{ padding: "16px", minWidth: "260px" }}>
         
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "14px", fontWeight: "600", color: "#12283f" }}>
@@ -473,7 +498,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
           ))}
         </div>
 
-      </div>
+      </DropdownPanel>
     </div>
   );
 }
