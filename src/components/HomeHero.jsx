@@ -558,22 +558,21 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
         <BottomSheet isOpen={isOpen} onClose={() => setOpenFilter(null)} title={label}>
           <div style={{ padding: "0 16px 24px" }}>
             <ul className="options" style={{ background: "transparent", border: "none", boxShadow: "none", padding: 0 }}>
-              {options.map((option) => (
-                <li 
-                  key={option} 
-                  onClick={() => { setValue(option); setOpenFilter(null); }}
-                  style={{ 
-                    padding: "16px", 
-                    borderBottom: "1px solid rgba(41, 74, 109, 0.08)", 
-                    fontSize: "16px",
-                    fontWeight: value === option ? "700" : "500",
-                    color: value === option ? "#e46630" : "#294a6d",
-                    cursor: "pointer"
-                  }}
-                >
-                  {option}
-                </li>
-              ))}
+              {options.map((option) => {
+                const isSelected = value === option;
+                return (
+                  <li 
+                    key={option} 
+                    className={`mobile-option-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => { setValue(option); setOpenFilter(null); }}
+                  >
+                    <span>{option}</span>
+                    {isSelected && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </BottomSheet>
@@ -876,7 +875,7 @@ function Banner({ slides }) {
                                   >
                                     <span>{region}</span>
                                     {selectedLocation === region && (
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
                                     )}
                                   </div>
                                   {districts.length > 0 && (
@@ -927,7 +926,7 @@ function Banner({ slides }) {
                                         >
                                           <span>{dist}</span>
                                           {isSelected && (
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
                                           )}
                                         </li>
                                       );
@@ -960,7 +959,7 @@ function Banner({ slides }) {
                                   >
                                     <span>{region}</span>
                                     {selectedLocation === region && (
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
                                     )}
                                   </div>
                                   {districts.length > 0 && (
@@ -1011,7 +1010,7 @@ function Banner({ slides }) {
                                         >
                                           <span>{dist}</span>
                                           {isSelected && (
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
                                           )}
                                         </li>
                                       );

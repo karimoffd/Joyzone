@@ -2070,3 +2070,29 @@
     overflow-y: visible !important;
   }
 }
+
+@media (max-width: 900px) {
+  .mobile-option-item {
+    padding: 16px;
+    border-bottom: 1px solid rgba(41, 74, 109, 0.08);
+    font-size: 16px;
+    font-weight: 500;
+    color: #294a6d;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+  }
+  .mobile-option-item:last-child {
+    border-bottom: none;
+  }
+  .mobile-option-item.selected {
+    font-weight: 700;
+    color: #e46630;
+    background: rgba(228, 102, 48, 0.05);
+    border-radius: 8px;
+    border-bottom: none;
+    margin-bottom: 4px;
+  }
+}
