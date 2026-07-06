@@ -128,7 +128,7 @@ const CATEGORY_EXTRA_OPTIONS = {
   turarjoy: ["Mebellanmagan", "Qisman mebellanmagan", "To'liq mebellanmagan"]
 };
 
-export function CategoryTabs({ selected, onSelect }) {
+function CategoryTabs({ selected, onSelect }) {
   return (
     <div className="fp-category-tabs">
       <button
@@ -217,7 +217,7 @@ function FilterDropdown({ label, options, selectedOptions, onToggle }) {
   );
 }
 
-export function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
+function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
   const [open, setOpen] = useState(false);
   const [expandedRegions, setExpandedRegions] = useState({});
   const dropdownRef = useRef(null);
@@ -549,7 +549,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
   );
 }
 
-export function SearchField({ value, onChange }) {
+function SearchField({ value, onChange }) {
   return (
     <div className="filter-field filter-search">
       <div className="search-input-wrapper">

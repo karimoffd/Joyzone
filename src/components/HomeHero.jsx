@@ -2,8 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import JoySlider from "./JoySlider.jsx";
-import { SearchField, CategoryTabs, LocationFilterDropdown } from "./FilterPage";
-import "./FilterPage.css";
 import ListingsSection from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
 import logoImage from "../assets/img/Logo.png";
@@ -769,29 +767,141 @@ function Banner({ slides }) {
                   Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab
                 </p>
 
-                <div className="hero-filter-bar">
-                  <div className="filter-bar-head" style={{ marginBottom: "16px", flexWrap: "nowrap" }}>
-                    <SearchField 
-                      value={searchQuery} 
-                      onChange={setSearchQuery} 
-                    />
-                    <LocationFilterDropdown
-                      label="Manzil"
-                      options={[...new Set(propertyCards.map(item => item.location))]}
-                      selectedOptions={selectedLocation ? [selectedLocation] : []}
-                      onToggle={(val) => setSelectedLocation(selectedLocation === val ? "" : val)}
-                    />
-                    <button 
-                      className="search-btn btn-shine" 
-                      type="button"
-                      style={{ height: "48px", minWidth: "120px", padding: "0 24px", borderRadius: "12px", background: "#e46630", color: "#fff", fontWeight: "700", border: "none" }}
-                      onClick={() => { window.location.hash = "filter"; }}
-                    >
-                      Izlash
-                    </button>
+                <div className="filter">
+                  <div className="filter-tabs">
+                    {tabs.map((tab) => (
+                      <button
+                        key={tab.id}
+                        className={`tab ${activeTab === tab.id ? "active" : ""}`}
+                        onClick={() => { setActiveTab(tab.id); setSelectedSubCat(""); }}
+                        type="button"
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="fp-cats-duration-row">
-                    <CategoryTabs selected={activeTab} onSelect={(val) => { setActiveTab(val); setSelectedSubCat(""); }} />
+                  <div className="custom-hr" />
+
+                  {/* Sub-categories — faqat kategoria tanlanganda ko'rinadi */}
+                  {subCategories[activeTab] && subCategories[activeTab].length > 0 && (
+                    <div className="filter-subcats">
+                      {subCategories[activeTab].map((sub) => (
+                        <button
+                          key={sub}
+                          type="button"
+                          className={`subcat-pill ${selectedSubCat === sub ? "active" : ""}`}
+                          onClick={() => setSelectedSubCat(selectedSubCat === sub ? "" : sub)}
+                        >
+                          {sub}
+                          {selectedSubCat === sub && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="filter-content">
+                    <div className="tab-content active">
+                      <div className="filter-options">
+                        {(filters[activeTab] || filters.barchasi).map((filter) => (
+                          <FilterSelect key={filter.name} {...filter} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                        ))}
+                        <PriceFilter />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="custom-select-wrapper">
+                    <div ref={locationSelectRef} className={`custom-select ${isLocationOpen ? "open" : ""} ${locationOpenAbove ? "open-above" : ""}`}>
+                      <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
+                        <img height="38" src={kvIcon} alt="" />
+                        <span>{selectedLocation || "Manzilni tanlang"}</span>
+                      </div>
+                      <div className="dropdown">
+                        <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
+                        <ul className="options">
+                          {Object.entries(locationGroups).map(([region, districts]) => {
+                            const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
+                            if (!isMatch) return null;
+
+                            return (
+                              <React.Fragment key={region}>
+                                <li 
+                                  className="region-item" 
+                                  style={{ display: "flex", padding: 0, background: expandedRegion === region ? "#f8fafc" : "transparent" }}
+                                >
+                                  <div 
+                                    style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                                    onClick={() => { setSelectedLocation(region); setIsLocationOpen(false); }}
+                                  >
+                                    <span>{region}</span>
+                                    {selectedLocation === region && (
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                    )}
+                                  </div>
+                                  {districts.length > 0 && (
+                                    <div 
+                                      style={{ padding: "0 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(41, 74, 109, 0.08)" }}
+                                      onClick={(e) => { e.stopPropagation(); setExpandedRegion(expandedRegion === region ? null : region); }}
+                                    >
+                                      <div style={{ transform: expandedRegion === region ? "rotate(180deg)" : "rotate(0deg)", transition: "0.2s", color: "rgba(41, 74, 109, 0.5)" }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                                      </div>
+                                    </div>
+                                  )}
+                                </li>
+                                {expandedRegion === region && districts.length > 0 && (
+                                  <div 
+                                    className="districts-list" 
+                                    style={{ 
+                                      margin: "2px 0 6px 14px", 
+                                      padding: "4px 0 4px 10px", 
+                                      borderLeft: "2px solid rgba(41, 74, 109, 0.08)",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px"
+                                    }}
+                                  >
+                                    {districts.map(dist => {
+                                      const fullLoc = `${region}, ${dist}`;
+                                      const isSelected = selectedLocation === fullLoc;
+                                      return (
+                                        <li 
+                                          key={dist} 
+                                          className="district-item" 
+                                          style={{ 
+                                            padding: "8px 12px", 
+                                            fontSize: "14px", 
+                                            color: isSelected ? "#e46630" : "rgba(41, 74, 109, 0.75)", 
+                                            background: isSelected ? "rgba(228, 102, 48, 0.06)" : "transparent",
+                                            fontWeight: isSelected ? "600" : "500",
+                                            border: "none",
+                                            borderRadius: "8px",
+                                            display: "flex", 
+                                            justifyContent: "space-between", 
+                                            alignItems: "center", 
+                                            cursor: "pointer",
+                                            transition: "all 0.2s ease"
+                                          }}
+                                          onClick={() => { setSelectedLocation(fullLoc); setIsLocationOpen(false); }}
+                                        >
+                                          <span>{dist}</span>
+                                          {isSelected && (
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+                                          )}
+                                        </li>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                    <button className="search-btn btn-shine" type="button">Izlash</button>
                   </div>
                 </div>
               </div>
