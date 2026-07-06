@@ -26,7 +26,7 @@ const DURATION_LABELS = {
   oylik: "/ oy"
 };
 
-export function PropertyCard({ item, index, href, selectedDuration }) {
+export function PropertyCard({ item, index, href, selectedDuration, viewMode = "grid" }) {
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
   const cardHref = href || getSpaceHref(item.title);
@@ -71,8 +71,19 @@ export function PropertyCard({ item, index, href, selectedDuration }) {
   };
 
   return (
-    <article className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
+    <article className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""} ${viewMode === "list" ? "is-list-view" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
       <a className="property-card-link" href={cardHref} aria-label={`${item.title} sahifasini ochish`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }} />
+      <button
+        ref={saveRef}
+        type="button"
+        className={`variant-save-button ${saved ? "is-saved" : ""}`}
+        onClick={toggleSave}
+        aria-label={saved ? "Eslatmaga saqlandi" : "Eslatmaga saqlash"}
+        aria-pressed={saved}
+        style={{ zIndex: 20 }}
+      >
+        <NoteIcon filled={saved} />
+      </button>
       <div className="variant-media" ref={mediaRef} style={{ aspectRatio: 1.35 }}>
         {item.images.map((image, imageIndex) => (
           <img
@@ -85,17 +96,6 @@ export function PropertyCard({ item, index, href, selectedDuration }) {
         ))}
         <span className="property-slide-glow" />
         <span className="variant-pill">{item.promoted ? "Reklama" : "Guest favourite"}</span>
-        <button
-          ref={saveRef}
-          type="button"
-          className={`variant-save-button ${saved ? "is-saved" : ""}`}
-          onClick={toggleSave}
-          aria-label={saved ? "Eslatmaga saqlandi" : "Eslatmaga saqlash"}
-          aria-pressed={saved}
-          style={{ zIndex: 20 }}
-        >
-          <NoteIcon filled={saved} />
-        </button>
         <div className="variant-dots" aria-label="Rasmni tanlash" style={{ zIndex: 20 }}>
           {item.images.map((_, imageIndex) => (
             <button

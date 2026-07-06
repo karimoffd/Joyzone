@@ -33,6 +33,52 @@ function DropdownPanel({ open, setOpen, label, style, children }) {
   );
 }
 
+function SortDropdown({ selected, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!open || window.innerWidth <= 900) return;
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className={`fp-filter-dropdown ${open ? "is-open" : ""}`} ref={dropdownRef}>
+      <button type="button" className="rt-sort-btn" onClick={() => setOpen(!open)}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="4" y1="6" x2="20" y2="6" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+          <line x1="10" y1="18" x2="14" y2="18" />
+        </svg>
+        <span>{selected}</span>
+      </button>
+
+      <DropdownPanel open={open} setOpen={setOpen} label="Saralash" style={{ padding: "8px", minWidth: "200px", right: 0 }}>
+        {["Relevans", "Narx", "Sig'im"].map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            className={`fp-filter-option ${selected === opt ? "is-selected" : ""}`}
+            onClick={() => {
+              onSelect(opt);
+              setOpen(false);
+            }}
+          >
+            <span className="fp-filter-option-text">{opt}</span>
+            {selected === opt && (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
+            )}
+          </button>
+        ))}
+      </DropdownPanel>
+    </div>
+  );
+}
+
 const locationOptions = [...new Set(propertyCards.map((item) => item.location))];
 const priceOptions = ["Byudjet < 500 000 so'm", "500 000-2 000 000 so'm", "2 000 000-8 000 000 so'm", "8 000 000+ so'm"];
 const capacityOptions = ["1-5 kishi", "6-12 kishi", "13-24 kishi", "25+ kishi"];
@@ -538,11 +584,15 @@ function ProductSkeletonGrid() {
 }
 
 export default function FilterPage({ userState, setUserState }) {
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubCat, setSelectedSubCat] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [filteredCards, setFilteredCards] = useState([]);
+  const [viewMode, setViewMode] = useState("list");
+  const [sortOption, setSortOption] = useState("Relevans");
+  
+  const [selectedCategory, setSelectedCategory] = useState("Barchasi");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("Barchasi");
   const [selectedDuration, setSelectedDuration] = useState("");
   const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [] });
-  const [loading, setLoading] = useState(true);
   const [spaces, setSpaces] = useState(propertyCards);
 
   // Reset subcategory when category changes
@@ -747,30 +797,31 @@ export default function FilterPage({ userState, setUserState }) {
         <div className="results-top">
           <p>{loading ? "Joylar yuklanmoqda..." : `${filteredCards.length} ta natija topildi`}</p>
           <div className="results-actions">
-            <button type="button" className="rt-icon-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                <rect x="3" y="14" width="7" height="7" rx="1.5" />
-              </svg>
+            <button type="button" className="rt-icon-btn" onClick={() => setViewMode(v => v === "list" ? "grid" : "list")}>
+              {viewMode === "list" ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="6" x2="20" y2="6" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+              )}
             </button>
-            <button type="button" className="rt-sort-btn">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6" />
-                <line x1="7" y1="12" x2="17" y2="12" />
-                <line x1="10" y1="18" x2="14" y2="18" />
-              </svg>
-              <span>Relevans</span>
-            </button>
+            <SortDropdown selected={sortOption} onSelect={setSortOption} />
           </div>
         </div>
         {loading ? (
           <ProductSkeletonGrid />
         ) : (
-          <div className="property-grid">
+          <div className={`property-grid ${viewMode === "list" ? "is-list-view" : ""}`}>
             {filteredCards.map((item, index) => (
-              <PropertyCard key={item.title} item={item} index={index} selectedDuration={selectedDuration} />
+              <PropertyCard key={item.title} item={item} index={index} selectedDuration={selectedDuration} viewMode={viewMode} />
             ))}
           </div>
         )}

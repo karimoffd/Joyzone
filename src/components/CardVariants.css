@@ -784,3 +784,110 @@
     min-height: auto;
   }
 }
+
+/* ===== LIST VIEW STYLES ===== */
+.property-grid.is-list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.variant-card.is-list-view {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 20px;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(41, 74, 109, 0.08);
+  box-shadow: 0 4px 16px rgba(41, 74, 109, 0.04);
+}
+
+.variant-card.is-list-view .variant-media {
+  width: 280px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.variant-card.is-list-view .variant-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 0;
+  min-width: 0;
+}
+
+.variant-card.is-list-view .variant-title-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.variant-card.is-list-view h3 {
+  font-size: 20px;
+  white-space: normal;
+}
+
+.variant-card.is-list-view .variant-price-block {
+  align-items: baseline;
+  flex-direction: row;
+  margin-top: 4px;
+}
+
+.variant-card.is-list-view .variant-price-block strong {
+  font-size: 22px;
+}
+
+.variant-card.is-list-view > .variant-save-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(41, 74, 109, 0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  z-index: 20;
+}
+
+.variant-card:not(.is-list-view) > .variant-save-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+}
+
+.variant-card.is-list-view .variant-spec-row {
+  margin-top: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.variant-card.is-list-view .variant-spec {
+  background: #ffffff;
+  border: 1px solid rgba(41, 74, 109, 0.15);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #12283f;
+}
+
+@media (max-width: 650px) {
+  .variant-card.is-list-view {
+    flex-direction: column;
+    padding: 12px;
+    gap: 12px;
+  }
+  .variant-card.is-list-view .variant-media {
+    width: 100%;
+    aspect-ratio: 1.4;
+    height: auto;
+  }
+  .variant-card.is-list-view > .variant-save-button {
+    top: 24px;
+    right: 24px;
+  }
+}
