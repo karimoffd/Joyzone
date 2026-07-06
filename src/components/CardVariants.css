@@ -877,17 +877,60 @@
 
 @media (max-width: 650px) {
   .variant-card.is-list-view {
-    flex-direction: column;
-    padding: 12px;
+    flex-direction: row;
+    padding: 8px;
     gap: 12px;
   }
   .variant-card.is-list-view .variant-media {
-    width: 100%;
-    aspect-ratio: 1.4;
+    width: 135px;
     height: auto;
+    aspect-ratio: 1 !important;
+  }
+  .variant-card.is-list-view .variant-body {
+    padding: 2px 0;
+  }
+  .variant-card.is-list-view h3 {
+    font-size: 14.5px;
+    line-height: 1.25;
+    padding-right: 24px; /* Space for save button */
+  }
+  .variant-card.is-list-view .variant-price-block {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 4px;
+  }
+  .variant-card.is-list-view .variant-price-block strong {
+    font-size: 16px;
+  }
+  .variant-card.is-list-view .variant-price-label {
+    font-size: 11px;
+    margin-top: 1px;
+  }
+  .variant-card.is-list-view p {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+  .variant-card.is-list-view .variant-spec-row {
+    margin-top: 8px;
+    gap: 4px;
+  }
+  .variant-card.is-list-view .variant-spec {
+    padding: 4px 6px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+  .variant-card.is-list-view .variant-spec svg {
+    width: 12px;
+    height: 12px;
   }
   .variant-card.is-list-view > .variant-save-button {
-    top: 24px;
-    right: 24px;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+  }
+  .variant-card.is-list-view > .variant-save-button svg {
+    width: 14px;
+    height: 14px;
   }
 }
