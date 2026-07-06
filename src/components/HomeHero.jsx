@@ -938,7 +938,6 @@ function Banner({ slides }) {
                             );
                           })}
                         </ul>
-                      </div>
                           </div>
                         </BottomSheet>
                       ) : (
@@ -1023,9 +1022,9 @@ function Banner({ slides }) {
                             );
                           })}
                         </ul>
-                      </div>
                         </div>
                       )}
+                    </div>
                     <button className="search-btn btn-shine" type="button">Izlash</button>
                   </div>
                 </div>
