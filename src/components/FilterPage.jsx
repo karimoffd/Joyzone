@@ -585,7 +585,6 @@ function ProductSkeletonGrid() {
 
 export default function FilterPage({ userState, setUserState }) {
   const [loading, setLoading] = useState(true);
-  const [filteredCards, setFilteredCards] = useState([]);
   const [viewMode, setViewMode] = useState("list");
   const [sortOption, setSortOption] = useState("Relevans");
   
