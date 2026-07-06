@@ -747,10 +747,22 @@ export default function FilterPage({ userState, setUserState }) {
         <div className="results-top">
           <p>{loading ? "Joylar yuklanmoqda..." : `${filteredCards.length} ta natija topildi`}</p>
           <div className="results-actions">
-            <span className="sort-label">Saralash:</span>
-            <button type="button" className="sort-pill is-active">Relevans</button>
-            <button type="button" className="sort-pill">Narx</button>
-            <button type="button" className="sort-pill">Sig'im</button>
+            <button type="button" className="rt-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </button>
+            <button type="button" className="rt-sort-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="7" y1="12" x2="17" y2="12" />
+                <line x1="10" y1="18" x2="14" y2="18" />
+              </svg>
+              <span>Relevans</span>
+            </button>
           </div>
         </div>
         {loading ? (

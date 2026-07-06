@@ -523,13 +523,12 @@
 
 .results-top {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ffffff;
-  padding: 14px 20px;
+  padding: 12px 16px;
   border: 1px solid rgba(41, 74, 109, 0.06);
 }
 
@@ -542,44 +541,38 @@
 
 .results-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.sort-label {
-  color: rgba(18, 40, 63, 0.6);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.sort-pill {
-  min-height: 36px;
-  border: 1px solid rgba(41, 74, 109, 0.12);
-  border-radius: 99px;
+.rt-icon-btn, .rt-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #ffffff;
-  color: #294a6d;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 750;
+  border: 1px solid rgba(41, 74, 109, 0.15);
+  border-radius: 8px;
+  color: #12283f;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
 
-.sort-pill:hover {
-  border-color: rgba(228, 102, 48, 0.4);
-  color: #e46630;
-  transform: translateY(-1px);
+.rt-icon-btn {
+  width: 40px;
+  height: 40px;
 }
 
-.sort-pill.is-active {
-  border-color: transparent;
-  background: #e46630;
-  color: #ffffff;
-  font-weight: 800;
-  box-shadow: 0 6px 16px rgba(228, 102, 48, 0.25);
+.rt-sort-btn {
+  height: 40px;
+  padding: 0 16px;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.rt-icon-btn:hover, .rt-sort-btn:hover {
+  background: #f8f9fa;
+  border-color: rgba(41, 74, 109, 0.3);
 }
 
 .filter-card-skeleton {
@@ -729,16 +722,32 @@
   }
 
   .results-top {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     border-radius: 12px;
-    padding: 12px;
+    padding: 10px 12px;
   }
 
   .results-actions {
-    width: 100%;
-    justify-content: flex-start;
+    width: auto;
+    justify-content: flex-end;
+  }
+  
+  .results-top p {
+    font-size: 14px;
+  }
+  
+  .rt-icon-btn, .rt-sort-btn {
+    height: 38px;
+  }
+  .rt-icon-btn {
+    width: 38px;
+  }
+  .rt-sort-btn {
+    padding: 0 14px;
+    font-size: 14px;
   }
 }
 .filter-bar-section {
