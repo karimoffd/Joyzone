@@ -41,6 +41,12 @@ export const propertyCards = [
     category: "Kovorking",
     location: "Toshkent, Mirzo Ulug'bek",
     price: "499 000 so'm",
+    prices: {
+      soatlik: "65 000 so'm",
+      kunlik: "499 000 so'm",
+      haftalik: "2 800 000 so'm",
+      oylik: "9 500 000 so'm"
+    },
     people: 24,
     area: 180,
     images: [
@@ -55,6 +61,12 @@ export const propertyCards = [
     category: "Konferensiya",
     location: "Toshkent, Yunusobod",
     price: "320 000 so'm",
+    prices: {
+      soatlik: "80 000 so'm",
+      kunlik: "320 000 so'm",
+      haftalik: "1 800 000 so'm",
+      oylik: null
+    },
     people: 12,
     area: 64,
     images: [
@@ -68,6 +80,12 @@ export const propertyCards = [
     category: "Ofis",
     location: "Toshkent, Chilonzor",
     price: "7 900 000 so'm",
+    prices: {
+      soatlik: null,
+      kunlik: null,
+      haftalik: "2 200 000 so'm",
+      oylik: "7 900 000 so'm"
+    },
     people: 18,
     area: 140,
     images: [
@@ -82,6 +100,12 @@ export const propertyCards = [
     category: "Tadbir joyi",
     location: "Samarqand markazi",
     price: "1 200 000 so'm",
+    prices: {
+      soatlik: null,
+      kunlik: "1 200 000 so'm",
+      haftalik: null,
+      oylik: null
+    },
     people: 80,
     area: 320,
     images: [
@@ -95,6 +119,12 @@ export const propertyCards = [
     category: "Kovorking",
     location: "Toshkent, Mirobod",
     price: "240 000 so'm",
+    prices: {
+      soatlik: "35 000 so'm",
+      kunlik: "240 000 so'm",
+      haftalik: "1 350 000 so'm",
+      oylik: "4 200 000 so'm"
+    },
     people: 8,
     area: 42,
     images: [
@@ -108,6 +138,12 @@ export const propertyCards = [
     category: "Ofis",
     location: "Toshkent City",
     price: "12 500 000 so'm",
+    prices: {
+      soatlik: null,
+      kunlik: null,
+      haftalik: "3 500 000 so'm",
+      oylik: "12 500 000 so'm"
+    },
     people: 32,
     area: 260,
     images: [

@@ -1,0 +1,79 @@
+.currency-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: rgba(18, 40, 63, 0.55);
+  border: 1px solid rgba(246, 241, 238, 0.12);
+  border-radius: 12px;
+  padding: 3px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.currency-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(246, 241, 238, 0.55);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease, transform 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.currency-btn:hover:not(:disabled) {
+  color: rgba(246, 241, 238, 0.9);
+  background: rgba(246, 241, 238, 0.08);
+}
+
+.currency-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.currency-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.currency-btn--active {
+  background: linear-gradient(135deg, #e46630 0%, #c9521f 100%);
+  color: #f6f1ee !important;
+  box-shadow: 0 2px 12px rgba(228, 102, 48, 0.38);
+}
+
+.currency-btn--active:hover {
+  background: linear-gradient(135deg, #ec7040 0%, #d45f28 100%) !important;
+}
+
+.currency-flag {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.currency-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+/* Light variant — for use on light backgrounds */
+.currency-switcher--light {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(41, 74, 109, 0.14);
+}
+
+.currency-switcher--light .currency-btn {
+  color: rgba(41, 74, 109, 0.55);
+}
+
+.currency-switcher--light .currency-btn:hover:not(:disabled) {
+  color: #12283f;
+  background: rgba(41, 74, 109, 0.07);
+}
