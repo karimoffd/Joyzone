@@ -326,6 +326,7 @@
 .more-row {
   display: flex;
   justify-content: center;
+  margin-top: clamp(24px, 4vw, 40px);
 }
 
 .catalog-trail {

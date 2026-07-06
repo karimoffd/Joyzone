@@ -244,10 +244,32 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     return daysArr;
   }, [calYear, calMonth]);
 
-  const parsedBasePrice = useMemo(() => {
-    if (!space || !space.price) return 0;
-    return Number(String(space.price).replace(/\D/g, "")) || 0;
+  const [bookingDuration, setBookingDuration] = useState("kunlik");
+
+  const availableDurations = useMemo(() => {
+    if (!space?.prices) return [{ id: "kunlik", label: "Kunlik", price: space?.price }];
+    
+    const options = [];
+    if (space.prices.soatlik) options.push({ id: "soatlik", label: "Soatlik", price: space.prices.soatlik });
+    if (space.prices.kunlik) options.push({ id: "kunlik", label: "Kunlik", price: space.prices.kunlik });
+    if (space.prices.haftalik) options.push({ id: "haftalik", label: "Haftalik", price: space.prices.haftalik });
+    if (space.prices.oylik) options.push({ id: "oylik", label: "Oylik", price: space.prices.oylik });
+    
+    return options.length > 0 ? options : [{ id: "kunlik", label: "Kunlik", price: space.price }];
   }, [space]);
+
+  useEffect(() => {
+    if (availableDurations.length > 0 && !availableDurations.some(d => d.id === bookingDuration)) {
+      setBookingDuration(availableDurations[0].id);
+    }
+  }, [availableDurations, bookingDuration]);
+
+  const parsedBasePrice = useMemo(() => {
+    const selectedOption = availableDurations.find(d => d.id === bookingDuration);
+    const priceStr = selectedOption ? selectedOption.price : space?.price;
+    if (!priceStr) return 0;
+    return Number(String(priceStr).replace(/\D/g, "")) || 0;
+  }, [availableDurations, bookingDuration, space]);
 
   const { totalPrice, hasBlockedDay, dailyRatesBreakdown } = useMemo(() => {
     if (!checkInDate) return { totalPrice: 0, hasBlockedDay: false, dailyRatesBreakdown: [] };
@@ -761,13 +783,37 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           <div className="sd-booking-card">
             <div className="sd-price-row">
               <div>
-                <span>Narx</span>
-                <strong>{space.price}</strong>
+                <span>Narx ({availableDurations.find(d => d.id === bookingDuration)?.label?.toLowerCase() || 'kunlik'})</span>
+                <strong>{availableDurations.find(d => d.id === bookingDuration)?.price || space.price}</strong>
               </div>
               <span className="sd-rating">
                 <Icon type="star" />
                 4.9
               </span>
+            </div>
+
+            <div className="sd-duration-selector" style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
+              {availableDurations.map(d => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setBookingDuration(d.id)}
+                  style={{
+                    flex: 1,
+                    padding: "8px 0",
+                    fontSize: "12px",
+                    fontWeight: "800",
+                    borderRadius: "8px",
+                    border: `1.5px solid ${bookingDuration === d.id ? "#e46630" : "rgba(41, 74, 109, 0.12)"}`,
+                    background: bookingDuration === d.id ? "rgba(228, 102, 48, 0.08)" : "#fff",
+                    color: bookingDuration === d.id ? "#e46630" : "rgba(18, 40, 63, 0.6)",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {d.label}
+                </button>
+              ))}
             </div>
 
             <div className="sd-checkout-datepicker" style={{ marginBottom: "14px" }}>
@@ -831,7 +877,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
             <div className="sd-booking-controls">
               <label>
-                <span>Kun</span>
+                <span>{bookingDuration === 'soatlik' ? 'Soat' : bookingDuration === 'haftalik' ? 'Hafta' : bookingDuration === 'oylik' ? 'Oy' : 'Kun'}</span>
                 <input min="1" max="30" type="number" value={days} onChange={(event) => setDays(Math.max(1, Number(event.target.value) || 1))} />
               </label>
               <label>
@@ -842,7 +888,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
             <div className="sd-total-box">
               <div style={{ fontSize: "11px", color: "rgba(18,40,63,0.5)", marginBottom: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "6px" }}>
-                <span style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>Kunlik narxlar hisobi:</span>
+                <span style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>
+                  {bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} narxlar hisobi:
+                </span>
                 {dailyRatesBreakdown.map((item, idx) => (
                   <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginTop: "2px" }}>
                     <span>{item.date}</span>

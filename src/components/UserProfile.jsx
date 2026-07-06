@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import axios from "axios";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
-import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
+import { JoyFooter, SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
@@ -415,8 +415,7 @@ function UserProfile({ userState, setUserState }) {
   const tabs = [
     { id: "about", label: "Profil", count: `${completion}%`, icon: "user" },
     { id: "history", label: "Tarix", count: bookings.length, icon: "calendar" },
-    { id: "likes", label: "Saqlangan", count: likedSpaces.length, icon: "heart" },
-    { id: "my-objects", label: "Obyektlarim", count: myObjects.length, icon: "listing" }
+    { id: "likes", label: "Saqlangan", count: likedSpaces.length, icon: "heart" }
   ];
 
   return (
@@ -544,299 +543,11 @@ function UserProfile({ userState, setUserState }) {
                 </div>
               </div>
             ) : null}
-
-            {activeTab === "my-objects" ? (
-              <div className="profile-tab-panel" key="my-objects">
-                {!selectedObject ? (
-                  <div className="profile-properties-list-container">
-                    <div className="profile-section-head">
-                      <div>
-                        <span>Mening portfelim</span>
-                        <h2>Obyektlarim ({myObjects.length})</h2>
-                      </div>
-                      <button
-                        type="button"
-                        className="profile-save-action"
-                        onClick={() => setShowAddForm(!showAddForm)}
-                        style={{ display: "flex", gap: "6px", alignItems: "center" }}
-                      >
-                        {showAddForm ? "Yopish" : "Yangi joy qo'shish"}
-                      </button>
-                    </div>
-
-                    {showAddForm && (
-                      <form onSubmit={handleAddSpace} className="profile-add-property-form" style={{ background: "#f8fafc", padding: "24px", borderRadius: "20px", border: "1px solid rgba(41, 74, 109, 0.1)", marginBottom: "28px" }}>
-                        <h3 style={{ fontSize: "20px", fontWeight: "900", marginBottom: "18px", color: "#12283f" }}>Yangi Obyekt Qo'shish</h3>
-                        <div className="profile-edit-form" style={{ marginBottom: "18px" }}>
-                          <label>
-                            <span>Uy nomi *</span>
-                            <input type="text" required placeholder="Focus Hub, Quiet Villa va hokazo" value={newName} onChange={(e) => setNewName(e.target.value)} />
-                          </label>
-                          <label>
-                            <span>Turi *</span>
-                            <select value={newType} onChange={(e) => setNewType(e.target.value)} style={{ width: "100%", border: "1px solid rgba(41, 74, 109, 0.14)", borderRadius: "14px", padding: "13px 14px", outline: "none", fontSize: "14px", fontWeight: "650", color: "#12283f" }}>
-                              <option value="Kovorking">Kovorking</option>
-                              <option value="Dacha">Dacha</option>
-                              <option value="Ofis">Ofis</option>
-                              <option value="Konferensiya">Konferensiya zali</option>
-                              <option value="Tadbir joyi">Tadbir joyi</option>
-                            </select>
-                          </label>
-                          <label>
-                            <span>Bazaviy narx (kuniga/soatiga) *</span>
-                            <input type="text" required placeholder="Masalan: 350 000 so'm" value={newPrice} onChange={(e) => setNewPrice(e.target.value)} />
-                          </label>
-                          <label>
-                            <span>Lokatsiya / Manzil *</span>
-                            <input type="text" required placeholder="Masalan: Toshkent, Mirobod" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} />
-                          </label>
-                          <label>
-                            <span>Sig'imi (Kishi) *</span>
-                            <input type="number" required min="1" value={newPeople} onChange={(e) => setNewPeople(Number(e.target.value))} />
-                          </label>
-                          <label>
-                            <span>Maydoni (m2) *</span>
-                            <input type="number" required min="1" value={newArea} onChange={(e) => setNewArea(Number(e.target.value))} />
-                          </label>
-                          <label className="is-wide" style={{ gridColumn: "1 / -1" }}>
-                            <span>Rasm yuklash (File)</span>
-                            <input type="file" accept="image/*" onChange={handleImageUpload} style={{ border: "none", background: "transparent", padding: "8px 0" }} />
-                            {newSpaceImages.length > 0 && (
-                              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                                {newSpaceImages.map((img, i) => (
-                                  <img key={i} src={img} alt="" style={{ width: "60px", height: "60px", borderRadius: "10px", objectFit: "cover", border: "1px solid #ddd" }} />
-                                ))}
-                              </div>
-                            )}
-                          </label>
-                        </div>
-                        <button type="submit" className="profile-save-action" style={{ padding: "12px 24px", borderRadius: "999px", fontWeight: "900", cursor: "pointer" }}>
-                          Saqlash va E'lon qilish
-                        </button>
-                      </form>
-                    )}
-
-                    <div className="profile-properties-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "24px" }}>
-                      {myObjects.length === 0 ? (
-                        <div className="profile-empty-state" style={{ gridColumn: "1 / -1" }}>
-                          <span><ProfileIcon type="empty" /></span>
-                          <h3>Hozircha obyektlaringiz yo'q</h3>
-                          <p>Arendaga berishni boshlash uchun yangi obyekt qo'shing.</p>
-                        </div>
-                      ) : (
-                        myObjects.map((item) => (
-                          <article key={item.id || item._id} className="profile-property-manager-card" style={{ background: "#ffffff", borderRadius: "24px", border: "1px solid rgba(41, 74, 109, 0.08)", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 8px 20px rgba(0,0,0,0.02)" }}>
-                            <div style={{ height: "180px", width: "100%", overflow: "hidden" }}>
-                              <img src={item.images?.[0] || "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=600&q=80"} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                            </div>
-                            <div style={{ padding: "18px", display: "flex", flexDirection: "column", flexGrow: 1 }}>
-                              <span style={{ fontSize: "11px", fontWeight: "900", color: "#e46630", textTransform: "uppercase", letterSpacing: "0.05em" }}>{item.type}</span>
-                              <h3 style={{ fontSize: "18px", fontWeight: "900", color: "#12283f", margin: "6px 0" }}>{item.name}</h3>
-                              <p style={{ fontSize: "13px", color: "rgba(18, 40, 63, 0.6)", marginBottom: "12px" }}>{item.location}</p>
-                              <p style={{ fontSize: "14px", fontWeight: "650", color: "#12283f", marginBottom: "16px" }}>
-                                Narxi: <strong style={{ color: "#e46630", fontWeight: "900" }}>{item.price}</strong>
-                              </p>
-                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", borderTop: "1px solid #f1f5f9", paddingTop: "14px" }}>
-                                <span style={{ fontSize: "12px", fontWeight: "800", background: "rgba(56, 239, 125, 0.15)", color: "#22c55e", padding: "4px 10px", borderRadius: "999px" }}>
-                                  {item.status === "Active" ? "Faol" : "Qoralama"}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="profile-edit-inline"
-                                  onClick={() => setSelectedObject(item)}
-                                  style={{ padding: "6px 14px", display: "flex", gap: "6px", alignItems: "center", fontSize: "12px" }}
-                                >
-                                  Kalendar
-                                </button>
-                              </div>
-                            </div>
-                          </article>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  /* ============ CALENDAR MANAGER (host-calendar design) ============ */
-                  <div className="profile-calendar-manager-container">
-                    <button
-                      type="button"
-                      className="profile-cancel-action"
-                      onClick={() => { setSelectedObject(null); setRangeStart(null); setRangeEnd(null); }}
-                      style={{ marginBottom: "24px" }}
-                    >
-                      Ro'yxatga qaytish
-                    </button>
-
-                    {/* Header */}
-                    <div className="host-calendar-top" style={{ marginBottom: "22px" }}>
-                      <div>
-                        <span>Kalendar va Narxlar</span>
-                        <h2 style={{ fontSize: "clamp(22px,2.2vw,32px)", margin: 0 }}>{activeObject.name}</h2>
-                        <p style={{ margin: "6px 0 0", fontSize: "15px", color: "rgba(17,24,32,0.6)" }}>{activeObject.location} · {activeObject.type}</p>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <button type="button" className="profile-edit-inline" style={{ minWidth: "38px", height: "38px", padding: 0, borderRadius: "12px", fontSize: "20px" }} onClick={prevMonth}>&lsaquo;</button>
-                        <strong style={{ fontSize: "16px", fontWeight: "900", color: "#111820", minWidth: "140px", textAlign: "center" }}>{monthNames[currentMonth]} {currentYear}</strong>
-                        <button type="button" className="profile-edit-inline" style={{ minWidth: "38px", height: "38px", padding: 0, borderRadius: "12px", fontSize: "20px" }} onClick={nextMonth}>&rsaquo;</button>
-                      </div>
-                    </div>
-
-                    {/* host-calendar layout */}
-                    <div className="host-calendar-layout">
-
-                      {/* LEFT: Controls */}
-                      <aside className="host-price-panel">
-                        <span>Boshqaruv</span>
-
-                        {rangeStart ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "10px" }}>
-                            <div style={{ padding: "12px 14px", borderRadius: "16px", background: "rgba(41,74,109,0.07)", border: "1px solid rgba(41,74,109,0.12)" }}>
-                              <small style={{ display: "block", color: "#e46630", fontWeight: "900", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Tanlangan davr</small>
-                              <p style={{ margin: "6px 0 0", fontSize: "16px", fontWeight: "900", color: "#111820", lineHeight: "1.3" }}>
-                                {rangeStart}{rangeEnd && rangeEnd !== rangeStart ? ` - ${rangeEnd}` : ""}
-                              </p>
-                            </div>
-
-                            <div>
-                              <h4 style={{ margin: "0 0 6px", fontSize: "15px", fontWeight: "900", color: "#111820" }}>Joyni yopish (Oflayn)</h4>
-                              <p style={{ margin: "0 0 10px", fontSize: "13px", color: "rgba(17,24,32,0.56)", lineHeight: "1.5" }}>Ushbu sanalarni qo'lda yopib qo'yish.</p>
-                              <textarea
-                                placeholder="Eslatma (Masalan: Ta'mirlash)"
-                                value={blockingNote}
-                                onChange={(e) => setBlockingNote(e.target.value)}
-                                rows="2"
-                                style={{ width: "100%", border: "1px solid rgba(41,74,109,0.14)", borderRadius: "14px", padding: "10px 14px", fontSize: "13px", outline: "none", resize: "none", marginBottom: "10px", fontFamily: "inherit", color: "#111820", background: "#f7f9fb", boxSizing: "border-box" }}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleManualBooking}
-                                style={{ display: "block", width: "100%", minHeight: "46px", border: "0", borderRadius: "16px", background: "#294a6d", color: "#fff", fontSize: "15px", fontWeight: "900", cursor: "pointer", fontFamily: "inherit" }}
-                              >
-                                Sanalarni yopish
-                              </button>
-                            </div>
-
-                            <div style={{ borderTop: "1px solid rgba(41,74,109,0.1)", paddingTop: "16px" }}>
-                              <h4 style={{ margin: "0 0 6px", fontSize: "15px", fontWeight: "900", color: "#111820" }}>Kunlik narxni o'zgartirish</h4>
-                              <p style={{ margin: "0 0 10px", fontSize: "13px", color: "rgba(17,24,32,0.56)", lineHeight: "1.5" }}>Tanlangan sanalar uchun maxsus narx.</p>
-                              <label className="host-price-input" style={{ marginBottom: "10px" }}>
-                                <input
-                                  type="number"
-                                  placeholder="450000"
-                                  inputMode="numeric"
-                                  value={customPriceVal}
-                                  onChange={(e) => setCustomPriceVal(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                                  aria-label="Kunlik narx"
-                                  style={{ fontSize: "clamp(28px,3vw,42px)" }}
-                                />
-                                <small>so'm</small>
-                              </label>
-                              <button
-                                type="button"
-                                onClick={handleSavePriceOverrides}
-                                style={{ display: "block", width: "100%", minHeight: "46px", border: "0", borderRadius: "16px", background: "#e46630", color: "#fff", fontSize: "15px", fontWeight: "900", cursor: "pointer", fontFamily: "inherit" }}
-                              >
-                                Narxni yangilash
-                              </button>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => { setRangeStart(null); setRangeEnd(null); }}
-                              style={{ width: "100%", minHeight: "40px", border: "1px solid rgba(41,74,109,0.18)", borderRadius: "14px", background: "transparent", color: "rgba(17,24,32,0.58)", fontSize: "13px", fontWeight: "800", cursor: "pointer", fontFamily: "inherit" }}
-                            >
-                              Bekor qilish
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ marginTop: "16px", padding: "22px 18px", borderRadius: "18px", background: "#f7f9fb", textAlign: "center", border: "1px solid rgba(41,74,109,0.08)" }}>
-                            <div style={{ width: "52px", height: "52px", margin: "0 auto 14px", borderRadius: "16px", background: "rgba(41,74,109,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>&#128197;</div>
-                            <p style={{ margin: 0, fontSize: "13px", color: "rgba(17,24,32,0.54)", lineHeight: "1.6" }}>
-                              Kalendardan kun(lar)ni tanlang - keyin ularni yopish yoki narxini o'zgartirish mumkin.
-                            </p>
-                          </div>
-                        )}
-                      </aside>
-
-                      {/* RIGHT: Calendar grid */}
-                      <section className="host-calendar-panel">
-                        <div className="host-calendar-top" style={{ marginBottom: "18px" }}>
-                          <div>
-                            <span>Mavjudlik va narxlar</span>
-                            <h2>Kalendar</h2>
-                          </div>
-                          <div className="host-calendar-legend">
-                            <span><i className="free" />Bo'sh</span>
-                            <span><i className="booked" />Mijoz band</span>
-                            <span><i className="blocked" />Yopilgan</span>
-                          </div>
-                        </div>
-
-                        <div className="host-calendar-weekdays">
-                          {["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"].map(w => <span key={w}>{w}</span>)}
-                        </div>
-
-                        <div className="host-calendar-grid">
-                          {calendarDays.map((day, idx) => {
-                            if (day.isMuted) return <div key={`m-${idx}`} className="host-day is-muted" />;
-
-                            const dateStr = day.dateStr;
-                            const hasOverride = activeObject?.priceOverrides?.[dateStr] !== undefined;
-                            const currentPrice = hasOverride
-                              ? formatMoney(activeObject.priceOverrides[dateStr])
-                              : (activeObject?.price || "0");
-
-                            const booking = spaceBookings.find(b => {
-                              if (!b.start_date || !b.end_date) return false;
-                              const s = String(b.start_date).split("T")[0];
-                              const e = String(b.end_date).split("T")[0];
-                              return dateStr >= s && dateStr <= e;
-                            });
-
-                            let dayStatus = "";
-                            let tooltipText = "";
-                            if (booking) {
-                              if (booking.status === "booked" || booking.status === "closed") {
-                                dayStatus = "blocked";
-                                tooltipText = `Bloklangan: ${booking.note || "Mulkdor yopgan"}`;
-                              } else if (booking.status === "Paid" || booking.status === "Pending") {
-                                dayStatus = "booked";
-                                tooltipText = `Mijoz bron: ${booking.user_id || ""}`;
-                              }
-                            }
-
-                            const isSelected = rangeStart
-                              ? (rangeEnd ? dateStr >= rangeStart && dateStr <= rangeEnd : dateStr === rangeStart)
-                              : false;
-
-                            const priceDisplay = String(currentPrice).replace(" so'm", "");
-
-                            return (
-                              <button
-                                key={`day-${dateStr}`}
-                                type="button"
-                                title={tooltipText || undefined}
-                                className={`host-day ${dayStatus} ${hasOverride ? "has-discount" : ""} ${isSelected ? "is-selected" : ""}`}
-                                onClick={() => handleDayClick(dateStr)}
-                              >
-                                <strong>{day.label}</strong>
-                                <small style={hasOverride ? { color: "#e46630" } : undefined}>{priceDisplay}</small>
-                                {hasOverride && <em>custom</em>}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </section>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
           </div>
         </section>
       </section>
 
-      <JoyFooter />
+      <SimpleFooter />
     </main>
   );
 }
@@ -937,6 +648,7 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
           <button type="button" className="profile-save-action" onClick={saveProfile}>Saqlash</button>
         </div>
       </section>
+      <SimpleFooter />
     </main>
   );
 }

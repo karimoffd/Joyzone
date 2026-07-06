@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
-import logoImage from "../assets/img/Logo.png";
+import logoImage from "../assets/img/logoLight.png";
 import "./PartnerOnboarding.css";
 
 const objectTypes = [
@@ -265,23 +265,16 @@ function AddressStep({ address, setAddress, confirmed, setConfirmed }) {
           </div>
         ) : null}
 
-        <div className="minimal-map" aria-label="Минималистичная карта">
-          <span className="map-road road-one" />
-          <span className="map-road road-two" />
-          <span className="map-road road-three" />
-          <span className="map-road road-four" />
-          <span className="map-block block-one" />
-          <span className="map-block block-two" />
-          <span className="map-block block-three" />
-          <span className="map-label label-one">Toshkent</span>
-          <span className="map-label label-two">Chilonzor</span>
-          <span className="map-label label-three">Yakkasaroy</span>
-          <span className={`map-pin ${confirmed ? "is-confirmed" : ""}`} />
-          <div className="map-controls" aria-hidden="true">
-            <button type="button">+</button>
-            <button type="button">−</button>
-          </div>
-          <div className="map-toast">Передвиньте карту или подтвердите адрес выше</div>
+        <div className="minimal-map" aria-label="Яндекс Карта">
+          <iframe
+            src="https://yandex.uz/map-widget/v1/?ll=69.2401%2C41.2995&z=12"
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            style={{ borderRadius: "inherit" }}
+            title="Yandex Map"
+          />
+          {!confirmed && <div className="map-toast">Передвиньте карту или подтвердите адрес выше</div>}
         </div>
       </div>
     </div>
@@ -913,8 +906,10 @@ export default function PartnerOnboarding() {
 
         {step === 2 ? (
           <div className="selection-layout">
-            <p className="partner-eyebrow">Тип объекта</p>
-            <h1>Что вы хотите разместить на Joyzone?</h1>
+            <div>
+              <p className="partner-eyebrow">Тип объекта</p>
+              <h1>Что вы хотите разместить на Joyzone?</h1>
+            </div>
             <div className="object-type-grid">
               {objectTypes.map((item) => (
                 <SelectionCard key={item.id} item={item} active={objectType === item.id} onClick={() => setObjectType(item.id)} />
@@ -925,8 +920,10 @@ export default function PartnerOnboarding() {
 
         {step === 3 ? (
           <div className="selection-layout access-layout">
-            <p className="partner-eyebrow">Тип доступа</p>
-            <h1>Как гости будут пользоваться объектом?</h1>
+            <div>
+              <p className="partner-eyebrow">Тип доступа</p>
+              <h1>Как гости будут пользоваться объектом?</h1>
+            </div>
             <div className="access-type-list">
               {accessTypes.map((item) => (
                 <SelectionCard key={item.id} item={item} active={accessType === item.id} onClick={() => setAccessType(item.id)} />

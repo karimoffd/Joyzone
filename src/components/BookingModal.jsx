@@ -23,6 +23,46 @@ export default function BookingModal({ isOpen, onClose, spaceTitle, totalPrice, 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("+998 ");
   
+  const formatPhone = (val) => {
+    if (!val) return "+";
+    let raw = val.replace(/[^\d+]/g, "");
+    if (!raw.startsWith("+")) raw = "+" + raw.replace(/\+/g, "");
+    const digitsOnly = raw.replace(/\D/g, "");
+
+    if (digitsOnly.length === 0) return "+";
+
+    if (digitsOnly.startsWith("998")) {
+      const rest = digitsOnly.slice(3);
+      let formatted = "+998";
+      if (rest.length > 0) formatted += " " + rest.substring(0, 2);
+      if (rest.length > 2) formatted += " " + rest.substring(2, 5);
+      if (rest.length > 5) formatted += " " + rest.substring(5, 7);
+      if (rest.length > 7) formatted += " " + rest.substring(7, 9);
+      return formatted;
+    }
+    
+    if (digitsOnly.startsWith("7")) {
+      const rest = digitsOnly.slice(1);
+      let formatted = "+7";
+      if (rest.length > 0) formatted += " " + rest.substring(0, 3);
+      if (rest.length > 3) formatted += " " + rest.substring(3, 6);
+      if (rest.length > 6) formatted += " " + rest.substring(6, 8);
+      if (rest.length > 8) formatted += " " + rest.substring(8, 10);
+      return formatted;
+    }
+
+    let formatted = "+" + digitsOnly.substring(0, Math.min(3, digitsOnly.length));
+    if (digitsOnly.length > 3) {
+      let groups = digitsOnly.substring(3).match(/.{1,3}/g);
+      if (groups) formatted += " " + groups.join(" ");
+    }
+    return formatted;
+  };
+
+  const handlePhoneChange = (e) => {
+    setPhone(formatPhone(e.target.value));
+  };
+
   const overlayRef = useRef(null);
   const modalRef = useRef(null);
   const contentRef = useRef(null);
@@ -121,7 +161,7 @@ export default function BookingModal({ isOpen, onClose, spaceTitle, totalPrice, 
                   required 
                   placeholder="+998 90 123 45 67" 
                   value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
+                  onChange={handlePhoneChange} 
                 />
               </div>
               
