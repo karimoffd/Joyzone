@@ -590,7 +590,7 @@ export default function FilterPage({ userState, setUserState }) {
   const [sortOption, setSortOption] = useState("Relevans");
   
   const [selectedCategory, setSelectedCategory] = useState("Barchasi");
-  const [selectedSubCategory, setSelectedSubCategory] = useState("Barchasi");
+  const [selectedSubCat, setSelectedSubCat] = useState("Barchasi");
   const [selectedDuration, setSelectedDuration] = useState("");
   const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [] });
   const [spaces, setSpaces] = useState(propertyCards);
