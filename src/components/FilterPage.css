@@ -760,43 +760,78 @@
 }
 
 @media (max-width: 1200px) {
-  .filter-bar-head,
   .filter-dropdown-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 }
 
 @media (max-width: 900px) {
   .filter-bar-head {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
+    min-width: 0;
   }
 
   .filter-dropdown-grid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  .filter-dropdown-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .fp-filter-dropdown {
+    flex: 0 0 auto;
+    width: auto;
   }
 
   .filter-clear-btn {
-    width: 100%;
+    width: auto;
+    padding: 0 16px;
   }
 }
 
 /* ===== CATEGORY TABS (FilterPage) ===== */
 .fp-cats-duration-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 12px;
-  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (min-width: 901px) {
+  .fp-cats-duration-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
 }
 
 .fp-category-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   padding: 4px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  min-width: 0;
+  max-width: 100%;
+}
+.fp-category-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .fp-cat-tab {
+  flex: 0 0 auto;
   min-height: 40px;
   padding: 0 20px;
   border: 1.5px solid rgba(255, 255, 255, 0.18);
@@ -902,6 +937,15 @@
   align-items: center;
   gap: 6px;
   flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+.fp-duration-row::-webkit-scrollbar {
+  display: none;
 }
 
 .fp-duration-label {
@@ -915,6 +959,7 @@
 }
 
 .fp-duration-pill {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -962,25 +1007,7 @@
   line-height: 1;
 }
 
-@media (max-width: 860px) {
-  .filter-bar-head {
-    flex-wrap: wrap;
-  }
-  .filter-bar-head-right {
-    flex-wrap: wrap;
-    width: 100%;
-    justify-content: space-between;
-  }
-  .fp-duration-row {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-}
-
 @media (max-width: 520px) {
-  .fp-duration-text {
-    display: none;
-  }
   .fp-duration-pill {
     min-height: 38px;
     padding: 0 12px;
