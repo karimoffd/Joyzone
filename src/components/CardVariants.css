@@ -802,6 +802,7 @@
   border-radius: 20px;
   border: 1px solid rgba(41, 74, 109, 0.08);
   box-shadow: 0 4px 16px rgba(41, 74, 109, 0.04);
+  min-height: auto;
 }
 
 .variant-card.is-list-view .variant-media {
