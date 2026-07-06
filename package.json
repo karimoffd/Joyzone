@@ -4,10 +4,10 @@
   "private": true,
   "description": "Joyzone premium registration screen with reusable GSAP slider.",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"npm run dev:backend\"",
     "dev:admin": "npm run dev --prefix \"d:/Downloads/joyzone-react-admin-dashboard\"",
     "dev:backend": "npm run dev --prefix ./backend",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:admin\" \"npm run dev:backend\"",
+    "dev:all": "concurrently \"vite\" \"npm run dev:admin\" \"npm run dev:backend\"",
     "build": "vite build",
     "preview": "vite preview"
   },
