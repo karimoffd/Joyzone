@@ -679,29 +679,33 @@ export function SimpleFooter() {
   );
 }
 
+export function FooterQuestionStrip() {
+  return (
+    <div className="footer-question-strip">
+      <div>
+        <span>Joyzone yordam markazi</span>
+        <h2>Savolingiz bormi?</h2>
+        <p>Ofis, kovorking yoki zal tanlashda yordam beramiz.</p>
+      </div>
+      <a href="#contact">
+        Biz bilan bog'laning
+        <FooterIcon type="arrow" />
+      </a>
+    </div>
+  );
+}
+
 export function JoyFooter() {
   const socials = [
     ["instagram", "#instagram"],
     ["facebook", "#facebook"],
     ["telegram", "#telegram"],
-    ["whatsapp", "#whatsapp"]
+    ["linkedin", "#linkedin"]
   ];
   const openPage = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
 
   return (
     <footer className="joy-footer-section" id="contact">
-      <div className="footer-question-strip">
-        <div>
-          <span>Joyzone yordam markazi</span>
-          <h2>Savolingiz bormi?</h2>
-          <p>Ofis, kovorking yoki zal tanlashda yordam beramiz.</p>
-        </div>
-        <a href="#contact">
-          Biz bilan bog'laning
-          <FooterIcon type="arrow" />
-        </a>
-      </div>
-
       <div className="joy-footer-card">
         <div className="joy-footer-top">
           <a href="#home" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">

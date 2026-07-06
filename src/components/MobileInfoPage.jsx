@@ -1,6 +1,6 @@
 import React from "react";
 import { Header } from "./HomeHero.jsx";
-import { BenefitsSection, ReviewsFaqSection, JoyFooter } from "./ListingsSection.jsx";
+import { BenefitsSection, ReviewsFaqSection, JoyFooter, FooterQuestionStrip } from "./ListingsSection.jsx";
 import FloatingBookingWidget from "./FloatingBookingWidget.jsx";
 
 export default function MobileInfoPage({ userState, setUserState }) {
@@ -12,6 +12,7 @@ export default function MobileInfoPage({ userState, setUserState }) {
           <BenefitsSection />
           <ReviewsFaqSection />
           <div style={{ marginTop: "40px" }}>
+            <FooterQuestionStrip />
             <JoyFooter />
           </div>
         </div>
