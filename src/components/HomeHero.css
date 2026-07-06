@@ -2063,3 +2063,10 @@
   }
 }
 
+
+@media (max-width: 900px) {
+  .options, .custom-select .options {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+}
