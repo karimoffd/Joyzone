@@ -79,6 +79,92 @@ function formatMoney(value) {
   return `${new Intl.NumberFormat("uz-UZ").format(value)} so'm`;
 }
 
+const weekdayLabels = ["D", "S", "Ch", "P", "J", "Sh", "Ya"];
+const hourlySlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+
+function toDateKey(date) {
+  return date.toISOString().split("T")[0];
+}
+
+function fromDateKey(dateKey) {
+  return new Date(`${dateKey}T00:00:00Z`);
+}
+
+function addDays(dateKey, amount) {
+  const date = fromDateKey(dateKey);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return toDateKey(date);
+}
+
+function addMonths(dateKey, amount) {
+  const date = fromDateKey(dateKey);
+  date.setUTCMonth(date.getUTCMonth() + amount);
+  return toDateKey(date);
+}
+
+function getDefaultBookingDate() {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + 3);
+  return toDateKey(date);
+}
+
+function getMonthOffset(year, month, offset) {
+  const date = new Date(Date.UTC(year, month + offset, 1));
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
+}
+
+function buildCalendarDays(year, month) {
+  const date = new Date(Date.UTC(year, month, 1));
+  const daysArr = [];
+  let startDay = date.getUTCDay();
+  startDay = startDay === 0 ? 6 : startDay - 1;
+
+  for (let i = 0; i < startDay; i++) {
+    daysArr.push({ label: "", dateStr: null, isMuted: true });
+  }
+
+  const totalDays = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    daysArr.push({ label: d, dateStr, isMuted: false });
+  }
+
+  return daysArr;
+}
+
+function buildDateRange(startDate, endDate) {
+  if (!startDate) return [];
+  const start = fromDateKey(startDate);
+  const end = fromDateKey(endDate || startDate);
+  const first = start <= end ? start : end;
+  const last = start <= end ? end : start;
+  const dates = [];
+  const current = new Date(first);
+
+  while (current <= last) {
+    dates.push(toDateKey(current));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return dates;
+}
+
+function getDayDiff(startDate, endDate) {
+  if (!startDate || !endDate) return 1;
+  const diff = fromDateKey(endDate).getTime() - fromDateKey(startDate).getTime();
+  return Math.max(1, Math.round(diff / 86400000) + 1);
+}
+
+function formatShortDate(dateKey) {
+  if (!dateKey) return "";
+  const date = fromDateKey(dateKey);
+  return `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function isBlockingBooking(booking) {
+  return booking && ["booked", "closed", "Paid", "Pending"].includes(booking.status);
+}
+
 function Icon({ type, className = "" }) {
   const paths = {
     arrow: "M19 12H5M12 5l-7 7 7 7",
@@ -184,6 +270,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   }, [space]);
 
   const [activeImage, setActiveImage] = useState(0);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [liked, setLiked] = useState(false);
   const likeBtnRef = useRef(null);
   const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
@@ -200,9 +287,12 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [days, setDays] = useState(1);
   const [guests, setGuests] = useState(Math.min(space.people || 4, 4));
   const [allBookings, setAllBookings] = useState([]);
-  const [calYear, setCalYear] = useState(2026);
-  const [calMonth, setCalMonth] = useState(5); // June
-  const [checkInDate, setCheckInDate] = useState("2026-06-12");
+  const [calYear, setCalYear] = useState(() => fromDateKey(getDefaultBookingDate()).getUTCFullYear());
+  const [calMonth, setCalMonth] = useState(() => fromDateKey(getDefaultBookingDate()).getUTCMonth());
+  const [checkInDate, setCheckInDate] = useState(() => getDefaultBookingDate());
+  const [checkOutDate, setCheckOutDate] = useState(() => getDefaultBookingDate());
+  const [hourPanelDate, setHourPanelDate] = useState(null);
+  const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/bookings")
@@ -222,27 +312,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     });
   }, [allBookings, space]);
 
-  const calendarDays = useMemo(() => {
-    const date = new Date(Date.UTC(calYear, calMonth, 1));
-    const daysArr = [];
-    let startDay = date.getUTCDay();
-    startDay = startDay === 0 ? 6 : startDay - 1;
-    
-    for (let i = 0; i < startDay; i++) {
-      daysArr.push({ label: "", dateStr: null, isMuted: true });
-    }
-    
-    const totalDays = new Date(Date.UTC(calYear, calMonth + 1, 0)).getUTCDate();
-    for (let d = 1; d <= totalDays; d++) {
-      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      daysArr.push({
-        label: d,
-        dateStr,
-        isMuted: false
-      });
-    }
-    return daysArr;
-  }, [calYear, calMonth]);
+  const calendarDays = useMemo(() => buildCalendarDays(calYear, calMonth), [calYear, calMonth]);
+  const nextCalendar = useMemo(() => getMonthOffset(calYear, calMonth, 1), [calYear, calMonth]);
+  const nextCalendarDays = useMemo(() => buildCalendarDays(nextCalendar.year, nextCalendar.month), [nextCalendar]);
 
   const [bookingDuration, setBookingDuration] = useState("kunlik");
 
@@ -260,7 +332,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   useEffect(() => {
     if (availableDurations.length > 0 && !availableDurations.some(d => d.id === bookingDuration)) {
-      setBookingDuration(availableDurations[0].id);
+      const nextDuration = availableDurations[0].id;
+      setBookingDuration(nextDuration);
+      syncRangeForMode(nextDuration, checkInDate || getDefaultBookingDate(), 1);
     }
   }, [availableDurations, bookingDuration]);
 
@@ -271,38 +345,193 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     return Number(String(priceStr).replace(/\D/g, "")) || 0;
   }, [availableDurations, bookingDuration, space]);
 
+  const galleryImages = useMemo(() => {
+    const images = Array.isArray(space?.images) ? space.images.filter(Boolean) : [];
+    return images.length > 0 ? images : [fallbackSpace.images?.[0]].filter(Boolean);
+  }, [space, fallbackSpace]);
+
+  const previewThumbs = useMemo(() => (
+    galleryImages.length > 4 ? galleryImages.slice(0, 3) : galleryImages.slice(0, 4)
+  ), [galleryImages]);
+
+  const selectedRange = useMemo(() => {
+    if (bookingDuration === "soatlik") return checkInDate ? [checkInDate] : [];
+    return buildDateRange(checkInDate, checkOutDate || checkInDate);
+  }, [bookingDuration, checkInDate, checkOutDate]);
+
+  const selectedDateSet = useMemo(() => new Set(selectedRange), [selectedRange]);
+
+  const isDateBooked = (dateStr) => spaceBookings.some((booking) => {
+    if (!booking || !booking.start_date || !booking.end_date || !isBlockingBooking(booking)) return false;
+    const bStart = String(booking.start_date).split("T")[0];
+    const bEnd = String(booking.end_date).split("T")[0];
+    return dateStr >= bStart && dateStr <= bEnd;
+  });
+
+  const getSlotStatus = (dateStr, slot) => {
+    if (!dateStr) return "free";
+    if (isDateBooked(dateStr)) return "booked";
+    const day = Number(dateStr.slice(-2));
+    const hour = Number(slot.split(":")[0]);
+    return (day + hour) % 5 === 0 || (day % 2 === 0 && hour === 14) ? "booked" : "free";
+  };
+
   const { totalPrice, hasBlockedDay, dailyRatesBreakdown } = useMemo(() => {
     if (!checkInDate) return { totalPrice: 0, hasBlockedDay: false, dailyRatesBreakdown: [] };
-    
+
+    if (bookingDuration === "soatlik") {
+      const safeSlots = selectedTimeSlots.filter((slot) => getSlotStatus(checkInDate, slot) === "free");
+      const total = parsedBasePrice * safeSlots.length;
+      return {
+        totalPrice: total,
+        hasBlockedDay: isDateBooked(checkInDate),
+        dailyRatesBreakdown: safeSlots.length > 1
+          ? [{ date: `${formatShortDate(checkInDate)} (${safeSlots.length} soat)`, rate: total }]
+          : safeSlots.map((slot) => ({ date: `${formatShortDate(checkInDate)} ${slot}`, rate: parsedBasePrice }))
+      };
+    }
+
+    if (bookingDuration === "haftalik" || bookingDuration === "oylik") {
+      const blocked = selectedRange.some((dateStr) => isDateBooked(dateStr));
+      return {
+        totalPrice: parsedBasePrice * days,
+        hasBlockedDay: blocked,
+        dailyRatesBreakdown: [{
+          date: `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}`,
+          rate: parsedBasePrice * days
+        }]
+      };
+    }
+
     let sum = 0;
     let blocked = false;
-    const breakdown = [];
-    
-    const start = new Date(checkInDate + "T00:00:00Z");
-    for (let i = 0; i < days; i++) {
-      const current = new Date(start);
-      current.setUTCDate(start.getUTCDate() + i);
-      const dStr = current.toISOString().split("T")[0];
-      
-      const isBooked = spaceBookings.some(b => {
-        if (!b || !b.start_date || !b.end_date) return false;
-        const bStart = String(b.start_date).split("T")[0];
-        const bEnd = String(b.end_date).split("T")[0];
-        return dStr >= bStart && dStr <= bEnd && (b.status === "booked" || b.status === "closed" || b.status === "Paid" || b.status === "Pending");
-      });
-      if (isBooked) blocked = true;
-      
-      const overridePrice = space.priceOverrides?.[dStr];
+    selectedRange.forEach((dateStr) => {
+      if (isDateBooked(dateStr)) blocked = true;
+      const overridePrice = space.priceOverrides?.[dateStr];
       const rate = overridePrice !== undefined ? Number(overridePrice) : parsedBasePrice;
       sum += rate;
-      breakdown.push({ date: dStr, rate });
-    }
-    
-    return { totalPrice: sum, hasBlockedDay: blocked, dailyRatesBreakdown: breakdown };
-  }, [checkInDate, days, spaceBookings, space, parsedBasePrice]);
+    });
 
-  const serviceFee = Math.max(25000, Math.round(totalPrice * 0.08));
+    let breakdown = [];
+    if (selectedRange.length > 1) {
+      breakdown = [{
+        date: `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate || checkInDate)}`,
+        rate: sum
+      }];
+    } else if (selectedRange.length === 1) {
+      breakdown = [{
+        date: formatShortDate(checkInDate),
+        rate: sum
+      }];
+    }
+
+    return { totalPrice: sum, hasBlockedDay: blocked, dailyRatesBreakdown: breakdown };
+  }, [checkInDate, checkOutDate, days, selectedRange, selectedTimeSlots, bookingDuration, spaceBookings, space, parsedBasePrice]);
+
+  const serviceFee = totalPrice > 0 ? Math.max(25000, Math.round(totalPrice * 0.08)) : 0;
   const finalTotal = totalPrice + serviceFee;
+
+  const goToImage = (index) => {
+    if (galleryImages.length === 0) return;
+    const nextIndex = (index + galleryImages.length) % galleryImages.length;
+    setActiveImage(nextIndex);
+  };
+
+  const moveMonth = (offset) => {
+    const next = getMonthOffset(calYear, calMonth, offset);
+    setCalYear(next.year);
+    setCalMonth(next.month);
+  };
+
+  const syncRangeForMode = (mode, startDate, units = 1) => {
+    if (mode === "soatlik") {
+      setCheckInDate(startDate);
+      setCheckOutDate(startDate);
+      setDays(1);
+      setHourPanelDate(startDate);
+      return;
+    }
+
+    setHourPanelDate(null);
+    setSelectedTimeSlots([]);
+
+    if (mode === "haftalik") {
+      setCheckInDate(startDate);
+      setCheckOutDate(addDays(startDate, (units * 7) - 1));
+      setDays(units);
+      return;
+    }
+
+    if (mode === "oylik") {
+      setCheckInDate(startDate);
+      setCheckOutDate(addDays(addMonths(startDate, units), -1));
+      setDays(units);
+      return;
+    }
+
+    setCheckInDate(startDate);
+    setCheckOutDate(startDate);
+    setDays(1);
+  };
+
+  const handleDurationChange = (durationId) => {
+    setBookingDuration(durationId);
+    syncRangeForMode(durationId, checkInDate || getDefaultBookingDate(), 1);
+  };
+
+  const handleCalendarDateClick = (dateStr) => {
+    if (!dateStr || isDateBooked(dateStr)) return;
+
+    if (bookingDuration === "soatlik") {
+      const previousDate = checkInDate;
+      syncRangeForMode("soatlik", dateStr, 1);
+      if (previousDate !== dateStr) setSelectedTimeSlots([]);
+      return;
+    }
+
+    if (bookingDuration === "haftalik") {
+      syncRangeForMode("haftalik", dateStr, 1);
+      return;
+    }
+
+    if (bookingDuration === "oylik") {
+      syncRangeForMode("oylik", dateStr, 1);
+      return;
+    }
+
+    if (!checkInDate || checkOutDate || dateStr < checkInDate) {
+      setCheckInDate(dateStr);
+      setCheckOutDate(null);
+      setDays(1);
+      return;
+    }
+
+    setCheckOutDate(dateStr);
+    setDays(getDayDiff(checkInDate, dateStr));
+  };
+
+  const handleTimeSlotToggle = (slot) => {
+    if (getSlotStatus(checkInDate, slot) === "booked") return;
+    setSelectedTimeSlots((current) => (
+      current.includes(slot)
+        ? current.filter((item) => item !== slot)
+        : [...current, slot].sort()
+    ));
+  };
+
+  const bookingUnitLabel = bookingDuration === "soatlik"
+    ? `${selectedTimeSlots.length || 0} soat`
+    : bookingDuration === "haftalik"
+      ? `${days} hafta`
+      : bookingDuration === "oylik"
+        ? `${days} oy`
+        : `${selectedRange.length} kun`;
+
+  const bookingRangeLabel = bookingDuration === "soatlik"
+    ? `${formatShortDate(checkInDate)} ${selectedTimeSlots.length ? selectedTimeSlots.join(", ") : "vaqt tanlanmagan"}`
+    : checkOutDate && checkOutDate !== checkInDate
+      ? `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}`
+      : formatShortDate(checkInDate);
 
   const handleBooking = async () => {
     if (hasBlockedDay) {
@@ -315,12 +544,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
         user_id: userState.isAuthed ? userState.email : "anonymous_client",
         space_id: space.id || space._id,
         start_date: checkInDate,
-        end_date: (() => {
-          const start = new Date(checkInDate + "T00:00:00Z");
-          const end = new Date(start);
-          end.setUTCDate(start.getUTCDate() + (days - 1));
-          return end.toISOString().split("T")[0];
-        })(),
+        end_date: checkOutDate || checkInDate,
         total_price: finalTotal,
         status: "Pending"
       };
@@ -442,7 +666,8 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   useEffect(() => {
     setActiveImage(0);
-    setGuests(Math.min(space.people, 4));
+    setShowGalleryModal(false);
+    setGuests(Math.min(space.people || 4, 4));
   }, [space]);
 
   useEffect(() => {
@@ -499,16 +724,78 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     return () => ctx.revert();
   }, [space]);
 
+  const todayKey = toDateKey(new Date());
+
+  const renderCalendarMonth = (year, month, monthDays, isNext = false) => (
+    <div className={`sd-calendar-card ${isNext ? "is-next" : "is-current"}`}>
+      <div className="sd-calendar-head">
+        <div>
+          <span>{isNext ? "Keyingi oy" : "Tanlash"}</span>
+          <strong>{monthNames[month]} {year}</strong>
+        </div>
+        {!isNext && (
+          <div className="sd-calendar-arrows">
+            <button type="button" onClick={() => moveMonth(-1)} aria-label="Oldingi oy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <button type="button" onClick={() => moveMonth(1)} aria-label="Keyingi oy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="sd-weekdays">
+        {weekdayLabels.map((label) => <span key={`${year}-${month}-${label}`}>{label}</span>)}
+      </div>
+
+      <div className="sd-calendar-grid">
+        {monthDays.map((day, index) => {
+          if (day.isMuted) return <span key={`muted-${year}-${month}-${index}`} className="sd-calendar-day is-empty" />;
+
+          const dateStr = day.dateStr;
+          const booked = isDateBooked(dateStr);
+          const selected = selectedDateSet.has(dateStr);
+          const isStart = dateStr === checkInDate;
+          const isEnd = dateStr === checkOutDate && checkOutDate !== checkInDate;
+          const isToday = dateStr === todayKey;
+          const className = [
+            "sd-calendar-day",
+            booked ? "is-booked" : "",
+            selected ? "is-selected" : "",
+            selected && !isStart && !isEnd ? "is-in-range" : "",
+            isStart ? "is-range-start" : "",
+            isEnd ? "is-range-end" : "",
+            isToday ? "is-today" : ""
+          ].filter(Boolean).join(" ");
+
+          return (
+            <button
+              key={dateStr}
+              type="button"
+              className={className}
+              disabled={booked}
+              onClick={() => handleCalendarDateClick(dateStr)}
+              title={booked ? "Band qilingan" : dateStr}
+            >
+              <span>{day.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   return (
     <main className="space-detail-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
 
       <section className="sd-hero">
         <div className="sd-hero-copy sd-animate">
-          <a href="#filter" className="sd-back-link">
-            <Icon type="arrow" />
-            Barcha joylarga qaytish
-          </a>
           <div className="sd-kicker">
             <span>{space.category}</span>
             {space.promoted ? <b>Top joy</b> : null}
@@ -525,7 +812,21 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
         <div className="sd-gallery sd-animate">
           <div className="sd-main-photo">
-            <img src={space.images[activeImage]} alt={space.title} />
+            <img key={`${galleryImages[activeImage]}-${activeImage}`} src={galleryImages[activeImage]} alt={space.title} />
+            {galleryImages.length > 1 && (
+              <>
+                <button type="button" className="sd-gallery-nav sd-gallery-prev" onClick={() => goToImage(activeImage - 1)} aria-label="Oldingi rasm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+                <button type="button" className="sd-gallery-nav sd-gallery-next" onClick={() => goToImage(activeImage + 1)} aria-label="Keyingi rasm">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </>
+            )}
             <button
               ref={likeBtnRef}
               type="button"
@@ -536,9 +837,25 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             >
               <HeartIcon filled={liked} />
             </button>
+            <button type="button" className="sd-share" aria-label="Ulashish" onClick={() => { if(navigator.share) navigator.share({ url: window.location.href }); }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+            </button>
           </div>
+          {galleryImages.length > 1 && (
+            <div className="sd-gallery-dots" aria-hidden="true">
+              {galleryImages.map((image, index) => (
+                <span key={`${image}-dot`} className={index === activeImage ? "is-active" : ""} />
+              ))}
+            </div>
+          )}
           <div className="sd-thumbs" aria-label="Rasmlar">
-            {space.images.map((image, index) => (
+            {previewThumbs.map((image, index) => (
               <button
                 type="button"
                 key={image}
@@ -550,6 +867,20 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 <img src={image} alt="" />
               </button>
             ))}
+            {galleryImages.length > 4 && (
+              <button
+                type="button"
+                className="sd-thumb-more"
+                onClick={() => setShowGalleryModal(true)}
+                aria-label={`Barcha ${galleryImages.length} ta rasmni ochish`}
+              >
+                <img src={galleryImages[3]} alt="" />
+                <span>
+                  <b>+{galleryImages.length - 3}</b>
+                  Barcha rasmlar
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -792,111 +1123,94 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               </span>
             </div>
 
-            <div className="sd-duration-selector" style={{ display: "flex", gap: "6px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <div className="sd-duration-selector">
               {availableDurations.map(d => (
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => setBookingDuration(d.id)}
-                  style={{
-                    flex: 1,
-                    padding: "8px 0",
-                    fontSize: "12px",
-                    fontWeight: "800",
-                    borderRadius: "8px",
-                    border: `1.5px solid ${bookingDuration === d.id ? "#e46630" : "rgba(41, 74, 109, 0.12)"}`,
-                    background: bookingDuration === d.id ? "rgba(228, 102, 48, 0.08)" : "#fff",
-                    color: bookingDuration === d.id ? "#e46630" : "rgba(18, 40, 63, 0.6)",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
+                  className={bookingDuration === d.id ? "is-active" : ""}
+                  onClick={() => handleDurationChange(d.id)}
                 >
-                  {d.label}
+                  <span>{d.label}</span>
+                  <small>{d.id === "soatlik" ? "Soat" : d.id === "haftalik" ? "Hafta" : d.id === "oylik" ? "Oy" : "Kun"}</small>
                 </button>
               ))}
             </div>
 
-            <div className="sd-checkout-datepicker" style={{ marginBottom: "14px" }}>
-              <span style={{ fontSize: "11px", fontWeight: "850", color: "#12283f", display: "block", marginBottom: "6px", textTransform: "uppercase" }}>Sanani tanlang</span>
-              
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "10px", border: "1px solid rgba(41, 74, 109, 0.08)" }}>
-                <button type="button" onClick={() => calMonth === 0 ? (setCalMonth(11), setCalYear(y => y-1)) : setCalMonth(m => m-1)} style={{ fontSize: "14px", fontWeight: "950", color: "#e46630", padding: "0 6px", cursor: "pointer", border: "none", background: "transparent" }}>‹</button>
-                <span style={{ fontSize: "12px", fontWeight: "800", color: "#12283f" }}>{monthNames[calMonth]} {calYear}</span>
-                <button type="button" onClick={() => calMonth === 11 ? (setCalMonth(0), setCalYear(y => y+1)) : setCalMonth(m => m+1)} style={{ fontSize: "14px", fontWeight: "950", color: "#e46630", padding: "0 6px", cursor: "pointer", border: "none", background: "transparent" }}>›</button>
+            <div className="sd-calendar-shell">
+              <div className="sd-calendar-title">
+                <div>
+                  <span>Sanani tanlang</span>
+                  <strong>{bookingRangeLabel}</strong>
+                </div>
+                <small>{bookingDuration === "soatlik" ? "Kun + vaqt" : bookingDuration === "oylik" ? "1 oy avtomatik" : bookingDuration === "haftalik" ? "1 hafta avtomatik" : "Boshlanish va tugash"}</small>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", fontSize: "10px", fontWeight: "900", color: "rgba(18,40,63,0.5)", textAlign: "center", marginBottom: "4px" }}>
-                {["D", "S", "Ch", "P", "J", "Sh", "Ya"].map(w => <span key={w}>{w}</span>)}
+              <div className="sd-calendar-stage">
+                <div className="sd-calendar-pair">
+                  {renderCalendarMonth(calYear, calMonth, calendarDays)}
+                  {renderCalendarMonth(nextCalendar.year, nextCalendar.month, nextCalendarDays, true)}
+                </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
-                {calendarDays.map((day, i) => {
-                  if (day.isMuted) return <div key={`muted-${i}`} />;
-                  
-                  const dateStr = day.dateStr;
-                  const isBooked = spaceBookings.some(b => {
-                    if (!b || !b.start_date || !b.end_date) return false;
-                    const bStart = String(b.start_date).split("T")[0];
-                    const bEnd = String(b.end_date).split("T")[0];
-                    return dateStr >= bStart && dateStr <= bEnd && (b.status === "booked" || b.status === "closed" || b.status === "Paid" || b.status === "Pending");
-                  });
-                  
-                  const isSelected = dateStr === checkInDate;
-                  
-                  let bg = "bg-white border-slate-200 hover:border-joyOrange";
-                  let text = "text-joyBlue";
-                  let cursor = "cursor-pointer";
-                  let title = "";
-                  
-                  if (isBooked) {
-                    bg = "bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed";
-                    text = "text-slate-300 line-through";
-                    cursor = "cursor-not-allowed";
-                    title = "Band qilingan";
-                  } else if (isSelected) {
-                    bg = "bg-joyOrange border-joyOrange text-white font-bold";
-                    text = "text-white";
-                  }
-                  
-                  return (
-                    <button
-                      key={dateStr}
-                      type="button"
-                      disabled={isBooked}
-                      onClick={() => setCheckInDate(dateStr)}
-                      className={`text-[12px] p-1.5 rounded-lg border text-center transition-all ${bg} ${text} ${cursor}`}
-                      style={{ minWidth: "24px", fontSize: "11px", fontWeight: "750", cursor: isBooked ? "not-allowed" : "pointer" }}
-                      title={title}
-                    >
-                      {day.label}
-                    </button>
-                  );
-                })}
-              </div>
+              {bookingDuration === "soatlik" && hourPanelDate && (
+                <div className="sd-hour-panel">
+                  <div className="sd-hour-panel-head">
+                    <div>
+                      <span>{formatShortDate(hourPanelDate)}</span>
+                      <strong>Vaqt oralig'ini tanlang</strong>
+                    </div>
+                    <small>Band / Bo'sh</small>
+                  </div>
+                  <div className="sd-hour-slots">
+                    {hourlySlots.map((slot) => {
+                      const status = getSlotStatus(hourPanelDate, slot);
+                      const selected = selectedTimeSlots.includes(slot);
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          className={`sd-hour-slot ${status === "booked" ? "is-booked" : ""} ${selected ? "is-selected" : ""}`}
+                          disabled={status === "booked"}
+                          onClick={() => handleTimeSlotToggle(slot)}
+                        >
+                          <strong>{slot}</strong>
+                          <span>{status === "booked" ? "Band" : selected ? "Tanlandi" : "Bo'sh"}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="sd-booking-controls">
               <label>
-                <span>{bookingDuration === 'soatlik' ? 'Soat' : bookingDuration === 'haftalik' ? 'Hafta' : bookingDuration === 'oylik' ? 'Oy' : 'Kun'}</span>
-                <input min="1" max="30" type="number" value={days} onChange={(event) => setDays(Math.max(1, Number(event.target.value) || 1))} />
+                <span>Muddat</span>
+                <input readOnly value={bookingUnitLabel} />
               </label>
               <label>
                 <span>Mehmon</span>
-                <input min="1" max={space.people} type="number" value={guests} onChange={(event) => setGuests(Math.max(1, Math.min(space.people, Number(event.target.value) || 1)))} />
+                <input min="1" max={space.people || 1} type="number" value={guests} onChange={(event) => setGuests(Math.max(1, Math.min(space.people || 1, Number(event.target.value) || 1)))} />
               </label>
             </div>
 
             <div className="sd-total-box">
-              <div style={{ fontSize: "11px", color: "rgba(18,40,63,0.5)", marginBottom: "8px", borderBottom: "1px solid #f1f5f9", paddingBottom: "6px" }}>
-                <span style={{ fontWeight: "bold", display: "block", marginBottom: "4px" }}>
-                  {bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} narxlar hisobi:
+              <div className="sd-rate-breakdown">
+                <span>
+                  {bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} narxlar hisobi
                 </span>
-                {dailyRatesBreakdown.map((item, idx) => (
-                  <div key={idx} style={{ display: "flex", justifyContent: "space-between", marginTop: "2px" }}>
-                    <span>{item.date}</span>
-                    <span>{formatMoney(item.rate)}</span>
+                {dailyRatesBreakdown.length > 0 ? dailyRatesBreakdown.map((item, idx) => (
+                  <div key={`${item.date}-${idx}`}>
+                    <small>{item.date}</small>
+                    <b>{formatMoney(item.rate)}</b>
                   </div>
-                ))}
+                )) : (
+                  <div>
+                    <small>{bookingDuration === "soatlik" ? "Vaqt tanlang" : "Sana tanlang"}</small>
+                    <b>{formatMoney(0)}</b>
+                  </div>
+                )}
               </div>
               <p>
                 <span>Ijara summasi</span>
@@ -907,8 +1221,8 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 <b>{formatMoney(serviceFee)}</b>
               </p>
               {hasBlockedDay && (
-                <div style={{ fontSize: "12px", color: "#ef4444", fontWeight: "bold", margin: "8px 0", background: "#fef2f2", padding: "6px 10px", borderRadius: "8px", border: "1px solid #fee2e2" }}>
-                  Diqqat: Tanlangan kunlar ichida band qilingan kunlar bor!
+                <div className="sd-booking-warning">
+                  Diqqat: Tanlangan davr ichida band qilingan kunlar bor.
                 </div>
               )}
               <strong>
@@ -917,10 +1231,25 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               </strong>
             </div>
 
-            <a href={`#book-space-${slugify(space.title)}`} className="sd-primary-btn" style={{ textDecoration: "none", display: "flex", justifyContent: "center" }} onClick={(e) => {
-              // Call handleBooking and prevent default if it handles API directly, but user's href might be intentional.
-              // We'll let the user's href work so the checkout page opens.
-            }}>
+            <a
+              href={`#book-space-${slugify(space.title)}`}
+              className={`sd-primary-btn ${hasBlockedDay || (bookingDuration === "soatlik" && selectedTimeSlots.length === 0) ? "is-disabled" : ""}`}
+              onClick={() => {
+                try {
+                  localStorage.setItem("joyzone-pending-booking", JSON.stringify({
+                    spaceTitle: space.title || space.name,
+                    duration: bookingDuration,
+                    startDate: checkInDate,
+                    endDate: checkOutDate || checkInDate,
+                    slots: selectedTimeSlots,
+                    guests,
+                    total: finalTotal
+                  }));
+                } catch (error) {
+                  // Checkout still opens if storage is unavailable.
+                }
+              }}
+            >
               <Icon type="calendar" />
               Bron qilish
             </a>
@@ -945,6 +1274,56 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       </section>
 
       <JoyFooter />
+
+      {showGalleryModal && createPortal(
+        <div className="sd-gallery-modal-overlay" onClick={() => setShowGalleryModal(false)}>
+          <div className="sd-gallery-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sd-gallery-modal-header">
+              <div>
+                <span>Barcha rasmlar</span>
+                <h3>{space.title}</h3>
+              </div>
+              <button type="button" className="sd-modal-close" onClick={() => setShowGalleryModal(false)} aria-label="Yopish">
+                <Icon type="x" />
+              </button>
+            </div>
+            <div className="sd-gallery-modal-body">
+              <div className="sd-gallery-modal-stage">
+                <img key={`modal-${galleryImages[activeImage]}-${activeImage}`} src={galleryImages[activeImage]} alt={`${space.title} ${activeImage + 1}`} />
+                {galleryImages.length > 1 && (
+                  <>
+                    <button type="button" className="sd-gallery-modal-nav is-prev" onClick={() => goToImage(activeImage - 1)} aria-label="Oldingi rasm">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <button type="button" className="sd-gallery-modal-nav is-next" onClick={() => goToImage(activeImage + 1)} aria-label="Keyingi rasm">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="sd-gallery-modal-grid">
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={`${image}-modal`}
+                    type="button"
+                    className={index === activeImage ? "is-active" : ""}
+                    onClick={() => setActiveImage(index)}
+                    aria-label={`${index + 1}-rasmni ko'rish`}
+                  >
+                    <img src={image} alt="" />
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {showAmenitiesModal && createPortal(
         <div className="sd-modal-overlay" onClick={() => setShowAmenitiesModal(false)}>

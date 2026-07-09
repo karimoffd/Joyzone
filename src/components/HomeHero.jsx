@@ -234,21 +234,39 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 }
 
 const menuNavLinks = [
-  { href: "#home",     label: "Bosh sahifa",   num: "01", desc: "Asosiy sahifa" },
-  { href: "#about-us", label: "Biz haqimizda", num: "02", desc: "Kompaniya haqida",
+  {
+    id: "about",
+    href: "#about-us",
+    label: "Biz haqimizda",
+    num: "01",
+    desc: "Kompaniya haqida",
+    icon: "info",
     subLinks: [
-      { href: "#mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" }
+      { href: "#mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
+      { href: "#partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
     ]
   },
-  { href: "#filter",   label: "Ijaraga joylar", num: "03", desc: "Katalog" },
-  { href: "#contact",  label: "Kontaktlar",    num: "04", desc: "Bog'lanish" }
+  {
+    id: "spaces",
+    href: "#filter",
+    label: "Ijaraga joylar",
+    num: "02",
+    desc: "Katalog",
+    icon: "search",
+    subLinks: [
+      { href: "#filter", label: "Ofis va kovorkinglar", desc: "Katalogni ochish" },
+      { href: "#partner", label: "Joy qo'shish", desc: "Mulkdor bo'lish" }
+    ]
+  },
+  { id: "saved", href: "#profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart", requiresAuth: true },
+  { id: "contact", href: "#contact", label: "Kontaktlar", num: "04", desc: "Bog'lanish", icon: "contact" }
 ];
 
 const profileMenuLinks = [
-  { href: "#profile",  label: "Profil",        num: "01", desc: "Shaxsiy ma'lumotlar" },
-  { href: "#settings", label: "Sozlamalar",    num: "02", desc: "Xavfsizlik va akkaunt" },
-  { href: "#filter",   label: "Joy qidirish",  num: "03", desc: "Ofis va kovorkinglar" },
-  { href: "#home",     label: "Bosh sahifa",   num: "04", desc: "Bosh sahifaga qaytish" }
+  { id: "profile", href: "#profile", label: "Profil", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
+  { id: "settings", href: "#settings", label: "Sozlamalar", num: "02", desc: "Xavfsizlik va akkaunt", icon: "settings" },
+  { id: "saved", href: "#profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart" },
+  { id: "search", href: "#filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar", icon: "search" }
 ];
 
 /* SVG icons for profile actions */
@@ -265,6 +283,21 @@ const IconSettings = () => (
 const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+  </svg>
+);
+const IconHeart = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>
+);
+const IconInfo = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+  </svg>
+);
+const IconBriefcase = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>
   </svg>
 );
 const IconHome = () => (
@@ -291,15 +324,48 @@ const IconMail = () => (
 const profileNavIcons = {
   "Profil": <IconUser />,
   "Sozlamalar": <IconSettings />,
+  "Saqlangan": <IconHeart />,
   "Joy qidirish": <IconSearch />,
   "Bosh sahifa": <IconHome />
 };
+
+const menuIconMap = {
+  home: <IconHome />,
+  info: <IconInfo />,
+  search: <IconSearch />,
+  heart: <IconHeart />,
+  contact: <IconPhone />,
+  user: <IconUser />,
+  settings: <IconSettings />,
+  partner: <IconBriefcase />
+};
+
+const mobileQuickActions = [
+  { href: "#filter", label: "Joy topish", desc: "Katalog", icon: <IconSearch /> },
+  { href: "#partner", label: "Joy qo'shish", desc: "Hamkorlik", icon: <IconBriefcase /> }
+];
 
 function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
   const overlayRef = useRef(null);
   const bgRef = useRef(null);
   const tlRef = useRef(null);
+  const [activeSubmenuId, setActiveSubmenuId] = useState(null);
   const isDashboard = variant === "dashboard";
+  const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks;
+  const activeSubmenu = currentMenuLinks.find((link) => link.id === activeSubmenuId);
+
+  const resolveLinkHref = (link) => (link.requiresAuth && !userState.isAuthed ? "#login" : link.href);
+  const closeDrawer = () => {
+    setActiveSubmenuId(null);
+    onClose();
+  };
+  const handleLogout = () => {
+    setUserState({ isAuthed: false, isPartner: false });
+    localStorage.removeItem("joyzone-access");
+    localStorage.removeItem("joyzone-refresh");
+    closeDrawer();
+    window.location.hash = "login";
+  };
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -337,6 +403,10 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
 
   useEffect(() => () => { document.body.style.overflow = ""; }, []);
 
+  useEffect(() => {
+    if (!open) setActiveSubmenuId(null);
+  }, [open]);
+
   return createPortal(
     <div
       ref={overlayRef}
@@ -344,7 +414,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
       style={{ display: "none", pointerEvents: "none" }}
       onClick={onClose}
     >
-      <div ref={bgRef} className="premium-menu-container" onClick={(e) => e.stopPropagation()}>
+      <div ref={bgRef} className={`premium-menu-container ${isDashboard ? "menu-dashboard" : "menu-public"}`} onClick={(e) => e.stopPropagation()}>
         
         {/* Left Column: Sidebar (Branding, contacts, social) */}
         <div className="menu-sidebar-col">
@@ -400,118 +470,180 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
           </div>
 
           <div className="menu-main-body">
-            {/* Navigation */}
-            <nav className="menu-nav">
-              <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
-              <ul className="menu-nav-list">
-                {(isDashboard ? profileMenuLinks : menuNavLinks).map((link) => (
-                  <li key={link.href}>
-                    <a href={link.href} className="menu-nav-link" onClick={onClose}>
-                      <span className="menu-nav-num">{link.num}</span>
-                      {isDashboard && <span className="menu-nav-icon">{profileNavIcons[link.label]}</span>}
-                      <span className="menu-nav-label">{link.label}</span>
-                      <span className="menu-nav-desc">{link.desc}</span>
-                      <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
-                      </svg>
-                    </a>
-                    {link.subLinks && (
-                      <ul className="menu-nav-sublist" style={{ listStyle: "none", paddingLeft: "60px", marginTop: "-4px", marginBottom: "16px" }}>
-                        {link.subLinks.map(sub => (
-                          <li key={sub.href}>
-                            <a href={sub.href} onClick={onClose} style={{ display: "block", padding: "8px 0", color: "#294a6d", textDecoration: "none", fontSize: "15px", fontWeight: "500", opacity: 0.8 }}>
-                              {sub.label}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-                {userState.isAuthed && (
-                  <li>
-                    <button
-                      className="menu-nav-link menu-nav-logout"
-                      onClick={() => { 
-                        setUserState({ isAuthed: false, isPartner: false });
-                        localStorage.removeItem("joyzone-access");
-                        localStorage.removeItem("joyzone-refresh");
-                        onClose(); 
-                        window.location.hash = "login";
-                      }}
-                    >
-                      <span className="menu-nav-num">{isDashboard ? "05" : "06"}</span>
-                      <span className="menu-nav-icon"><IconLogout /></span>
-                      <span className="menu-nav-label">Chiqish</span>
-                      <span className="menu-nav-desc">Akkauntdan chiqish</span>
-                      <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
-                      </svg>
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </nav>
-
-            {/* Bottom widgets */}
-            <div className="menu-main-footer">
-              {isDashboard ? (
-                /* Profile card widget */
-                <div className="menu-widget-user">
-                  <div className="menu-user-avatar">
-                    {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
-                  </div>
-                  <div className="menu-user-details">
-                    <strong>{userState.name || "Aziz Karimov"}</strong>
-                    <span>{userState.email || "aziz@gmail.com"}</span>
-                  </div>
-                  <a href="#profile" className="menu-user-profile-btn" onClick={onClose}>
-                    <IconUser /> Profile ochish
-                  </a>
-                </div>
-              ) : (
-                /* Auth widget */
-                userState.isAuthed ? (
-                  <div className="menu-widget-user">
-                    <div className="menu-user-avatar">
-                      {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
-                    </div>
-                    <div className="menu-user-details">
-                      <strong>{userState.name || "Aziz Karimov"}</strong>
-                      <span>{userState.email || "Mehmon"}</span>
-                    </div>
-                    <a href="#profile" className="menu-user-profile-btn" onClick={onClose}>
-                      <IconUser /> Kabinetga o'tish
-                    </a>
-                  </div>
-                ) : (
-                  <div className="menu-widget-auth">
-                    <p>Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring</p>
-                    <div className="menu-auth-buttons-row">
-                      <a href="#login" className="menu-btn-auth-primary" onClick={onClose}>Kirish</a>
-                      <a href="#register" className="menu-btn-auth-secondary" onClick={onClose}>Ro'yxatdan o'tish</a>
-                    </div>
-                  </div>
-                )
-              )}
-
-              {/* Partner banner widget */}
-              {!isDashboard && (
-                <div className="menu-widget-partner">
-                  <div className="partner-widget-content">
-                    <span className="tag">Hamkorlar uchun</span>
-                    <h4>Joyingiz bormi?</h4>
-                    <p>Uni Joyzone-da e'lon qiling va daromad olishni boshlang</p>
-                  </div>
-                  <a href="#partner" className="partner-widget-cta" onClick={onClose}>
-                    Boshlash
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
-                      <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+            {activeSubmenu ? (
+              <section className="menu-subview" aria-label={`${activeSubmenu.label} menyusi`}>
+                <button type="button" className="menu-subview-back" onClick={() => setActiveSubmenuId(null)}>
+                  <span className="menu-subview-back-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/>
                     </svg>
+                  </span>
+                  <span>Orqaga</span>
+                </button>
+
+                <div className="menu-subview-head">
+                  <span className="menu-subview-head-icon">{menuIconMap[activeSubmenu.icon] || profileNavIcons[activeSubmenu.label]}</span>
+                  <div>
+                    <small>Ichki menyu</small>
+                    <h3>{activeSubmenu.label}</h3>
+                    <p>{activeSubmenu.desc}</p>
+                  </div>
+                </div>
+
+                <div className="menu-subview-list">
+                  {activeSubmenu.subLinks.map((sub, index) => (
+                    <a key={sub.href} href={sub.href} className="menu-subview-item" onClick={closeDrawer}>
+                      <span className="menu-subview-num">{String(index + 1).padStart(2, "0")}</span>
+                      <span className="menu-subview-copy">
+                        <strong>{sub.label}</strong>
+                        <small>{sub.desc}</small>
+                      </span>
+                      <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <>
+                <div className="menu-mobile-hero">
+                  <div className="menu-mobile-profile">
+                    <div className="menu-mobile-avatar">
+                      {userState.isAuthed && userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"}
+                    </div>
+                    <div>
+                      <span>{userState.isAuthed ? "Akkaunt" : "Mehmon rejimi"}</span>
+                      <strong>{userState.isAuthed ? (userState.name || "Foydalanuvchi") : "Joyzone"}</strong>
+                    </div>
+                  </div>
+                  <a href={userState.isAuthed ? "#profile" : "#login"} className="menu-mobile-profile-link" onClick={closeDrawer}>
+                    {userState.isAuthed ? "Kabinet" : "Kirish"}
                   </a>
                 </div>
-              )}
-            </div>
+
+                <div className="menu-mobile-quick-actions" aria-label="Tezkor amallar">
+                  {mobileQuickActions.map((action) => (
+                    <a key={action.href} href={action.href} onClick={closeDrawer}>
+                      <span>{action.icon}</span>
+                      <div>
+                        <strong>{action.label}</strong>
+                        <small>{action.desc}</small>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+
+                <nav className="menu-nav">
+                  <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
+                  <ul className="menu-nav-list">
+                    {currentMenuLinks.map((link) => {
+                      const icon = isDashboard ? profileNavIcons[link.label] : menuIconMap[link.icon];
+                      return (
+                        <li key={link.id || link.href}>
+                          {link.subLinks ? (
+                            <button type="button" className="menu-nav-link" onClick={() => setActiveSubmenuId(link.id)}>
+                              <span className="menu-nav-num">{link.num}</span>
+                              <span className="menu-nav-icon">{icon}</span>
+                              <span className="menu-nav-copy">
+                                <span className="menu-nav-label">{link.label}</span>
+                                <span className="menu-nav-desc">{link.desc}</span>
+                              </span>
+                              <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                              </svg>
+                            </button>
+                          ) : (
+                            <a href={resolveLinkHref(link)} className="menu-nav-link" onClick={closeDrawer}>
+                              <span className="menu-nav-num">{link.num}</span>
+                              <span className="menu-nav-icon">{icon}</span>
+                              <span className="menu-nav-copy">
+                                <span className="menu-nav-label">{link.label}</span>
+                                <span className="menu-nav-desc">{link.requiresAuth && !userState.isAuthed ? "Kirish talab qilinadi" : link.desc}</span>
+                              </span>
+                              <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                              </svg>
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
+                    {userState.isAuthed && (
+                      <li>
+                        <button type="button" className="menu-nav-link menu-nav-logout" onClick={handleLogout}>
+                          <span className="menu-nav-num">{String(currentMenuLinks.length + 1).padStart(2, "0")}</span>
+                          <span className="menu-nav-icon"><IconLogout /></span>
+                          <span className="menu-nav-copy">
+                            <span className="menu-nav-label">Chiqish</span>
+                            <span className="menu-nav-desc">Akkauntdan chiqish</span>
+                          </span>
+                          <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                          </svg>
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                </nav>
+
+                <div className="menu-main-footer">
+                  {isDashboard ? (
+                    <div className="menu-widget-user">
+                      <div className="menu-user-avatar">
+                        {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
+                      </div>
+                      <div className="menu-user-details">
+                        <strong>{userState.name || "Aziz Karimov"}</strong>
+                        <span>{userState.email || "aziz@gmail.com"}</span>
+                      </div>
+                      <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
+                        <IconUser /> Profile ochish
+                      </a>
+                    </div>
+                  ) : (
+                    userState.isAuthed ? (
+                      <div className="menu-widget-user">
+                        <div className="menu-user-avatar">
+                          {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
+                        </div>
+                        <div className="menu-user-details">
+                          <strong>{userState.name || "Aziz Karimov"}</strong>
+                          <span>{userState.email || "Mehmon"}</span>
+                        </div>
+                        <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
+                          <IconUser /> Kabinetga o'tish
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="menu-widget-auth">
+                        <p>Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring</p>
+                        <div className="menu-auth-buttons-row">
+                          <a href="#login" className="menu-btn-auth-primary" onClick={closeDrawer}>Kirish</a>
+                          <a href="#register" className="menu-btn-auth-secondary" onClick={closeDrawer}>Ro'yxatdan o'tish</a>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {!isDashboard && (
+                    <div className="menu-widget-partner">
+                      <div className="partner-widget-content">
+                        <span className="tag">Hamkorlar uchun</span>
+                        <h4>Joyingiz bormi?</h4>
+                        <p>Uni Joyzone-da e'lon qiling va daromad olishni boshlang</p>
+                      </div>
+                      <a href="#partner" className="partner-widget-cta" onClick={closeDrawer}>
+                        Boshlash
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
+                          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
+                        </svg>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
