@@ -2,19 +2,13 @@ import { io } from "socket.io-client";
 
 const SOCKET_URL = "http://localhost:5000";
 
-// Connect to WebSocket server
-export const socket = io(SOCKET_URL, {
-  autoConnect: true,
-  transports: ["websocket", "polling"]
-});
-
-socket.on("connect", () => {
-  console.log("WebSocket serverga muvaffaqiyatli ulandi (ID:", socket.id, ")");
-});
-
-socket.on("disconnect", () => {
-  console.log("WebSocket ulanishi uzildi");
-});
+// Connect to WebSocket server - disabled for now while migrating to Django
+export const socket = {
+  id: 'disabled',
+  connected: false,
+  on: () => {},
+  emit: () => {}
+};
 
 /**
  * Serverga mijoz harakatlarini WebSocket orqali yuborish

@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext } from "react";
 import axios from "axios";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
+
+export const LanguageContext = createContext({
+  lang: 'uz',
+  setLang: () => {},
+  content: null,
+  isEditMode: false,
+});
 import FilterPage from "./components/FilterPage.jsx";
 import PartnerOnboarding from "./components/PartnerOnboarding.jsx";
 import JoySlider from "./components/JoySlider.jsx";
@@ -12,13 +19,16 @@ import AccountSettings from "./components/AccountSettings.jsx";
 import HostDashboard from "./components/HostDashboard.jsx";
 import CardVariants from "./components/CardVariants.jsx";
 import AdminDashboardIntegration from "../admin-dashboard-example/admin-integration.jsx";
+import AdminApp from "./admin/AdminApp.jsx";
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import MobileInfoPage from "./components/MobileInfoPage.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
+import { propertyCards } from "./data/content.js";
 import JoyLoader from "./components/JoyLoader.jsx";
 import BookingCheckout from "./components/BookingCheckout.jsx";
 import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { slides } from "./data/content.js";
+import { defaultContent } from "./data/defaultContent.js";
 
 function useAuthRoute() {
   const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify", "admin"]);
@@ -84,60 +94,39 @@ function useUserState() {
   return [state, updateState];
 }
 
-function App() {
+function AppContent() {
   const route = useAuthRoute();
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
   const [userState, setUserState] = useUserState();
   const [banners, setBanners] = useState(slides);
+  // Language state moved to App component
 
   useEffect(() => {
-    // Dynamic import to keep app bundle light
-    import("axios").then(({ default: axios }) => {
-      axios.get("http://localhost:5000/api/banners")
-        .then((res) => {
-          if (res.data && res.data.length > 0) {
-            // Map backend banner fields to frontend slide properties
-            const mappedBanners = res.data.map((banner, index) => ({
-              eyebrow: banner.platform || "Joyzone Choice",
-              title: banner.title,
-              image: banner.img // 'img' in db -> 'image' in slides
-            }));
-            setBanners(mappedBanners);
-          }
-        })
-        .catch((err) => {
-          console.warn("REST API orqali sliderlarni yuklab bo'lmadi:", err.message);
-        });
-    });
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
+    // Hide boot loader after short delay
+    const timer = setTimeout(() => {
       setBootLoading(false);
-    }, 1150);
-    return () => window.clearTimeout(timer);
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (route === displayedRoute) return;
-    const screen = document.querySelector(".app-route-shell");
-    if (screen) {
-      gsap.killTweensOf(screen);
-      gsap.to(screen, {
-        opacity: 0,
-        y: -24,
-        scale: 0.984,
-        filter: "blur(12px)",
-        clipPath: "inset(0% 0% 8% 0% round 24px)",
-        duration: 0.28,
-        ease: "power2.in",
-        onComplete: () => setDisplayedRoute(route)
-      });
-      return undefined;
+    if (route !== displayedRoute) {
+      const currentScreen = document.querySelector(".route-screen");
+      if (currentScreen) {
+        gsap.to(currentScreen, {
+          opacity: 0,
+          y: 20,
+          duration: 0.3,
+          ease: "power2.in",
+          onComplete: () => {
+            setDisplayedRoute(route);
+          }
+        });
+      } else {
+        setDisplayedRoute(route);
+      }
     }
-    setDisplayedRoute(route);
-    return undefined;
   }, [route, displayedRoute]);
 
   useEffect(() => {
@@ -186,37 +175,41 @@ function App() {
 
   useEffect(() => {
     if (bootLoading) return;
-    gsap.fromTo(
-        ".auth-screen-panel",
-        {
-          opacity: 0,
-          y: 34,
-          scale: 0.965,
-          rotateX: 3,
-          filter: "blur(14px)",
-          clipPath: "inset(12% 10% 12% 10% round 26px)"
-        },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          rotateX: 0,
-          filter: "blur(0px)",
-          clipPath: "inset(0% 0% 0% 0% round 26px)",
-          duration: 0.74,
-          ease: "expo.out"
-        }
-      );
+    
+    const authPanel = document.querySelector(".auth-screen-panel");
+    if (authPanel) {
       gsap.fromTo(
-        ".auth-screen-panel header, .auth-screen-panel h1, .auth-screen-panel p, .auth-screen-panel .form-field, .auth-screen-panel form button, .auth-screen-panel label, .auth-screen-panel main > button, .auth-screen-panel .otp-field, .auth-screen-panel .auth-motion-item, .auth-screen-panel .auth-link",
-        { opacity: 0, y: 18, filter: "blur(7px)" },
-        { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.52, stagger: 0.035, delay: 0.1, ease: "power3.out" }
-      );
-      gsap.fromTo(
-        ".auth-screen-panel .slider-frame",
-        { opacity: 0, scale: 1.035, x: displayedRoute === "register" ? 26 : -26, filter: "blur(10px)" },
-        { opacity: 1, scale: 1, x: 0, filter: "blur(0px)", duration: 0.76, delay: 0.06, ease: "expo.out" }
-      );
+          authPanel,
+          {
+            opacity: 0,
+            y: 34,
+            scale: 0.965,
+            rotateX: 3,
+            filter: "blur(14px)",
+            clipPath: "inset(12% 10% 12% 10% round 26px)"
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            rotateX: 0,
+            filter: "blur(0px)",
+            clipPath: "inset(0% 0% 0% 0% round 26px)",
+            duration: 0.74,
+            ease: "expo.out"
+          }
+        );
+        gsap.fromTo(
+          ".auth-screen-panel header, .auth-screen-panel h1, .auth-screen-panel p, .auth-screen-panel .form-field, .auth-screen-panel form button, .auth-screen-panel label, .auth-screen-panel main > button, .auth-screen-panel .otp-field, .auth-screen-panel .auth-motion-item, .auth-screen-panel .auth-link",
+          { opacity: 0, y: 18, filter: "blur(7px)" },
+          { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.52, stagger: 0.035, delay: 0.1, ease: "power3.out" }
+        );
+        gsap.fromTo(
+          ".auth-screen-panel .slider-frame",
+          { opacity: 0, scale: 1.035, x: displayedRoute === "register" ? 26 : -26, filter: "blur(10px)" },
+          { opacity: 1, scale: 1, x: 0, filter: "blur(0px)", duration: 0.76, delay: 0.06, ease: "expo.out" }
+        );
+    }
   }, [displayedRoute, bootLoading]);
 
   const handleAuthSuccess = (profile) => {
@@ -228,6 +221,10 @@ function App() {
     });
     window.location.hash = "#home";
   };
+
+  if (displayedRoute === "admin") {
+    return <AdminApp />;
+  }
 
   if (displayedRoute === "home") {
     return (
@@ -452,4 +449,93 @@ if (displayedRoute === "admin") {
   );
 }
 
-export default App;
+export default function App() {
+  const [lang, setLang] = useState(localStorage.getItem('joyzone-lang') || 'uz');
+  const [content, setContent] = useState(defaultContent);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [placesLoaded, setPlacesLoaded] = useState(false);
+
+  useEffect(() => {
+    // Determine if we are inside an iframe
+    if (window.self !== window.top) {
+      setIsEditMode(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('joyzone-lang', lang);
+  }, [lang]);
+
+  useEffect(() => {
+    // Fetch places first, then content
+    axios.get("http://localhost:8000/api/places/")
+      .then((res) => {
+        const backendPlaces = (res.data?.results || res.data || []).map((place, idx) => ({
+          id: place.id,
+          title: place.title,
+          category: place.category,
+          location: place.location,
+          price: place.price,
+          prices: {
+            soatlik: place.price.toLowerCase().includes("soat") ? place.price : null,
+            kunlik: place.price.toLowerCase().includes("kun") ? place.price : place.price,
+            haftalik: place.price.toLowerCase().includes("hafta") ? place.price : null,
+            oylik: place.price.toLowerCase().includes("oy") ? place.price : null
+          },
+          people: place.people,
+          area: place.area,
+          images: place.images && place.images.length > 0 ? place.images : [
+            "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
+          ],
+          promoted: place.promoted
+        }));
+        if (backendPlaces.length > 0) {
+          propertyCards.splice(0, propertyCards.length, ...backendPlaces);
+        }
+        setPlacesLoaded(true);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch places", err);
+        setPlacesLoaded(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    axios.get("http://localhost:8000/api/content/")
+      .then((res) => {
+        const fetched = res.data || {};
+        let dataToMerge = fetched;
+        if (fetched.data) dataToMerge = fetched.data;
+
+        const merged = { ...defaultContent };
+        ['uz', 'ru', 'en'].forEach(l => {
+          if (dataToMerge[l]) {
+            merged[l] = { ...merged[l], ...dataToMerge[l] };
+          }
+        });
+        setContent(merged);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch content", err);
+        setContent(defaultContent);
+      });
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (e) => {
+      // Future message handling if needed from iframe
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  if (!placesLoaded) {
+    return <JoyLoader />;
+  }
+
+  return (
+    <LanguageContext.Provider value={{ lang, setLang, content, isEditMode }}>
+      <AppContent />
+    </LanguageContext.Provider>
+  );
+}

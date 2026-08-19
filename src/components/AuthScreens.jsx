@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
+import { LanguageContext } from "../App.jsx";
 import { Logo, GoogleIcon, ChevronIcon, CheckIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
 
@@ -65,7 +66,29 @@ function AuthColumn({ children, narrow = false }) {
 }
 
 export function AuthForm({ onSuccess }) {
-  const [step, setStep] = useState("phone"); // "phone" | "otp" | "profile"
+  const { lang, content } = useContext(LanguageContext);
+  const db = content && content[lang] ? content[lang] : {};
+
+  const parseTitle = (text) => {
+    if (!text) return { title: "", accent: "" };
+    const words = text.trim().split(' ');
+    if (words.length > 1) {
+      const accent = words.pop();
+      return { title: words.join(' ') + ' ', accent: accent };
+    }
+    return { title: text, accent: "" };
+  };
+
+  const loginText = parseTitle(db.auth_login_title || (lang === 'uz' ? "Hush kelibsiz!" : "С возвращением!"));
+  const loginSub = db.auth_login_sub || (lang === 'uz' ? "Telefon raqamingiz orqali tizimga kiring yoki ro'yxatdan o'ting." : "Войдите, чтобы управлять бронированиями");
+  
+  const regText = parseTitle(db.auth_reg_title || (lang === 'uz' ? "Ism familiya" : "Создать аккаунт"));
+  const regSub = db.auth_reg_sub || (lang === 'uz' ? "Joyzone xizmatlaridan foydalanish uchun profilingizni to'ldiring." : "Присоединяйтесь к Joyzone за пару минут");
+  
+  const otpText = parseTitle(db.auth_otp_title || (lang === 'uz' ? "Kodni tasdiqlang" : "Введите код"));
+  const otpSub = db.auth_otp_sub || (lang === 'uz' ? "Telegram botimizga yuborilgan 6 xonali tasdiqlash kodini kiriting." : "Мы отправили код на ваш номер");
+
+  const [step, setStep] = useState("phone"); // phone, otp, profile"
   const [phone, setPhone] = useState("+998 ");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [firstName, setFirstName] = useState("");
@@ -212,8 +235,8 @@ export function AuthForm({ onSuccess }) {
     return (
       <AuthColumn narrow>
         <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
-          <AuthTitle title="Ism " accent="familiya" compact />
-          <AuthSubtitle>Joyzone xizmatlaridan foydalanish uchun profilingizni to'ldiring.</AuthSubtitle>
+          <AuthTitle title={regText.title} accent={regText.accent} compact />
+          <AuthSubtitle>{regSub}</AuthSubtitle>
         </div>
         <form onSubmit={handleProfileSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
           <TextInput placeholder="Ismingiz" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
@@ -228,8 +251,8 @@ export function AuthForm({ onSuccess }) {
     return (
       <AuthColumn narrow>
         <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
-          <AuthTitle title="Kodni " accent="kiriting" compact />
-          <AuthSubtitle>Telegram botimizga yuborilgan 6 xonali tasdiqlash kodini kiriting.</AuthSubtitle>
+          <AuthTitle title={otpText.title} accent={otpText.accent} compact />
+          <AuthSubtitle>{otpSub}</AuthSubtitle>
         </div>
         <form onSubmit={handleOtpSubmit} className="space-y-5 xl:space-y-6 min-[1400px]:space-y-8">
           <div className="flex justify-center gap-2 sm:gap-3">
@@ -258,8 +281,8 @@ export function AuthForm({ onSuccess }) {
   return (
     <AuthColumn narrow>
       <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
-        <AuthTitle title="Hush " accent="kelibsiz!" compact />
-        <AuthSubtitle>Telefon raqamingiz orqali tizimga kiring yoki ro'yxatdan o'ting.</AuthSubtitle>
+        <AuthTitle title={loginText.title} accent={loginText.accent} compact />
+        <AuthSubtitle>{loginSub}</AuthSubtitle>
       </div>
       <form onSubmit={handlePhoneSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
         <TextInput
@@ -282,26 +305,62 @@ export function LoginForm({ onSuccess }) {
 }
 
 export function ForgotPasswordForm() {
+  const { lang, content } = useContext(LanguageContext);
+  const db = content && content[lang] ? content[lang] : {};
+
+  const parseTitle = (text) => {
+    if (!text) return { title: "", accent: "" };
+    const words = text.trim().split(' ');
+    if (words.length > 1) {
+      const accent = words.pop();
+      return { title: words.join(' ') + ' ', accent: accent };
+    }
+    return { title: text, accent: "" };
+  };
+
+  const titleText = parseTitle(db.auth_forgot_title || "Parolni tiklash");
+  const subText = db.auth_forgot_sub || "Hisobingizga ulangan email yoki telefon raqamini kiriting. Parolni tiklash uchun tasdiqlash kodini yuboramiz.";
+  const btnText = db.auth_forgot_btn || "Tiklash kodini yuborish";
+  const loginLink = db.auth_forgot_login || "Parolingiz esingizdami? Kirish";
+
   return (
     <AuthColumn narrow>
       <div className="mb-5 xl:mb-6 min-[1400px]:mb-7">
-        <AuthTitle title="Parolni " accent="tiklash" compact />
-        <AuthSubtitle>Hisobingizga ulangan email yoki telefon raqamini kiriting. Parolni tiklash uchun tasdiqlash kodini yuboramiz.</AuthSubtitle>
+        <AuthTitle title={titleText.title} accent={titleText.accent} compact />
+        <AuthSubtitle>{subText}</AuthSubtitle>
       </div>
       <form className="space-y-3 xl:space-y-4">
         <TextInput placeholder="Email | Telefon raqami" autoComplete="email" />
         <PrimaryButton type="button" onClick={() => { window.location.hash = "verify"; }}>
-          Tiklash kodini yuborish
+          {btnText}
         </PrimaryButton>
       </form>
       <p className="mt-5 text-center text-[10px] font-bold text-joyDeep xl:mt-5 xl:text-[12px] min-[1400px]:text-[14px]">
-        Parolingiz esingizdami? <a href="#login" className="auth-link">Kirish</a>
+        {loginLink.split('?')[0]}? <a href="#login" className="auth-link">{loginLink.split('?')[1] || "Kirish"}</a>
       </p>
     </AuthColumn>
   );
 }
 
 export function VerifyCodeForm() {
+  const { lang, content } = useContext(LanguageContext);
+  const db = content && content[lang] ? content[lang] : {};
+
+  const parseTitle = (text) => {
+    if (!text) return { title: "", accent: "" };
+    const words = text.trim().split(' ');
+    if (words.length > 1) {
+      const accent = words.pop();
+      return { title: words.join(' ') + ' ', accent: accent };
+    }
+    return { title: text, accent: "" };
+  };
+
+  const titleText = parseTitle(db.auth_verify_title || "Kodni tasdiqlang");
+  const subText = db.auth_verify_sub || "Email yoki telefon raqamingizga yuborilgan 6 xonali tasdiqlash kodini kiriting.";
+  const btnText = db.auth_verify_btn || "Tasdiqlash";
+  const resendLink = db.auth_verify_resend || "Kod kelmadimi? Qayta yuborish";
+
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
 
   const handleOtpChange = (index, value) => {
@@ -343,9 +402,9 @@ export function VerifyCodeForm() {
         <LangButton />
       </header>
       <main className="mx-auto flex w-full max-w-[460px] flex-1 flex-col items-center justify-center pb-8 text-center">
-        <AuthTitle title="Kodni " accent="tasdiqlang" centered compact />
+        <AuthTitle title={titleText.title} accent={titleText.accent} centered compact />
         <p className="mx-auto mt-3 max-w-[390px] text-center text-[12px] font-medium leading-[1.45] text-joyBlue xl:text-[15px] min-[1400px]:text-[18px]">
-          Email yoki telefon raqamingizga yuborilgan 6 xonali tasdiqlash kodini kiriting.
+          {subText}
         </p>
         <div className="mt-8 flex justify-center gap-2 sm:gap-3 min-[1400px]:mt-10">
           {otp.map((digit, index) => (
@@ -365,10 +424,10 @@ export function VerifyCodeForm() {
           ))}
         </div>
         <div className="mt-8 w-full max-w-[430px]">
-          <PrimaryButton type="submit">Tasdiqlash</PrimaryButton>
+          <PrimaryButton type="submit">{btnText}</PrimaryButton>
         </div>
         <p className="mt-5 text-center text-[10px] font-bold text-joyDeep xl:mt-5 xl:text-[12px] min-[1400px]:text-[14px]">
-          Kod kelmadimi? <a href="#forgot" className="auth-link">Qayta yuborish</a>
+          {resendLink.split('?')[0]}? <a href="#forgot" className="auth-link">{resendLink.split('?')[1] || "Qayta yuborish"}</a>
         </p>
       </main>
     </div>

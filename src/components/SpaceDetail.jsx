@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import axios from "axios";
 import { sendClientAction } from "../socket.js";
+import { LanguageContext } from "../App.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { HeartIcon } from "./ui/Shared.jsx";
@@ -226,26 +227,37 @@ function Stars({ value = 5 }) {
 }
 
 export default function SpaceDetail({ route, userState, setUserState }) {
+  const { lang } = useContext(LanguageContext);
   const fallbackSpace = useMemo(() => resolveSpace(route), [route]);
   const [space, setSpace] = useState(fallbackSpace);
+  const [allParameters, setAllParameters] = useState([]);
+  const [allDiscounts, setAllDiscounts] = useState([]);
 
+  // Fetch parameters and discounts
   useEffect(() => {
-    setSpace(fallbackSpace);
-  }, [fallbackSpace]);
+    axios.get("http://localhost:8000/api/parameters/")
+      .then(res => setAllParameters(res.data?.results || res.data || []))
+      .catch(err => console.log("Failed to load parameters:", err));
+
+    axios.get("http://localhost:8000/api/discounts/")
+      .then(res => setAllDiscounts(res.data?.results || res.data || []))
+      .catch(err => console.log("Failed to load discounts:", err));
+  }, []);
 
   // Fetch from REST API to align route with real database objects
   useEffect(() => {
-    axios.get("http://localhost:5000/api/spaces")
+    axios.get("http://localhost:8000/api/places/")
       .then((res) => {
-        if (res.data && res.data.length > 0) {
+        let results = res.data?.results || res.data || [];
+        if (results.length > 0) {
           const value = (route || "").replace(/^space-/, "");
           const index = Number(value);
           let dbSpace;
           
-          if (Number.isInteger(index) && index >= 0 && index < res.data.length) {
-            dbSpace = res.data[index];
+          if (Number.isInteger(index) && index >= 0 && index < results.length) {
+            dbSpace = results[index];
           } else {
-            dbSpace = res.data.find((item) => {
+            dbSpace = results.find((item) => {
               if (!item) return false;
               const titleSlug = slugify(item.title || item.name || "");
               return (titleSlug && titleSlug === value) || String(item.id || item._id) === value;
@@ -253,7 +265,12 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           }
           
           if (dbSpace) {
-            setSpace(dbSpace);
+            setSpace({
+              ...dbSpace,
+              category: dbSpace.subcategory_info?.category?.name_ru || dbSpace.category,
+              subcategoryId: dbSpace.subcategory_info?.id,
+              price: dbSpace.price || "0 so'm"
+            });
           }
         }
       })
@@ -261,6 +278,26 @@ export default function SpaceDetail({ route, userState, setUserState }) {
         console.warn("REST API orqali joy tafsilotini yuklab bo'lmadi:", err.message);
       });
   }, [route, fallbackSpace]);
+
+  // Price formatting helper
+  const formatPriceValue = (val, mode) => {
+    if (!val) return "";
+    const cleanNum = Number(String(val).replace(/\D/g, ""));
+    if (isNaN(cleanNum)) return val;
+    const formatted = new Intl.NumberFormat("uz-UZ").format(cleanNum);
+    const label = mode === "soatlik" ? "Soatiga" : mode === "kunlik" ? "Kuniga" : mode === "haftalik" ? "Haftasiga" : "Oyiga";
+    return `${label} ${formatted} UZS`;
+  };
+
+  // Selected amenities mapped to backend parameters
+  const selectedAmenities = useMemo(() => {
+    if (!space.amenities || !Array.isArray(space.amenities)) return [];
+    if (allParameters.length > 0) {
+      return allParameters.filter(p => p.type === 'boolean' && space.amenities.includes(p.slug));
+    }
+    // Fallback to static mapping if parameters are not yet loaded
+    return amenityList.filter(item => space.amenities.includes(slugify(item.name)));
+  }, [space.amenities, allParameters]);
 
   // Send view event to live traffic monitor via socket.io
   useEffect(() => {
@@ -295,7 +332,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/bookings")
+    axios.get("http://localhost:8000/api/bookings/")
       .then(res => {
         if (res.data) setAllBookings(res.data);
       })
@@ -319,13 +356,39 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [bookingDuration, setBookingDuration] = useState("kunlik");
 
   const availableDurations = useMemo(() => {
-    if (!space?.prices) return [{ id: "kunlik", label: "Kunlik", price: space?.price }];
+    if (!space?.prices) {
+      return [{ id: "kunlik", label: "Kunlik", price: space?.price }];
+    }
     
     const options = [];
-    if (space.prices.soatlik) options.push({ id: "soatlik", label: "Soatlik", price: space.prices.soatlik });
-    if (space.prices.kunlik) options.push({ id: "kunlik", label: "Kunlik", price: space.prices.kunlik });
-    if (space.prices.haftalik) options.push({ id: "haftalik", label: "Haftalik", price: space.prices.haftalik });
-    if (space.prices.oylik) options.push({ id: "oylik", label: "Oylik", price: space.prices.oylik });
+    if (space.prices.soatlik) {
+      options.push({
+        id: "soatlik",
+        label: "Soatlik",
+        price: formatPriceValue(space.prices.soatlik, "soatlik")
+      });
+    }
+    if (space.prices.kunlik) {
+      options.push({
+        id: "kunlik",
+        label: "Kunlik",
+        price: formatPriceValue(space.prices.kunlik, "kunlik")
+      });
+    }
+    if (space.prices.haftalik) {
+      options.push({
+        id: "haftalik",
+        label: "Haftalik",
+        price: formatPriceValue(space.prices.haftalik, "haftalik")
+      });
+    }
+    if (space.prices.oylik) {
+      options.push({
+        id: "oylik",
+        label: "Oylik",
+        price: formatPriceValue(space.prices.oylik, "oylik")
+      });
+    }
     
     return options.length > 0 ? options : [{ id: "kunlik", label: "Kunlik", price: space.price }];
   }, [space]);
@@ -338,12 +401,51 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     }
   }, [availableDurations, bookingDuration]);
 
+  // Compute active discount applied to booking details
+  const activeAppliedDiscount = useMemo(() => {
+    if (!space.discounts || !Array.isArray(space.discounts) || allDiscounts.length === 0) return null;
+    
+    // Filter discounts linked to this place
+    const spaceDiscounts = allDiscounts.filter(d => space.discounts.includes(d.id) && d.is_active);
+    if (spaceDiscounts.length === 0) return null;
+    
+    let bestDiscount = null;
+    let maxPercent = 0;
+    
+    spaceDiscounts.forEach(d => {
+      let applies = false;
+      
+      if (d.discount_type === "new_listing") {
+        applies = true; // Assume new listing applies
+      } else if (d.discount_type === "weekly") {
+        applies = bookingDuration === "haftalik" || (bookingDuration === "kunlik" && days >= (d.min_nights || 7));
+      } else if (d.discount_type === "monthly") {
+        applies = bookingDuration === "oylik" || (bookingDuration === "kunlik" && days >= (d.min_nights || 28));
+      } else if (d.discount_type === "last_minute") {
+        const today = new Date();
+        const start = fromDateKey(checkInDate);
+        const diffDays = Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+        applies = diffDays >= 0 && diffDays <= (d.days_before || 14);
+      } else if (d.discount_type === "custom") {
+        applies = days >= (d.min_nights || 1);
+      }
+      
+      if (applies && d.percent > maxPercent) {
+        maxPercent = d.percent;
+        bestDiscount = d;
+      }
+    });
+    
+    return bestDiscount;
+  }, [space.discounts, allDiscounts, bookingDuration, days, checkInDate]);
+
   const parsedBasePrice = useMemo(() => {
     const selectedOption = availableDurations.find(d => d.id === bookingDuration);
     const priceStr = selectedOption ? selectedOption.price : space?.price;
     if (!priceStr) return 0;
     return Number(String(priceStr).replace(/\D/g, "")) || 0;
   }, [availableDurations, bookingDuration, space]);
+
 
   const galleryImages = useMemo(() => {
     const images = Array.isArray(space?.images) ? space.images.filter(Boolean) : [];
@@ -428,8 +530,13 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     return { totalPrice: sum, hasBlockedDay: blocked, dailyRatesBreakdown: breakdown };
   }, [checkInDate, checkOutDate, days, selectedRange, selectedTimeSlots, bookingDuration, spaceBookings, space, parsedBasePrice]);
 
-  const serviceFee = totalPrice > 0 ? Math.max(25000, Math.round(totalPrice * 0.08)) : 0;
-  const finalTotal = totalPrice + serviceFee;
+  const discountAmount = useMemo(() => {
+    if (!activeAppliedDiscount || totalPrice <= 0) return 0;
+    return Math.round(totalPrice * (activeAppliedDiscount.percent / 100));
+  }, [activeAppliedDiscount, totalPrice]);
+
+  const serviceFee = totalPrice > 0 ? Math.max(25000, Math.round((totalPrice - discountAmount) * 0.08)) : 0;
+  const finalTotal = Math.max(0, totalPrice - discountAmount + serviceFee);
 
   const goToImage = (index) => {
     if (galleryImages.length === 0) return;
@@ -549,7 +656,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
         status: "Pending"
       };
 
-      const res = await axios.post("http://localhost:5000/api/bookings", bookingData);
+      const res = await axios.post("http://localhost:8000/api/bookings/", bookingData, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}` }
+      });
       
       if (res.status === 201) {
         sendClientAction("booking", {
@@ -558,7 +667,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
         });
         alert(`Muvaffaqiyatli band qilindi! Jami to'lov: ${formatMoney(finalTotal)}. So'rov kutilmoqda (Pending)`);
         
-        const bookingsRes = await axios.get("http://localhost:5000/api/bookings");
+        const bookingsRes = await axios.get("http://localhost:8000/api/bookings/");
         if (bookingsRes.data) setAllBookings(bookingsRes.data);
       }
     } catch (err) {
@@ -586,7 +695,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   useEffect(() => {
     if (space) {
       const spaceId = space.id || space._id || "648312e0f40a1b2c3d4e5f67";
-      axios.get(`http://localhost:5000/api/reviews/space/${spaceId}`)
+      axios.get(`http://localhost:8000/api/reviews/space/${spaceId}/`)
         .then(res => {
           if (res.data && res.data.length > 0) {
             setReviews(res.data);
@@ -625,7 +734,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     };
 
     try {
-      const res = await axios.post("http://localhost:5000/api/reviews", newReviewData);
+      const res = await axios.post("http://localhost:8000/api/reviews/", newReviewData, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}` }
+      });
       if (res.status === 201) {
         setReviews(prev => [res.data, ...prev]);
       }
@@ -888,43 +999,76 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       <section className="sd-content">
         <div className="sd-main">
           <div className="sd-stat-grid sd-animate">
-            <DetailStat icon="users" label="Sig'im" value={`${space.people} kishi`} />
-            <DetailStat icon="area" label="Maydon" value={`${space.area} m2`} />
-            <DetailStat icon="clock" label="Format" value="Soatlik / kunlik" />
-            <DetailStat icon="shield" label="Status" value="Tekshirilgan" />
+            <DetailStat icon="users" label={lang === 'uz' ? "Sig'im" : "Вместимость"} value={`${space.people || 0} ${lang === 'uz' ? 'kishi' : 'чел.'}`} />
+            <DetailStat icon="area" label={lang === 'uz' ? "Maydon" : "Площадь"} value={`${space.area || 0} m²`} />
+            
+            {/* Render counter/select parameters from characteristics */}
+            {allParameters
+              .filter(p => p.type !== 'boolean' && space.characteristics && space.characteristics[p.slug] !== undefined)
+              .map(p => {
+                const val = space.characteristics[p.slug];
+                let valText = val;
+                if (p.type === 'select') {
+                  const opt = p.config?.options?.find(o => o.slug === val);
+                  if (opt) {
+                    valText = lang === 'uz' ? (opt.uz || opt.ru) : (opt.ru || opt.uz);
+                  }
+                }
+                return (
+                  <DetailStat 
+                    key={p.slug}
+                    icon={p.icon || "layers"} 
+                    label={lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)} 
+                    value={valText} 
+                  />
+                );
+              })}
+
+            <DetailStat icon="clock" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
+            <DetailStat icon="shield" label="Status" value={space.status === "approved" ? (lang === 'uz' ? "Faol" : "Активен") : (lang === 'uz' ? "Tekshirilmoqda" : "Модерация")} />
           </div>
 
           <section className="sd-section sd-animate">
             <div className="sd-section-head">
-              <p>Joy haqida</p>
-              <h2>Qulay, tayyor va tez bron qilinadi</h2>
+              <p>{lang === 'uz' ? "Joy haqida" : "О пространстве"}</p>
+              <h2>{lang === 'uz' ? "Qulay, tayyor va tez bron qilinadi" : "Удобно, готово и быстро бронируется"}</h2>
             </div>
             <p className="sd-description">
-              Bu maydon Joyzone orqali uchrashuv, seminar, ishchi sprint yoki qisqa muddatli ijara uchun tanlanadi. Narx, sig'im,
-              rasm va asosiy shartlar bir joyda ko'rinadi, bron so'rovi esa mezbonga darhol yuboriladi.
+              {lang === 'uz' ? space.description_uz : lang === 'en' ? space.description_en : space.description_ru}
+              {!(lang === 'uz' ? space.description_uz : lang === 'en' ? space.description_en : space.description_ru) && (
+                lang === 'uz' 
+                  ? "Bu maydon Joyzone orqali uchrashuv, seminar, ishchi sprint yoki qisqa muddatli ijara uchun tanlanadi. Narx, sig'im, rasm va asosiy shartlar bir joyda ko'rinadi, bron so'rovi esa mezbonga darhol yuboriladi."
+                  : "Это пространство выбирают через Joyzone для встреч, семинаров, рабочих спринтов или краткосрочной аренды. Цена, вместимость, фотографии и основные условия видны сразу, а запрос на бронирование мгновенно отправляется хозяину."
+              )}
             </p>
           </section>
 
           <section className="sd-section sd-animate">
             <div className="sd-section-head">
-              <p>Qulayliklar</p>
-              <h2>Kerakli servislar tayyor</h2>
+              <p>{lang === 'uz' ? "Qulayliklar" : "Удобства"}</p>
+              <h2>{lang === 'uz' ? "Kerakli servislar tayyor" : "Все необходимые удобства готовы"}</h2>
             </div>
             <div className="sd-amenities">
-              {amenityList.slice(0, 8).map((item) => (
-                <span key={item.name}>
-                  <Icon type={item.icon} />
-                  {item.name}
+              {selectedAmenities.length === 0 ? (
+                <span style={{ color: "#64748b", background: "none", border: "none", padding: 0 }}>
+                  {lang === 'uz' ? "Qulayliklar belgilanmagan" : "Удобства не указаны"}
                 </span>
-              ))}
+              ) : (
+                selectedAmenities.slice(0, 8).map((p) => (
+                  <span key={p.slug}>
+                    <Icon type={p.icon || "check-circle"} />
+                    {lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)}
+                  </span>
+                ))
+              )}
             </div>
-            {amenityList.length > 8 && (
+            {selectedAmenities.length > 8 && (
               <button 
                 type="button" 
                 className="sd-more-amenities-btn"
                 onClick={() => setShowAmenitiesModal(true)}
               >
-                Barcha qulayliklar ({amenityList.length})
+                {lang === 'uz' ? `Barcha qulayliklar (${selectedAmenities.length})` : `Все удобства (${selectedAmenities.length})`}
               </button>
             )}
           </section>
@@ -1213,20 +1357,28 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 )}
               </div>
               <p>
-                <span>Ijara summasi</span>
+                <span>{lang === 'uz' ? "Ijara summasi" : "Аренда"}</span>
                 <b>{formatMoney(totalPrice)}</b>
               </p>
+              {discountAmount > 0 && activeAppliedDiscount && (
+                <p style={{ color: "#22c55e" }}>
+                  <span>
+                    Chegirma ({lang === 'uz' ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : (activeAppliedDiscount.name_ru || activeAppliedDiscount.name_uz)}) -{activeAppliedDiscount.percent}%
+                  </span>
+                  <b>-{formatMoney(discountAmount)}</b>
+                </p>
+              )}
               <p>
-                <span>Servis to'lovi</span>
+                <span>{lang === 'uz' ? "Servis to'lovi" : "Сервисный сбор"}</span>
                 <b>{formatMoney(serviceFee)}</b>
               </p>
               {hasBlockedDay && (
                 <div className="sd-booking-warning">
-                  Diqqat: Tanlangan davr ichida band qilingan kunlar bor.
+                  {lang === 'uz' ? "Diqqat: Tanlangan davr ichida band qilingan kunlar bor." : "Внимание: В выбранный период есть занятые дни."}
                 </div>
               )}
               <strong>
-                <span>Jami</span>
+                <span>{lang === 'uz' ? "Jami" : "Итого"}</span>
                 <b>{formatMoney(finalTotal)}</b>
               </strong>
             </div>
@@ -1243,7 +1395,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                     endDate: checkOutDate || checkInDate,
                     slots: selectedTimeSlots,
                     guests,
-                    total: finalTotal
+                    total: finalTotal,
+                    discount: discountAmount,
+                    discountName: activeAppliedDiscount ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : null
                   }));
                 } catch (error) {
                   // Checkout still opens if storage is unavailable.
@@ -1341,12 +1495,18 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </div>
             <div className="sd-modal-body">
               <div className="sd-modal-amenities-grid">
-                {amenityList.map((item) => (
-                  <div key={item.name} className="sd-modal-amenity-card">
-                    <Icon type={item.icon} />
-                    <span>{item.name}</span>
-                  </div>
-                ))}
+                {selectedAmenities.length === 0 ? (
+                  <p style={{ color: "#64748b", gridColumn: "1/-1", textAlign: "center" }}>
+                    {lang === 'uz' ? "Qulayliklar mavjud emas" : "Удобства отсутствуют"}
+                  </p>
+                ) : (
+                  selectedAmenities.map((p) => (
+                    <div key={p.slug} className="sd-modal-amenity-card">
+                      <Icon type={p.icon || "check-circle"} />
+                      <span>{lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

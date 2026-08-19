@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from "react";
+import axios from "axios";
+import { LanguageContext } from "../App.jsx";
 import logoImage from "../assets/img/Logo.png";
 import "./StaticInfoPages.css";
 
@@ -309,9 +311,152 @@ function PartnerGuidePage() {
         <span>Keyingi qadam</span>
         <p>Ma'lumotlarni tayyorlang: joy nomi, manzil, 6-8 ta rasm, narx, sig'im, ish vaqti va bron qoidalari.</p>
       </section>
+
+      <TariffPlansSection />
     </main>
   );
 }
+
+function TariffPlansSection() {
+  const [tariffs, setTariffs] = useState([]);
+  const [submitting, setSubmitting] = useState(null);
+  const [done, setDone] = useState(null);
+  const { lang } = useContext(LanguageContext);
+
+  const FALLBACK = [
+    {
+      id: 1, slug: 'standard', name: 'Standard', name_ru: 'Стандарт',
+      price: 0, max_places: 1, is_free: true, duration_days: 36500,
+      features: ["1 ta faol e'lon", "Asosiy profil", "Bron so'rovlari"],
+      features_ru: ["1 активное объявление", "Базовый профиль", "Запросы бронирования"],
+      features_en: ["1 active listing", "Basic profile", "Booking requests"],
+    },
+    {
+      id: 2, slug: 'comfort', name: 'Comfort', name_ru: 'Комфорт',
+      price: 99000, max_places: 5, is_free: false, duration_days: 30,
+      features: ["5 ta faol e'lon", "Kengaytirilgan profil", "Statistika", "Reklama", "Ustuvor ko'rsatish"],
+      features_ru: ["До 5 активных объявлений", "Расширенный профиль", "Статистика", "Реклама", "Приоритетный показ"],
+      features_en: ["Up to 5 active listings", "Extended profile", "Statistics", "Advertising", "Priority showing"],
+    },
+    {
+      id: 3, slug: 'premium', name: 'Premium', name_ru: 'Премиум',
+      price: 199000, max_places: 10, is_free: false, duration_days: 30,
+      features: ["10 ta faol e'lon", "Premium badge", "API integratsiya", "Ustuvor moderatsiya", "Shaxsiy menejer"],
+      features_ru: ["До 10 активных объявлений", "Премиум значок", "API интеграция", "Приоритетная модерация", "Личный менеджер"],
+      features_en: ["Up to 10 active listings", "Premium badge", "API integration", "Priority moderation", "Personal manager"],
+    },
+  ];
+
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/tariffs/')
+      .then(res => setTariffs(res.data?.results || res.data || []))
+      .catch(() => setTariffs(FALLBACK));
+  }, []);
+
+  const handleSelect = async (tariff) => {
+    const token = localStorage.getItem('joyzone-access');
+    if (!token) { window.location.hash = '#login'; return; }
+    setSubmitting(tariff.id);
+    try {
+      const res = await axios.post(
+        'http://localhost:8000/api/tariffs/subscribe/',
+        { tariff_id: tariff.id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDone({ tariff, message: res.data.detail });
+    } catch (e) {
+      alert(e.response?.data?.detail || "Xatolik yuz berdi");
+    }
+    setSubmitting(null);
+  };
+
+  const formatPrice = (tariff) => {
+    if (tariff.is_free) return 'Bepul';
+    return new Intl.NumberFormat('ru-RU').format(tariff.price);
+  };
+
+  return (
+    <section className="tariff-section">
+      <div className="tariff-head">
+        <span className="static-kicker">Tariflar</span>
+        <h2>O'zingizga mos tarifni tanlang</h2>
+        <p>Bepul boshlang va biznes o'sishi bilan tarif o'zgartirishingiz mumkin. Istalgan vaqtda o'zgartirish mumkin.</p>
+      </div>
+
+      {done ? (
+        <div className="tariff-success">
+          <div className="tariff-success-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3>{(lang === 'ru' ? done.tariff.name_ru : lang === 'en' ? done.tariff.name_en : done.tariff.name) || done.tariff.name} tanlandi!</h3>
+          <p>{done.message}</p>
+          <button className="tariff-cta tariff-cta--accent" onClick={() => setDone(null)}>
+            Yaxshi
+          </button>
+        </div>
+      ) : (
+        <div className="tariff-grid">
+          {tariffs.map(tariff => {
+            const isPremium = tariff.slug === 'premium';
+            const name = (lang === 'ru' ? tariff.name_ru : lang === 'en' ? tariff.name_en : tariff.name) || tariff.name;
+            const features = (lang === 'ru' ? tariff.features_ru : lang === 'en' ? tariff.features_en : tariff.features) || tariff.features || [];
+            return (
+              <div key={tariff.id} className={`tariff-card${isPremium ? ' tariff-card--premium' : ''}`}>
+                {isPremium && <div className="tariff-badge-top">Eng yaxshi tanlov</div>}
+
+                <div className="tariff-card-top">
+                  <div className="tariff-slug">{tariff.slug}</div>
+                  <div className="tariff-name">{name}</div>
+                  <div className="tariff-price">
+                    <strong>{formatPrice(tariff)}</strong>
+                    {!tariff.is_free && <span>sum / oy</span>}
+                  </div>
+                  <div className="tariff-meta">
+                    {tariff.max_places} ta joy &bull; {tariff.is_free ? 'Muddatsiz' : `${tariff.duration_days} kun`}
+                  </div>
+                </div>
+
+                <div className="tariff-features">
+                  {features.map((f, i) => (
+                    <div key={i} className="tariff-feature">
+                      <div className="tariff-feature-check">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="tariff-card-foot">
+                  <button
+                    className={`tariff-cta${isPremium ? ' tariff-cta--accent' : ''}`}
+                    onClick={() => handleSelect(tariff)}
+                    disabled={submitting === tariff.id}
+                  >
+                    {submitting === tariff.id
+                      ? 'Загрузка...'
+                      : tariff.is_free
+                        ? 'Bepul boshlash'
+                        : 'Tanlash'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="tariff-footnote">
+        Barcha tariflar uchun moderatsiya jarayoni bir xil &bull; Istalgan vaqtda tarif o'zgartirish mumkin
+      </p>
+    </section>
+  );
+}
+
 
 function FooterVariantPage() {
   return (

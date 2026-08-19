@@ -103,13 +103,6 @@ const durationOptions = [
 ];
 
 // ===== Kategoriyalar va sub-kategoriyalar =====
-const CATEGORIES = [
-  { id: "ofis", label: "Ofis" },
-  { id: "kovorking", label: "Kovorking" },
-  { id: "zal", label: "Zal / Tadbir" },
-  { id: "tijorat", label: "Tijorat" },
-  { id: "turarjoy", label: "Turar-joy" }
-];
 
 const SUB_CATEGORIES = {
   ofis: ["Xususiy kabinet", "Open space", "Virtual ofis"],
@@ -128,7 +121,7 @@ const CATEGORY_EXTRA_OPTIONS = {
   turarjoy: ["Mebellanmagan", "Qisman mebellanmagan", "To'liq mebellanmagan"]
 };
 
-function CategoryTabs({ selected, onSelect }) {
+function CategoryTabs({ categories, selected, onSelect }) {
   return (
     <div className="fp-category-tabs">
       <button
@@ -138,35 +131,35 @@ function CategoryTabs({ selected, onSelect }) {
       >
         Barchasi
       </button>
-      {CATEGORIES.map((cat) => (
+      {categories.map((cat) => (
         <button
           key={cat.id}
           type="button"
           className={`fp-cat-tab ${selected === cat.id ? "is-active" : ""}`}
           onClick={() => onSelect(cat.id)}
         >
-          {cat.label}
+          {cat.name_ru || cat.name_uz}
         </button>
       ))}
     </div>
   );
 }
 
-function SubCategoryPills({ categoryId, selected, onSelect }) {
-  const subs = SUB_CATEGORIES[categoryId] || [];
+function SubCategoryPills({ categories, categoryId, selected, onSelect }) {
+  const subs = categories.find(c => c.id === categoryId)?.subcategories || [];
   if (subs.length === 0) return null;
   return (
     <div className="fp-subcategory-pills">
       <span className="fp-subcategory-label">Tur:</span>
       {subs.map((sub) => (
         <button
-          key={sub}
+          key={sub.id}
           type="button"
-          className={`fp-subcat-pill ${selected === sub ? "is-active" : ""}`}
-          onClick={() => onSelect(selected === sub ? "" : sub)}
+          className={`fp-subcat-pill ${selected === sub.id ? "is-active" : ""}`}
+          onClick={() => onSelect(selected === sub.id ? "" : sub.id)}
         >
-          {sub}
-          {selected === sub && (
+          {sub.name_ru || sub.name_uz}
+          {selected === sub.id && (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
           )}
         </button>
@@ -570,7 +563,7 @@ function SearchField({ value, onChange }) {
 
 function ProductSkeletonGrid() {
   return (
-    <div className="property-grid filter-skeleton-grid" aria-label="Joylar yuklanmoqda">
+    <div className="property-grid filter-skeleton-grid">
       {Array.from({ length: 8 }, (_, index) => (
         <article className="filter-card-skeleton" key={index}>
           <span className="skeleton-media" />
@@ -584,6 +577,24 @@ function ProductSkeletonGrid() {
 }
 
 export default function FilterPage({ userState, setUserState }) {
+  const [categories, setCategories] = useState([]);
+  const [allAmenities, setAllAmenities] = useState([]);
+  
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/categories/')
+      .then(res => setCategories(res.data?.results || res.data || []))
+      .catch(console.error);
+
+    axios.get('http://localhost:8000/api/parameter-groups/')
+      .then(res => {
+         const groups = res.data?.results || res.data || [];
+         const amenityGroups = groups.filter(g => g.slug.startsWith("amenit"));
+         const params = amenityGroups.flatMap(g => g.parameters.map(p => p.name_ru));
+         setAllAmenities(params);
+      })
+      .catch(console.error);
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState("list");
   const [sortOption, setSortOption] = useState("Relevans");
@@ -591,7 +602,7 @@ export default function FilterPage({ userState, setUserState }) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubCat, setSelectedSubCat] = useState("");
   const [selectedDuration, setSelectedDuration] = useState("");
-  const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [] });
+  const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
   const [spaces, setSpaces] = useState(propertyCards);
 
   // Reset subcategory when category changes
@@ -601,10 +612,19 @@ export default function FilterPage({ userState, setUserState }) {
 
   // Fetch spaces from API on mount
   useEffect(() => {
-    axios.get("http://localhost:5000/api/spaces")
+    axios.get("http://localhost:8000/api/places/")
       .then((res) => {
-        if (res.data && res.data.length > 0) {
-          setSpaces(res.data);
+        let results = res.data?.results || res.data || [];
+        if (results.length > 0) {
+          // Map backend place fields to frontend propertyCard properties if needed
+          const mappedSpaces = results.map(place => ({
+            ...place,
+            category: place.subcategory_info?.category?.name_ru || place.category,
+            categoryId: place.subcategory_info?.category?.id,
+            subcategoryId: place.subcategory_info?.id,
+            price: place.price || "0 so'm"
+          }));
+          setSpaces(mappedSpaces);
         }
       })
       .catch((err) => {
@@ -646,18 +666,14 @@ export default function FilterPage({ userState, setUserState }) {
         if (!matchText.includes(searchTerm)) return false;
       }
 
-      // Category filter
+      // Category filter (using Django ID)
       if (selectedCategory) {
-        const itemCat = (item.category || item.type || "").toLowerCase();
-        const catMap = {
-          ofis: ["ofis", "office"],
-          kovorking: ["kovorking", "coworking"],
-          zal: ["zal", "konferensiya", "tadbir", "banket"],
-          tijorat: ["tijorat", "do'kon", "showroom", "ombor"],
-          turarjoy: ["kvartira", "xona", "uy", "kottej", "turar"]
-        };
-        const catKeys = catMap[selectedCategory] || [];
-        if (!catKeys.some((k) => itemCat.includes(k))) return false;
+        if (item.categoryId !== selectedCategory) return false;
+      }
+      
+      // SubCategory filter (using Django ID)
+      if (selectedSubCat) {
+        if (item.subcategoryId !== selectedSubCat) return false;
       }
 
       if (filters.location.length && !filters.location.includes(item.location)) return false;
@@ -699,7 +715,7 @@ export default function FilterPage({ userState, setUserState }) {
   }, [filters, spaces, selectedCategory, selectedSubCat]);
 
   const clearFilters = () => {
-    setFilters({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [] });
+    setFilters({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
     setSelectedCategory("");
     setSelectedSubCat("");
     setSelectedDuration("");
@@ -713,6 +729,7 @@ export default function FilterPage({ userState, setUserState }) {
         : [...current[key], value]
     }));
   };
+
 
   // Category-specific extra options (add to the "extra" filter)
   const activeExtraOptions = selectedCategory
@@ -730,10 +747,9 @@ export default function FilterPage({ userState, setUserState }) {
             Tozalash
           </button>
         </div>
-
         {/* Category tabs row: tabs left, duration pills right */}
         <div className="fp-cats-duration-row">
-          <CategoryTabs selected={selectedCategory} onSelect={setSelectedCategory} />
+          <CategoryTabs categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
           <div className="fp-duration-row">
             {durationOptions.map((d) => (
               <button
@@ -756,6 +772,7 @@ export default function FilterPage({ userState, setUserState }) {
         {/* Sub-category pills (shown when a category is selected) */}
         {selectedCategory && (
           <SubCategoryPills
+            categories={categories}
             categoryId={selectedCategory}
             selected={selectedSubCat}
             onSelect={setSelectedSubCat}
@@ -789,12 +806,20 @@ export default function FilterPage({ userState, setUserState }) {
             selectedOptions={filters.extra}
             onToggle={(value) => toggleFilter("extra", value)}
           />
+          {allAmenities.length > 0 && (
+            <FilterDropdown
+              label="Список удобств"
+              options={allAmenities}
+              selectedOptions={filters.amenities}
+              onToggle={(value) => toggleFilter("amenities", value)}
+            />
+          )}
         </div>
       </section>
 
       <section className="filter-results">
         <div className="results-top">
-          <p>{loading ? "Joylar yuklanmoqda..." : `${filteredCards.length} ta natija topildi`}</p>
+          <p>{loading ? "Загрузка..." : `${filteredCards.length} ta natija topildi`}</p>
           <div className="results-actions">
             <button type="button" className="rt-icon-btn" onClick={() => setViewMode(v => v === "list" ? "grid" : "list")}>
               {viewMode === "list" ? (

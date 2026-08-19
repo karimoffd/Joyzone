@@ -769,19 +769,7 @@ export function JoyFooter() {
 }
 
 export default function ListingsSection() {
-  const [spaces, setSpaces] = useState(propertyCards);
-
-  useEffect(() => {
-    axios.get("http://localhost:8000/api/places/")
-      .then((res) => {
-        if (res.data && res.data.length > 0) {
-          setSpaces(res.data);
-        }
-      })
-      .catch((err) => {
-        console.warn("REST API orqali joylarni yuklab bo'lmadi, mock ma'lumotlar ishlatilmoqda:", err.message);
-      });
-  }, []);
+  const [spaces] = useState(propertyCards);
 
   useEffect(() => {
     const ctx = gsap.context(() => {

@@ -5,6 +5,18 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from places.models import Place
+from users.models import User
+
+# Clear existing places to prevent duplicates
+print("Clearing existing places...")
+Place.objects.all().delete()
+
+# Get a default owner if users exist
+owner = User.objects.first()
+if owner:
+    print(f"Assigning places to user: {owner.username}")
+else:
+    print("No users found in database, places will have no owner.")
 
 places_data = [
     {
@@ -18,7 +30,8 @@ places_data = [
             "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80",
             "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=800&q=80"
         ],
-        "promoted": True
+        "promoted": True,
+        "status": "pending"
     },
     {
         "title": "GroundZero KitobOlam",
@@ -30,7 +43,8 @@ places_data = [
         "images": [
             "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=800&q=80"
         ],
-        "promoted": False
+        "promoted": False,
+        "status": "pending"
     },
     {
         "title": "Impact Technology Hub",
@@ -42,7 +56,9 @@ places_data = [
         "images": [
             "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=800&q=80"
         ],
-        "promoted": False
+        "promoted": False,
+        "status": "approved",
+        "moderator_note": "Проверено и соответствует стандартам площадки."
     },
     {
         "title": "TechHub Tashkent",
@@ -54,12 +70,15 @@ places_data = [
         "images": [
             "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=800&q=80"
         ],
-        "promoted": True
+        "promoted": True,
+        "status": "rejected",
+        "moderator_note": "Фотографии размыты. Пожалуйста, сделайте более чёткие снимки при дневном освещении."
     }
 ]
 
 for item in places_data:
     Place.objects.create(
+        owner=owner,
         title=item["title"],
         category=item["category"],
         location=item["location"],
@@ -67,7 +86,9 @@ for item in places_data:
         area=item["area"],
         people=item["people"],
         promoted=item["promoted"],
-        images=item["images"]
+        images=item["images"],
+        status=item["status"],
+        moderator_note=item.get("moderator_note", "")
     )
 
-print("Mock places seeded successfully.")
+print("Mock places for moderation seeded successfully.")

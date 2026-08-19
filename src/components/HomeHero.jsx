@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
+import axios from "axios";
+import { LanguageContext } from "../App.jsx";
 import BottomSheet from "./ui/BottomSheet.jsx";
 
 function useIsMobile() {
@@ -34,14 +36,6 @@ const dashboardNavLinks = [
   { href: "#host-messages", label: "Xabarlar" }
 ];
 
-const tabs = [
-  { id: "barchasi", label: "Barchasi" },
-  { id: "ofis", label: "Ofis" },
-  { id: "kovorking", label: "Kovorking" },
-  { id: "zal", label: "Zal / Tadbir" },
-  { id: "tijorat", label: "Tijorat" },
-  { id: "turarjoy", label: "Turar-joy" }
-];
 
 // Sub-categories per main category
 const subCategories = {
@@ -53,44 +47,6 @@ const subCategories = {
   turarjoy: ["Kvartira", "Xona", "Uy / Kottej"]
 };
 
-const filters = {
-  barchasi: [
-    { name: "Maydon", label: "Maydon (m2)", unit: "m2", options: ["50-100", "100-200", "200-500", "500+"] },
-    { name: "Sigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-12", "13-24", "25+"] },
-    { name: "Muddati", label: "Muddati", unit: "", options: ["Soatlik", "Kunlik", "Haftalik", "Oylik"] },
-    { name: "Avto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] }
-  ],
-  ofis: [
-    { name: "OfisMaydon", label: "Maydon (m2)", unit: "m2", options: ["50-100", "100-200", "200-300", "300+"] },
-    { name: "OfisSigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-12", "13-24", "25+"] },
-    { name: "OfisMebel", label: "Mebel", unit: "", options: ["Mebellanmagan", "Meballangan", "Premium"] },
-    { name: "OfisAvto", label: "Avtoturargoh", unit: "", options: ["Bor", "Yo'q"] },
-    { name: "OfisInternet", label: "Internet", unit: "", options: ["Bor", "Yo'q"] }
-  ],
-  kovorking: [
-    { name: "CoworkingSigim", label: "Joylar soni", unit: "", options: ["1 joy", "2-5 joy", "10+ joy"] },
-    { name: "CoworkingMuddat", label: "Muddati", unit: "", options: ["Soatlik", "Kunlik", "Oylik"] },
-    { name: "CoworkingXizmat", label: "Qo'shimcha", unit: "", options: ["Wi-Fi", "Printer", "Kofe burchagi"] }
-  ],
-  zal: [
-    { name: "ZalSigim", label: "Sig'imi", unit: "kishi", options: ["10-30", "30-80", "80-200", "200+"] },
-    { name: "ZalMuddat", label: "Muddati", unit: "", options: ["2 soat", "4 soat", "Kunlik"] },
-    { name: "ZalJihoz", label: "Jihozlar", unit: "", options: ["Proyektor", "Mikrofon", "Ekran", "Sahna"] },
-    { name: "ZalKeytering", label: "Keytering", unit: "", options: ["Bor", "Yo'q"] }
-  ],
-  tijorat: [
-    { name: "TijoratMaydon", label: "Maydon (m2)", unit: "m2", options: ["30-80", "80-200", "200-500", "500+"] },
-    { name: "TijoratSigim", label: "Sig'imi", unit: "kishi", options: ["1-5", "6-15", "15+"] },
-    { name: "TijoratQavat", label: "Qavat", unit: "", options: ["1-qavat", "2-qavat", "3+ qavat"] },
-    { name: "TijoratVitrina", label: "Vitrina", unit: "", options: ["Bor", "Yo'q"] }
-  ],
-  turarjoy: [
-    { name: "TurarMaydon", label: "Maydon (m2)", unit: "m2", options: ["30-60", "60-100", "100-200", "200+"] },
-    { name: "TurarSigim", label: "Sig'imi", unit: "kishi", options: ["1-2", "3-4", "5-6", "7+"] },
-    { name: "TurarXona", label: "Xonalar soni", unit: "", options: ["1 xona", "2 xona", "3 xona", "4+ xona"] },
-    { name: "TurarMebel", label: "Mebel", unit: "", options: ["Mebellanmagan", "Qisman", "To'liq mebellanagan"] }
-  ]
-};
 
 function MenuIcon({ open = false }) {
   return (
@@ -102,27 +58,55 @@ function MenuIcon({ open = false }) {
   );
 }
 
-function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen }) {
+function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen, variant }) {
+  const isDashboard = variant === "dashboard";
   const statusHref = userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login";
 
   return createPortal(
     <div className="mobile-bottom-menu">
-      <a href="#home" className="mobile-menu-item active">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-        <span>Asosiy</span>
-      </a>
-      <a href="#filter" className="mobile-menu-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <span>Izlash</span>
-      </a>
-      <a href={statusHref} className="mobile-menu-item">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-        <span>Profil</span>
-      </a>
-      <button className={`mobile-menu-item burger-btn ${isMenuOpen ? "active" : ""}`} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-        <MenuIcon open={isMenuOpen} />
-        <span>Menyu</span>
-      </button>
+      {isDashboard ? (
+        <>
+          <a href="#home" className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Asosiy</span>
+          </a>
+          <a href="#host-today" className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Bugun</span>
+          </a>
+          <a href="#host-calendar" className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+            <span>Grafik</span>
+          </a>
+          <a href="#host-messages" className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span>Xabarlar</span>
+          </a>
+          <button className={`mobile-menu-item burger-btn ${isMenuOpen ? "active" : ""}`} onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <MenuIcon open={isMenuOpen} />
+            <span>Menyu</span>
+          </button>
+        </>
+      ) : (
+        <>
+          <a href="#home" className="mobile-menu-item active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Asosiy</span>
+          </a>
+          <a href="#filter" className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span>Izlash</span>
+          </a>
+          <a href={statusHref} className="mobile-menu-item">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Profil</span>
+          </a>
+          <button className={`mobile-menu-item burger-btn ${isMenuOpen ? "active" : ""}`} onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            <MenuIcon open={isMenuOpen} />
+            <span>Menyu</span>
+          </button>
+        </>
+      )}
     </div>,
     document.body
   );
@@ -131,11 +115,19 @@ function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen }) {
 
 export function Header({ userState, setUserState, activeIndex = 0, variant = "default" }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { lang, setLang, content } = useContext(LanguageContext);
   const navRef = useRef(null);
   const waveRef = useRef(null);
   const headerRef = useRef(null);
   const isDashboard = variant === "dashboard";
-  const navigationLinks = isDashboard ? dashboardNavLinks : navLinks;
+  
+  const db = content && content[lang] ? content[lang] : {};
+  let currentNavLinks = navLinks;
+  if (db.nav_links_arr && Array.isArray(db.nav_links_arr)) {
+    currentNavLinks = db.nav_links_arr;
+  }
+  
+  const navigationLinks = isDashboard ? dashboardNavLinks : currentNavLinks;
 
   useEffect(() => {
     const nav = navRef.current;
@@ -215,7 +207,11 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
                 ))}
               </div>
 
-              <div className="nav-right">
+              <div className="nav-right d-flex align-items-center">
+                <div className="lang-switcher d-flex align-items-center me-3" style={{ background: 'var(--surface-color, rgba(0,0,0,0.05))', padding: '4px', borderRadius: '8px', gap: '2px' }}>
+                  <button onClick={() => setLang('uz')} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: lang === 'uz' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'uz' ? '#fff' : 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: '0.2s' }}>UZ</button>
+                  <button onClick={() => setLang('ru')} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: lang === 'ru' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'ru' ? '#fff' : 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: '0.2s' }}>RU</button>
+                </div>
                 <a className="login-button btn-shine" href={statusHref}>
                   {statusLabel}
                 </a>
@@ -227,7 +223,7 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
           </div>
         </div>
       </header>
-      <MobileBottomMenu userState={userState} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      <MobileBottomMenu userState={userState} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} variant={variant} />
       <SideDrawer open={isMenuOpen} onClose={() => setIsMenuOpen(false)} userState={userState} setUserState={setUserState} variant={variant} />
     </>
   );
@@ -263,10 +259,10 @@ const menuNavLinks = [
 ];
 
 const profileMenuLinks = [
-  { id: "profile", href: "#profile", label: "Profil", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
-  { id: "settings", href: "#settings", label: "Sozlamalar", num: "02", desc: "Xavfsizlik va akkaunt", icon: "settings" },
+  { id: "profile", href: "#profile", label: "Profilim", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
+  { id: "listings", href: "#host-listings", label: "Mening joylarim", num: "02", desc: "Mulklar va ofislar", icon: "partner" },
   { id: "saved", href: "#profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart" },
-  { id: "search", href: "#filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar", icon: "search" }
+  { id: "search", href: "#filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar katalogi", icon: "search" }
 ];
 
 /* SVG icons for profile actions */
@@ -322,11 +318,10 @@ const IconMail = () => (
 );
 
 const profileNavIcons = {
-  "Profil": <IconUser />,
-  "Sozlamalar": <IconSettings />,
+  "Profilim": <IconUser />,
+  "Mening joylarim": <IconBriefcase />,
   "Saqlangan": <IconHeart />,
-  "Joy qidirish": <IconSearch />,
-  "Bosh sahifa": <IconHome />
+  "Joy qidirish": <IconSearch />
 };
 
 const menuIconMap = {
@@ -450,6 +445,11 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                 <a href="https://t.me/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Telegram</a>
                 <a href="https://instagram.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Instagram</a>
                 <a href="https://facebook.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Facebook</a>
+              </div>
+
+              <div className="menu-sidebar-copyright">
+                <span>© {new Date().getFullYear()} Joyzone.</span>
+                <span>Powered by IT Comfort.</span>
               </div>
             </div>
           </div>
@@ -660,6 +660,8 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
   const containerRef = useRef(null);
   const isOpen = openFilter === name;
 
+  const dropdownRef = useRef(null);
+
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;
 
@@ -667,13 +669,12 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
       
-      const dropdownHeight = 170; // approximate height of dropdown
+      const dHeight = dropdownRef.current ? dropdownRef.current.offsetHeight + 20 : 280;
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
       
-      // Open above if not enough space below (with buffer)
-      setOpenAbove(spaceBelow < dropdownHeight && spaceAbove > dropdownHeight);
-    }, 0);
+      setOpenAbove(spaceBelow < dHeight && spaceAbove > spaceBelow);
+    }, 10);
 
     return () => clearTimeout(timer);
   }, [isOpen]);
@@ -723,14 +724,97 @@ function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter })
           </div>
         </BottomSheet>
       ) : (
-        <div className="filter-dropdown">
+        <div ref={dropdownRef} className="filter-dropdown">
           <ul className="options">
-            {options.map((option) => (
-              <li key={option} onClick={() => { setValue(option); setOpenFilter(null); }}>
+            {options.map((option, i) => (
+              <li key={i} onClick={() => { setValue(option); setOpenFilter(null); }}>
                 {option}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MultiFilterSelect({ name, label, options, openFilter, setOpenFilter }) {
+  const isMobile = useIsMobile();
+  const [selected, setSelected] = useState([]);
+  const [openAbove, setOpenAbove] = useState(false);
+  const containerRef = useRef(null);
+  const isOpen = openFilter === name;
+
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const timer = setTimeout(() => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const dHeight = dropdownRef.current ? dropdownRef.current.offsetHeight + 20 : 300;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setOpenAbove(spaceBelow < dHeight && spaceAbove > spaceBelow);
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpenFilter(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, setOpenFilter]);
+
+  const toggleOption = (opt) => {
+    setSelected(prev => prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]);
+  };
+
+  const displayValue = selected.length === 0 ? "" : `${selected.length} выбрано`;
+
+  return (
+    <div ref={containerRef} className={`filter-select ${isOpen && !isMobile ? "open" : ""} ${displayValue ? "has-value" : ""} ${openAbove ? "open-above" : ""}`}>
+      <div className="filter-header" onClick={() => setOpenFilter(isOpen ? null : name)}>
+        <span className="filter-label">{label}</span>
+        <span className="filter-value">{displayValue}</span>
+        <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true">
+          <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        </svg>
+      </div>
+      {isMobile ? (
+        <BottomSheet isOpen={isOpen} onClose={() => setOpenFilter(null)} title={label}>
+          <div className="filter-dropdown" style={{ position: "static", opacity: 1, visibility: "visible", boxShadow: "none", transform: "none", minWidth: "100%" }}>
+            {options.map((opt, i) => {
+              const isSelected = selected.includes(opt);
+              return (
+                <div key={i} className={`filter-option ${isSelected ? "selected" : ""}`} onClick={() => toggleOption(opt)} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                  <span>{opt}</span>
+                  <div className="checkbox-box">
+                    {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "12px", height: "12px" }}><path d="M20 6L9 17l-5-5"/></svg>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </BottomSheet>
+      ) : (
+        <div ref={dropdownRef} className="filter-dropdown">
+          {options.map((opt, i) => {
+            const isSelected = selected.includes(opt);
+            return (
+              <div key={i} className={`filter-option ${isSelected ? "selected" : ""}`} onClick={() => toggleOption(opt)} style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                <span>{opt}</span>
+                <div className="checkbox-box">
+                  {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "12px", height: "12px" }}><path d="M20 6L9 17l-5-5"/></svg>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -816,8 +900,18 @@ function PriceFilter() {
 
 
 function Banner({ slides }) {
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    axios.get('http://localhost:8000/api/categories/')
+      .then(res => setCategories(res.data?.results || res.data || []))
+      .catch(console.error);
+  }, []);
+
+  const tabs = [{ id: "barchasi", label: "Barchasi" }, ...categories.map(c => ({ id: c.id, label: c.name_ru }))];
+
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("barchasi");
+  const activeCategory = categories.find(c => c.id === activeTab);
   const [selectedSubCat, setSelectedSubCat] = useState("");
   const [typingText, setTypingText] = useState("ofislar");
   const [cursorVisible, setCursorVisible] = useState(true);
@@ -832,7 +926,24 @@ function Banner({ slides }) {
   const charIndexRef = useRef(7);
   const isDeletingRef = useRef(false);
   const locationSelectRef = useRef(null);
-  const words = ["ofislar", "kovorking", "zallar", "joylar"];
+  
+  const [heroTitle, setHeroTitle] = useState("O'zbekiston bo'ylab\nqulay");
+  const [heroSubtitle, setHeroSubtitle] = useState("Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab");
+  const wordsRef = useRef(["ofislar", "kovorking", "zallar", "joylar"]);
+
+  const { lang, content } = useContext(LanguageContext);
+
+  useEffect(() => {
+    if (content && content[lang]) {
+      const data = content[lang];
+      if (data.hero_animated_words) {
+        const newWords = data.hero_animated_words.split(',').map(w => w.trim()).filter(Boolean);
+        if (newWords.length > 0) wordsRef.current = newWords;
+      }
+      if (data.hero_title) setHeroTitle(data.hero_title);
+      if (data.hero_subtitle) setHeroSubtitle(data.hero_subtitle);
+    }
+  }, [lang, content]);
 
   // Handle location dropdown position
   useEffect(() => {
@@ -874,13 +985,16 @@ function Banner({ slides }) {
 
     const type = () => {
       if (isPausedRef.current) return;
-      const currentWord = words[wordIndexRef.current];
+      const currentWords = wordsRef.current;
+      const safeIndex = wordIndexRef.current % currentWords.length;
+      const currentWord = currentWords[safeIndex];
+      
       if (isDeletingRef.current) {
         charIndexRef.current -= 1;
         setTypingText(currentWord.substring(0, charIndexRef.current));
         if (charIndexRef.current === 0) {
           isDeletingRef.current = false;
-          wordIndexRef.current = (wordIndexRef.current + 1) % words.length;
+          wordIndexRef.current = (safeIndex + 1) % currentWords.length;
           isPausedRef.current = true;
           typingRef.current = window.setTimeout(() => { isPausedRef.current = false; type(); }, 500);
         } else {
@@ -916,6 +1030,8 @@ function Banner({ slides }) {
       if (!item.location) return;
       const parts = item.location.split(",").map(s => s.trim());
       const region = parts[0];
+      if (region.toLowerCase() === "12/12a") return; // Temporary ignore
+      
       const district = parts[1] || "";
       if (!groups[region]) groups[region] = [];
       if (district && !groups[region].includes(district)) {
@@ -939,15 +1055,19 @@ function Banner({ slides }) {
             <div className="col-lg-6">
               <div className="info d-flex flex-column">
                 <h1 className="title">
-                  <span className="static-text">O'zbekiston </span>
-                  bo'ylab
-                  <br />
-                  qulay
+                  <span className="static-text">{heroTitle.split('\n')[0].split(' ')[0]} </span>
+                  {heroTitle.split('\n')[0].split(' ').slice(1).join(' ')}
+                  {heroTitle.split('\n').length > 1 && (
+                    <>
+                      <br />
+                      {heroTitle.split('\n').slice(1).join('\n')}
+                    </>
+                  )}
                   <span className="typing"> {typingText}</span>
                   <span className={`cursor ${cursorVisible ? "blink" : ""}`}>|</span>
                 </h1>
                 <p className="desc">
-                  Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab
+                  {heroSubtitle}
                 </p>
 
                 <div className="filter">
@@ -964,18 +1084,18 @@ function Banner({ slides }) {
                     ))}
                   </div>
 
-                  {/* Sub-categories — faqat kategoria tanlanganda ko'rinadi */}
-                  {subCategories[activeTab] && subCategories[activeTab].length > 0 && (
+                  {/* Sub-categories */}
+                  {activeCategory?.subcategories && activeCategory.subcategories.length > 0 && (
                     <div className="filter-subcats">
-                      {subCategories[activeTab].map((sub) => (
+                      {activeCategory.subcategories.map((sub) => (
                         <button
-                          key={sub}
+                          key={sub.id}
                           type="button"
-                          className={`subcat-pill ${selectedSubCat === sub ? "active" : ""}`}
-                          onClick={() => setSelectedSubCat(selectedSubCat === sub ? "" : sub)}
+                          className={`subcat-pill ${selectedSubCat === sub.id ? "active" : ""}`}
+                          onClick={() => setSelectedSubCat(selectedSubCat === sub.id ? "" : sub.id)}
                         >
-                          {sub}
-                          {selectedSubCat === sub && (
+                          {sub.name_ru}
+                          {selectedSubCat === sub.id && (
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
                           )}
                         </button>
@@ -986,9 +1106,47 @@ function Banner({ slides }) {
                   <div className="filter-content">
                     <div className="tab-content active">
                       <div className="filter-options">
-                        {(filters[activeTab] || filters.barchasi).map((filter) => (
-                          <FilterSelect key={filter.name} {...filter} openFilter={openFilter} setOpenFilter={setOpenFilter} />
-                        ))}
+                        {activeTab === "barchasi" && (
+                          <>
+                            <FilterSelect name="capacity" label="Вместимость" unit="чел" options={["Любой", "Больше 1", "Больше 5", "Больше 10"]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                            <FilterSelect name="area" label="Площадь" unit="м²" options={["Любой", "Больше 10", "Больше 50", "Больше 100"]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                          </>
+                        )}
+                        
+                        {/* Dynamic Filters from API */}
+                        {(() => {
+                           const params = selectedSubCat ? (activeCategory?.subcategories?.find(s => s.id === selectedSubCat)?.parameters || []) : [];
+                           const characteristics = params.filter(p => p.type !== 'boolean' && p.type !== 'text');
+                           const amenities = params.filter(p => p.type === 'boolean');
+                           
+                           return (
+                             <>
+                               {characteristics.map((p) => {
+                                 let options = ["Любой"];
+                                 if (p.type === 'counter' || p.type === 'select') {
+                                    options = ["Любой", ...(Array.isArray(p.config?.options) ? p.config.options.map(o => o.ru || o.slug) : [])];
+                                 }
+                                 return (
+                                   <FilterSelect key={p.slug} name={p.slug} label={p.name_ru} unit="" options={options} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                                 );
+                               })}
+                               
+                               {amenities.length > 0 && (
+                                 <MultiFilterSelect 
+                                   name="amenities_group" 
+                                   label="Список удобств" 
+                                   options={amenities.map(a => a.name_ru)} 
+                                   openFilter={openFilter} 
+                                   setOpenFilter={setOpenFilter} 
+                                 />
+                               )}
+                             </>
+                           );
+                        })()}
+
+                        {!selectedSubCat && activeTab !== "barchasi" && (
+                           <div style={{ padding: "0 16px", color: "#64748b", fontSize: "14px", display: "flex", alignItems: "center" }}>Выберите подкатегорию для фильтров</div>
+                        )}
                         <PriceFilter />
                       </div>
                     </div>
@@ -1012,8 +1170,8 @@ function Banner({ slides }) {
                             return (
                               <React.Fragment key={region}>
                                 <li 
-                                  className="region-item" 
-                                  style={{ display: "flex", padding: 0, background: expandedRegion === region ? "#f8fafc" : "transparent" }}
+                                  className={`region-item ${expandedRegion === region ? 'expanded' : ''}`}
+                                  style={{ display: "flex", padding: 0 }}
                                 >
                                   <div 
                                     style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
@@ -1053,12 +1211,10 @@ function Banner({ slides }) {
                                       return (
                                         <li 
                                           key={dist} 
-                                          className="district-item" 
+                                          className={`district-item ${isSelected ? 'selected' : ''}`}
                                           style={{ 
                                             padding: "8px 12px", 
                                             fontSize: "14px", 
-                                            color: isSelected ? "#e46630" : "rgba(41, 74, 109, 0.75)", 
-                                            background: isSelected ? "rgba(228, 102, 48, 0.06)" : "transparent",
                                             fontWeight: isSelected ? "600" : "500",
                                             border: "none",
                                             borderRadius: "8px",
@@ -1137,12 +1293,10 @@ function Banner({ slides }) {
                                       return (
                                         <li 
                                           key={dist} 
-                                          className="district-item" 
+                                          className={`district-item ${isSelected ? 'selected' : ''}`}
                                           style={{ 
                                             padding: "8px 12px", 
                                             fontSize: "14px", 
-                                            color: isSelected ? "#e46630" : "rgba(41, 74, 109, 0.75)", 
-                                            background: isSelected ? "rgba(228, 102, 48, 0.06)" : "transparent",
                                             fontWeight: isSelected ? "600" : "500",
                                             border: "none",
                                             borderRadius: "8px",
@@ -1250,6 +1404,9 @@ export default function HomeHero({ userState, setUserState, slides }) {
     };
     const handleWheel = (event) => {
       if (window.innerWidth <= 992) return;
+      if (event.target.closest('.dropdown, .options, .filter-dropdown, .districts-list')) {
+        return;
+      }
       const y = window.scrollY;
       const viewport = window.innerHeight;
       if (isSnapping) {

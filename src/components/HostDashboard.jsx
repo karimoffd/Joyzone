@@ -1,4 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback, useContext } from "react";
+import { createPortal } from "react-dom";
+import axios from "axios";
+import { LanguageContext } from "../App.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
@@ -234,12 +237,19 @@ function TodayPage() {
   );
 }
 
-function CalendarPage() {
-  const [activeSpace, setActiveSpace] = useState(hostListings[0]);
+function CalendarPage({ listings = [] }) {
+  const displayListings = listings.length > 0 ? listings : hostListings;
+  const [activeSpace, setActiveSpace] = useState(displayListings[0] || hostListings[0]);
   const [price, setPrice] = useState("320000");
   const [period, setPeriod] = useState("за день");
   const [activeDiscounts, setActiveDiscounts] = useState(() => discounts.reduce((acc, item) => ({ ...acc, [item.label]: item.active }), {}));
   
+  useEffect(() => {
+    if (listings.length > 0 && (!activeSpace || !listings.some(l => l.id === activeSpace.id))) {
+      setActiveSpace(listings[0]);
+    }
+  }, [listings]);
+
   // Parse base price from active space if it exists, otherwise fallback
   const currentBasePrice = useMemo(() => {
     if (activeSpace && activeSpace.price) {
@@ -261,22 +271,22 @@ function CalendarPage() {
           </div>
         </div>
         <div className="host-spaces-list-horizontal">
-          {hostListings.map((space) => {
-            const isActive = activeSpace.title === space.title;
+          {displayListings.map((space) => {
+            const isActive = activeSpace && (activeSpace.id === space.id || activeSpace.title === space.title);
             return (
               <button 
-                key={space.title} 
+                key={space.id || space.title} 
                 className={`space-card-widget-horizontal ${isActive ? "is-active" : ""}`}
                 onClick={() => setActiveSpace(space)}
                 type="button"
               >
                 <div className="space-widget-img-horizontal">
-                  <img src={space.images[0]} alt={space.title} />
+                  <img src={space.images?.[0] || "/placeholder-space.jpg"} alt={space.title} />
                 </div>
                 <div className="space-widget-info">
                   <strong>{space.title}</strong>
                   <small>{space.location}</small>
-                  <span>{space.price}</span>
+                  <span>{space.price || "0 UZS"}</span>
                 </div>
               </button>
             );
@@ -287,7 +297,7 @@ function CalendarPage() {
       <div className="host-calendar-layout">
         {/* Left Column: Price and Discount Panel */}
         <aside className="host-price-panel">
-          <span>Базовая цена ({activeSpace.title})</span>
+          <span>Базовая цена ({activeSpace?.title || "Место"})</span>
           <label className="host-price-input">
             <input value={currentBasePrice} onChange={(event) => setPrice(event.target.value.replace(/\D/g, "").slice(0, 8))} inputMode="numeric" aria-label="Базовая цена" />
             <small>сум</small>
@@ -323,7 +333,7 @@ function CalendarPage() {
           <div className="host-calendar-top">
             <div>
               <span>Июнь 2026</span>
-              <h2>{activeSpace.title}</h2>
+              <h2>{activeSpace?.title || "Место"}</h2>
             </div>
             <div className="host-calendar-legend">
               <span><i className="free" />Свободно</span>
@@ -350,7 +360,7 @@ function CalendarPage() {
   );
 }
 
-function ListingsPage() {
+function ListingsPage({ listings = [], onEdit, onDelete }) {
   return (
     <section className="host-main-surface">
       <div className="host-section-head">
@@ -358,31 +368,89 @@ function ListingsPage() {
           <span>Объявления</span>
           <h2>Мои места</h2>
         </div>
-        <a href="#partner"><DashboardIcon type="plus" />Добавить место</a>
+        <a href="#partner" onClick={() => localStorage.removeItem("joyzone-edit-place-id")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          Добавить место
+        </a>
       </div>
 
       <div className="host-listings-grid">
-        {hostListings.map((item, index) => (
-          <article className="host-listing-shell" key={item.title}>
-            <PropertyCard item={item} index={index} />
-            <div className="host-listing-meta">
-              <span className={item.status === "Опубликовано" ? "is-live" : ""}>{item.status}</span>
-              <strong>{item.bookings} броней</strong>
-              <small>Заполненность {item.score}</small>
-            </div>
-          </article>
-        ))}
+        {listings.length === 0 ? (
+          <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", color: "#64748b", background: "#f8fafc", borderRadius: 20, border: "1.5px dashed #e2e8f0" }}>
+            <h3 style={{ margin: "0 0 8px 0", color: "#111820", fontSize: 18 }}>У вас пока нет объявлений</h3>
+            <p style={{ margin: "0 0 20px 0", fontSize: 14 }}>Добавьте ваше первое пространство, чтобы начать принимать бронирования.</p>
+            <a href="#partner" className="host-alert-btn confirm" style={{ display: "inline-block", textDecoration: "none", width: "auto", background: "var(--orange)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700 }} onClick={() => localStorage.removeItem("joyzone-edit-place-id")}>Добавить место</a>
+          </div>
+        ) : (
+          listings.map((item, index) => (
+            <article className="host-listing-shell" key={item.id || item.title}>
+              <PropertyCard item={{
+                ...item,
+                price: item.price || "0 UZS"
+              }} index={index} />
+              <div className="host-listing-meta">
+                <span className={item.status === "approved" ? "is-live" : ""}>
+                  {item.status === "approved" ? "Опубликовано" : item.status === "rejected" ? "Отклонено" : "Модерация"}
+                </span>
+                <div className="host-card-actions">
+                  <button onClick={() => onEdit(item)} className="host-card-act-btn edit" title="Редактировать">✏️</button>
+                  <button onClick={() => onDelete(item)} className="host-card-act-btn delete" title="Удалить">🗑️</button>
+                </div>
+                <strong>{item.bookings_count || 0} броней</strong>
+                <small>Заполненность {item.occupancy || "0%"}</small>
+              </div>
+            </article>
+          ))
+        )}
       </div>
     </section>
   );
 }
 
 function MessagesPage() {
+  const [chats, setChats] = useState(inbox);
   const [selectedChat, setSelectedChat] = useState(null);
-  const activeChat = inbox.find((chat) => chat.id === selectedChat);
+  const [draft, setDraft] = useState("");
+  const messagesEndRef = useRef(null);
+  
+  const activeChat = chats.find((chat) => chat.id === selectedChat);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activeChat?.messages]);
+
+  const handleSend = () => {
+    if (!draft.trim() || !activeChat) return;
+    setChats(prev => prev.map(chat => {
+      if (chat.id === activeChat.id) {
+        return {
+          ...chat,
+          messages: [...chat.messages, { from: "host", text: draft, isNew: true }]
+        };
+      }
+      return chat;
+    }));
+    setDraft("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  useEffect(() => {
+    if (selectedChat && window.innerWidth <= 980) {
+      document.body.classList.add("chat-fullscreen-open");
+    } else {
+      document.body.classList.remove("chat-fullscreen-open");
+    }
+    return () => document.body.classList.remove("chat-fullscreen-open");
+  }, [selectedChat]);
 
   return (
-    <section className="host-messages-layout">
+    <section className={`host-messages-layout ${selectedChat ? "chat-open" : ""}`}>
       <aside className="host-inbox-panel">
         <div className="host-section-head compact">
           <div>
@@ -391,7 +459,7 @@ function MessagesPage() {
           </div>
         </div>
         <div className="host-inbox-list">
-          {inbox.map((chat) => (
+          {chats.map((chat) => (
             <button key={chat.id} type="button" className={chat.id === selectedChat ? "is-active" : ""} onClick={() => setSelectedChat(chat.id)}>
               <span>{chat.name.slice(0, 2).toUpperCase()}</span>
               <div>
@@ -410,20 +478,39 @@ function MessagesPage() {
         {activeChat ? (
           <>
             <div className="host-chat-head">
+              <button className="mobile-chat-back" onClick={() => setSelectedChat(null)} aria-label="Назад к чатам">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              </button>
               <div>
                 <span>{activeChat.space}</span>
                 <h2>{activeChat.name}</h2>
               </div>
-              <a href="#host-calendar">Открыть бронь</a>
+              <a href="#host-calendar" className="desktop-only-link">Открыть бронь</a>
             </div>
             <div className="host-chat-body">
               {activeChat.messages.map((message, index) => (
-                <p key={`${message.text}-${index}`} className={message.from === "host" ? "is-host" : ""}>{message.text}</p>
+                <p key={`${message.text}-${index}`} className={`${message.from === "host" ? "is-host" : ""} ${message.isNew ? "msg-pop" : ""}`}>{message.text}</p>
               ))}
+              <div ref={messagesEndRef} />
             </div>
             <div className="host-chat-composer">
-              <input placeholder="Напишите ответ..." />
-              <button type="button">Отправить</button>
+              <button type="button" className="composer-icon-btn" aria-label="GIFs">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><path d="M10.5 14.5c-.8 0-1.5-.7-1.5-1.5v-2c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5"/><path d="M14 9h2v6h-2z"/><path d="M18 9v6"/><path d="M18 12h2"/></svg>
+              </button>
+              <input 
+                placeholder="Напишите сообщение..." 
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button 
+                type="button" 
+                className={`composer-icon-btn send-btn ${draft.trim() ? "active" : ""}`} 
+                onClick={handleSend}
+                aria-label="Отправить"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
             </div>
           </>
         ) : (
@@ -434,20 +521,124 @@ function MessagesPage() {
   );
 }
 
+function DashboardToast({ message, type, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3500);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`dash-toast ${type}`} style={{
+      position: "fixed", top: 24, right: 24, zIndex: 1001,
+      padding: "14px 24px", borderRadius: 14, background: type === "success" ? "#22c55e" : "#ef4444",
+      color: "#fff", fontWeight: 600, boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+      fontFamily: "'Inter', sans-serif", fontSize: 14,
+      animation: "toastFadeIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards"
+    }}>
+      {message}
+    </div>
+  );
+}
+
 function HostDashboard({ page = "today", userState, setUserState }) {
   const normalizedPage = pageMeta[page] ? page : "today";
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [deleteConfirmSpace, setDeleteConfirmSpace] = useState(null);
+  const [toast, setToast] = useState({ open: false, message: "", type: "success" });
+
+  const showToast = (msg, type = "success") => {
+    setToast({ open: true, message: msg, type });
+  };
+
+  const fetchListings = useCallback(async () => {
+    const token = localStorage.getItem("joyzone-access");
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await axios.get("http://localhost:8000/api/places/", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setListings(res.data?.results || res.data || []);
+    } catch (e) {
+      console.warn("Failed to fetch partner listings:", e);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchListings();
+  }, [fetchListings]);
+
+  const handleEdit = (item) => {
+    localStorage.setItem("joyzone-edit-place-id", item.id);
+    window.location.hash = "#partner";
+  };
+
+  const askDelete = (item) => {
+    setDeleteConfirmSpace(item);
+  };
+
+  const performDelete = async (id) => {
+    const token = localStorage.getItem("joyzone-access");
+    try {
+      await axios.delete(`http://localhost:8000/api/places/${id}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showToast("Пространство успешно удалено!", "success");
+      setDeleteConfirmSpace(null);
+      fetchListings();
+    } catch (e) {
+      showToast(e.response?.data?.detail || "Ошибка при удалении объекта", "error");
+      setDeleteConfirmSpace(null);
+    }
+  };
 
   return (
     <main className="host-dashboard-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={navIndex[normalizedPage]} variant="dashboard" />
-      <section className="host-dashboard-container">
+      <section className={`host-dashboard-container ${normalizedPage === "messages" ? "is-messages-page" : ""}`}>
         <DashboardHero page={normalizedPage} />
         {normalizedPage === "today" ? <TodayPage /> : null}
-        {normalizedPage === "calendar" ? <CalendarPage /> : null}
-        {normalizedPage === "listings" ? <ListingsPage /> : null}
+        {normalizedPage === "calendar" ? <CalendarPage listings={listings} /> : null}
+        {normalizedPage === "listings" ? (
+          loading ? (
+            <div style={{ textAlign: "center", padding: "80px 20px" }}>
+              <div className="joy-spinner" style={{ display: "inline-block", width: 40, height: 40, border: "3px solid rgba(228, 102, 48, 0.2)", borderTopColor: "var(--orange)", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
+              <p style={{ marginTop: 16, color: "#64748b" }}>Загрузка ваших объявлений...</p>
+            </div>
+          ) : (
+            <ListingsPage listings={listings} onEdit={handleEdit} onDelete={askDelete} />
+          )
+        ) : null}
         {normalizedPage === "messages" ? <MessagesPage /> : null}
       </section>
-      <SimpleFooter />
+
+      {/* Beautiful Custom Alert Popup portal */}
+      {deleteConfirmSpace && createPortal(
+        <div className="host-custom-alert-overlay" onClick={() => setDeleteConfirmSpace(null)}>
+          <div className="host-custom-alert-box animate-pop" onClick={e => e.stopPropagation()}>
+            <div className="host-custom-alert-icon">⚠️</div>
+            <h3>Удалить пространство?</h3>
+            <p>Вы действительно хотите удалить <strong>«{deleteConfirmSpace.title}»</strong>? Это действие нельзя будет отменить.</p>
+            <div className="host-custom-alert-buttons">
+              <button className="host-alert-btn cancel" onClick={() => setDeleteConfirmSpace(null)}>Отмена</button>
+              <button className="host-alert-btn confirm" onClick={() => performDelete(deleteConfirmSpace.id)}>Да, удалить</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Beautiful Toast alert portal */}
+      {toast.open && createPortal(
+        <DashboardToast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(prev => ({ ...prev, open: false }))} 
+        />,
+        document.body
+      )}
     </main>
   );
 }

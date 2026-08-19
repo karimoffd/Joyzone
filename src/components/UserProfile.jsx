@@ -187,13 +187,13 @@ function UserProfile({ userState, setUserState }) {
   const fetchUserData = async () => {
     try {
       const currentEmail = userState?.email || "aziz.karimov@mail.com";
-      const spacesRes = await axios.get("http://localhost:5000/api/spaces");
-      const bookingsRes = await axios.get("http://localhost:5000/api/bookings");
+      const spacesRes = await axios.get("http://localhost:8000/api/places/");
+      const bookingsRes = await axios.get("http://localhost:8000/api/bookings/");
 
-      const spacesData = Array.isArray(spacesRes.data) ? spacesRes.data : [];
+      const spacesData = spacesRes.data?.results || spacesRes.data || [];
       const bookingsData = Array.isArray(bookingsRes.data) ? bookingsRes.data : [];
 
-      const userSpaces = spacesData.filter(s => s && (s.owner_id === currentEmail || s.owner_id === "host_1" || s.owner_id === "host_2"));
+      const userSpaces = spacesData.filter(s => s.owner_name === userState.name || s.owner_id === userState.id);
       setMyObjects(userSpaces);
       setAllBookings(bookingsData);
     } catch (err) {
@@ -211,34 +211,26 @@ function UserProfile({ userState, setUserState }) {
     e.preventDefault();
     if (!newName.trim()) return;
 
-    const defaultImages = [
-      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
-      "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86"
-    ];
-    const finalImages = newSpaceImages.length > 0 ? newSpaceImages : defaultImages;
-
     const newSpaceData = {
       name: newName,
       type: newType,
-      price: (() => {
-        const cleanPrice = newPrice.replace(/\s/g, "");
-        const numericPrice = Number(cleanPrice.replace(/[^0-9]/g, ""));
-        return isNaN(numericPrice) || numericPrice === 0
-          ? "350 000 so'm"
-          : `${numericPrice.toLocaleString("uz-UZ")} so'm`;
-      })(),
+      price: newPrice,
       status: "Active",
-      owner_id: userState?.email || "aziz.karimov@mail.com",
+      owner_id: userState?.id || "user_1",
       location: newLocation,
       people: Number(newPeople) || 10,
       area: Number(newArea) || 80,
-      images: finalImages,
+      images: newSpaceImages,
       promoted: false,
       priceOverrides: {}
     };
 
     try {
-      await axios.post("http://localhost:5000/api/spaces", newSpaceData);
+      await axios.post("http://localhost:8000/api/places/", newSpaceData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+        }
+      });
       setNewName("");
       setNewPrice("");
       setNewLocation("");
@@ -259,19 +251,8 @@ function UserProfile({ userState, setUserState }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
-      axios.post("http://localhost:5000/api/upload", {
-        filename: file.name,
-        base64: reader.result
-      })
-      .then(res => {
-        if (res.data && res.data.url) {
-          setNewSpaceImages(prev => [...prev, res.data.url]);
-        }
-      })
-      .catch(err => {
-        console.error("Fayl yuklashda xatolik:", err);
-        alert("Fayl yuklashda xatolik yuz berdi");
-      });
+      // For now, directly use base64 since we are migrating backend
+      setNewSpaceImages(prev => [...prev, reader.result]);
     };
     reader.readAsDataURL(file);
   };
@@ -311,19 +292,22 @@ function UserProfile({ userState, setUserState }) {
 
   const handleManualBooking = async () => {
     if (!rangeStart) return;
-    const currentEmail = userState?.email || "aziz.karimov@mail.com";
     const start = rangeStart;
     const end = rangeEnd || rangeStart;
 
     try {
-      await axios.post("http://localhost:5000/api/bookings", {
-        user_id: currentEmail,
-        space_id: activeObject.id || activeObject._id,
+      await axios.post("http://localhost:8000/api/bookings/", {
+        place_id: activeObject.id || activeObject._id,
+        client: userState?.id || "anon",
         start_date: start,
         end_date: end,
         total_price: 0,
         status: "closed",
         note: blockingNote || "Mulkdor tomonidan yopilgan"
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+        }
       });
 
       setBlockingNote("");
@@ -355,8 +339,12 @@ function UserProfile({ userState, setUserState }) {
     }
 
     try {
-      await axios.put(`http://localhost:5000/api/spaces/${activeObject.id || activeObject._id}`, {
+      await axios.put(`http://localhost:8000/api/places/${activeObject.id || activeObject._id}/`, {
         priceOverrides: newOverrides
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+        }
       });
 
       setCustomPriceVal("");
@@ -425,7 +413,7 @@ function UserProfile({ userState, setUserState }) {
       <section className="profile-unified-panel">
         <section className="profile-content-panel">
           <aside className="profile-sidebar" aria-label="Profil bo'limlari">
-            <span>Profil</span>
+            <span>Profilim</span>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -547,7 +535,6 @@ function UserProfile({ userState, setUserState }) {
         </section>
       </section>
 
-      <SimpleFooter />
     </main>
   );
 }
@@ -648,7 +635,6 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
           <button type="button" className="profile-save-action" onClick={saveProfile}>Saqlash</button>
         </div>
       </section>
-      <SimpleFooter />
     </main>
   );
 }
