@@ -33,7 +33,8 @@ const dashboardNavLinks = [
   { href: "#host-today", label: "Bugun" },
   { href: "#host-calendar", label: "Grafik" },
   { href: "#host-listings", label: "Mening joylarim" },
-  { href: "#host-messages", label: "Xabarlar" }
+  { href: "#host-messages", label: "Xabarlar" },
+  { href: "#host-tariffs", label: "Tariflar" }
 ];
 
 

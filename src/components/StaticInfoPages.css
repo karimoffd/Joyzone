@@ -1427,3 +1427,54 @@
     grid-template-columns: 1fr;
   }
 }
+
+.tariff-error-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.tariff-error-box {
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px;
+  width: 420px;
+  max-width: 90vw;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  animation: modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.tariff-error-box h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+}
+.tariff-error-box p {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+.tariff-error-btn {
+  background: var(--orange, #e46630);
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+.tariff-error-btn:hover {
+  background: #d3541e;
+}
+
+@keyframes modalPopIn {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}

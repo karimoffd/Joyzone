@@ -4,10 +4,18 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    tariff_details = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'balance')
-        read_only_fields = ('id', 'username', 'role', 'balance')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details')
+        read_only_fields = ('id', 'username', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details')
+
+    def get_tariff_details(self, obj):
+        if obj.tariff:
+            from tariffs.serializers import TariffPlanSerializer
+            return TariffPlanSerializer(obj.tariff).data
+        return None
 
 class SendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)

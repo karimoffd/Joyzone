@@ -321,6 +321,7 @@ function TariffPlansSection() {
   const [tariffs, setTariffs] = useState([]);
   const [submitting, setSubmitting] = useState(null);
   const [done, setDone] = useState(null);
+  const [error, setError] = useState(null);
   const { lang } = useContext(LanguageContext);
 
   const FALLBACK = [
@@ -365,7 +366,7 @@ function TariffPlansSection() {
       );
       setDone({ tariff, message: res.data.detail });
     } catch (e) {
-      alert(e.response?.data?.detail || "Xatolik yuz berdi");
+      setError(e.response?.data?.detail || e.message || "Xatolik yuz berdi");
     }
     setSubmitting(null);
   };
@@ -453,6 +454,17 @@ function TariffPlansSection() {
       <p className="tariff-footnote">
         Barcha tariflar uchun moderatsiya jarayoni bir xil &bull; Istalgan vaqtda tarif o'zgartirish mumkin
       </p>
+
+      {error && (
+        <div className="tariff-error-overlay" onClick={() => setError(null)}>
+          <div className="tariff-error-box" onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: "40px", marginBottom: "12px" }}>⚠️</div>
+            <h3>Xatolik yuz berdi</h3>
+            <p>{error}</p>
+            <button className="tariff-error-btn" onClick={() => setError(null)}>Yopish</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

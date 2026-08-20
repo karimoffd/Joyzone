@@ -31,7 +31,7 @@ import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
 
 function useAuthRoute() {
-  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "register", "login", "forgot", "verify", "admin"]);
+  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "host-tariffs", "register", "login", "forgot", "verify", "admin"]);
   const readRoute = () => {
     const hash = (window.location.hash || "#home").replace("#", "") || "home";
     if (hash.startsWith("space-")) return hash;

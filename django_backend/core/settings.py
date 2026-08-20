@@ -142,16 +142,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # ── Rate limiting (throttling) for security ──────────────────────────────
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle',
-    ],
+    'DEFAULT_THROTTLE_CLASSES': [], # Disabled globally for local development to prevent 429 errors
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '60/minute',       # anonymous users: 60 req/min
-        'user': '300/minute',      # authenticated users: 300 req/min
-        'otp_send': '3/minute',    # OTP send endpoint: max 3/min to prevent abuse
-        'otp_verify': '5/minute',  # OTP verify endpoint: max 5/min brute-force guard
+        'anon': '10000/minute',
+        'user': '50000/minute',
+        'otp_send': '30/minute',
+        'otp_verify': '50/minute',
     },
 }
 
