@@ -2713,3 +2713,32 @@
     padding-left: 120px;
   }
 }
+
+.onboarding-tariff-banner {
+  background: rgba(228, 102, 48, 0.05);
+  border-bottom: 1px solid rgba(228, 102, 48, 0.15);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.onboarding-tariff-banner-name {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 600;
+}
+.onboarding-tariff-banner-name strong {
+  color: #e46630;
+  font-weight: 800;
+}
+.onboarding-tariff-banner-limit {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+.onboarding-tariff-banner-limit strong {
+  color: #1e293b;
+  font-weight: 700;
+}

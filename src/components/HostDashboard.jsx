@@ -157,8 +157,19 @@ function DashboardIcon({ type }) {
   );
 }
 
-function DashboardHero({ page }) {
+function DashboardHero({ page, profile }) {
   const meta = pageMeta[page] || pageMeta.today;
+  const rawTariff = profile?.tariff_details?.slug || "";
+  const tariffName = profile?.tariff_details 
+    ? (profile.tariff_details.name_ru || profile.tariff_details.name) 
+    : "Standard";
+    
+  let badgeClass = "host-tariff-badge host-tariff-badge--standard";
+  if (rawTariff === "premium") {
+    badgeClass = "host-tariff-badge host-tariff-badge--premium";
+  } else if (rawTariff === "comfort") {
+    badgeClass = "host-tariff-badge host-tariff-badge--comfort";
+  }
 
   return (
     <section className="host-dashboard-hero">
@@ -168,7 +179,10 @@ function DashboardHero({ page }) {
         <p>{meta.text}</p>
       </div>
       <div className="host-dashboard-status">
-        <strong>Joyzone host</strong>
+        <strong>
+          Joyzone host
+          <span className={badgeClass}>{tariffName}</span>
+        </strong>
         <small>Активность кабинета: высокая</small>
       </div>
     </section>
@@ -546,25 +560,11 @@ function DashboardToast({ message, type, onClose }) {
   );
 }
 
-function HostTariffsPage({ showToast }) {
+function HostTariffsPage({ showToast, profile, fetchProfile }) {
   const [tariffs, setTariffs] = useState([]);
-  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(null);
   const { lang } = useContext(LanguageContext);
-
-  const fetchProfile = async () => {
-    const token = localStorage.getItem("joyzone-access");
-    if (!token) return;
-    try {
-      const res = await axios.get("http://localhost:8000/api/auth/profile/", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProfile(res.data);
-    } catch (e) {
-      console.warn("Failed to fetch user profile:", e);
-    }
-  };
 
   const fetchTariffs = async () => {
     setLoading(true);
@@ -578,7 +578,6 @@ function HostTariffsPage({ showToast }) {
   };
 
   useEffect(() => {
-    fetchProfile();
     fetchTariffs();
   }, []);
 
@@ -750,6 +749,7 @@ function HostTariffsPage({ showToast }) {
 function HostDashboard({ page = "today", userState, setUserState }) {
   const normalizedPage = pageMeta[page] ? page : "today";
   const [listings, setListings] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [deleteConfirmSpace, setDeleteConfirmSpace] = useState(null);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
@@ -757,6 +757,19 @@ function HostDashboard({ page = "today", userState, setUserState }) {
   const showToast = (msg, type = "success") => {
     setToast({ open: true, message: msg, type });
   };
+
+  const fetchProfile = useCallback(async () => {
+    const token = localStorage.getItem("joyzone-access");
+    if (!token) return;
+    try {
+      const res = await axios.get("http://localhost:8000/api/auth/profile/", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setProfile(res.data);
+    } catch (e) {
+      console.warn("Failed to fetch profile in dashboard:", e);
+    }
+  }, []);
 
   const fetchListings = useCallback(async () => {
     const token = localStorage.getItem("joyzone-access");
@@ -774,8 +787,9 @@ function HostDashboard({ page = "today", userState, setUserState }) {
   }, []);
 
   useEffect(() => {
+    fetchProfile();
     fetchListings();
-  }, [fetchListings]);
+  }, [fetchProfile, fetchListings]);
 
   const handleEdit = (item) => {
     localStorage.setItem("joyzone-edit-place-id", item.id);
@@ -805,7 +819,7 @@ function HostDashboard({ page = "today", userState, setUserState }) {
     <main className="host-dashboard-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={navIndex[normalizedPage]} variant="dashboard" />
       <section className={`host-dashboard-container ${normalizedPage === "messages" ? "is-messages-page" : ""}`}>
-        <DashboardHero page={normalizedPage} />
+        <DashboardHero page={normalizedPage} profile={profile} />
         {normalizedPage === "today" ? <TodayPage /> : null}
         {normalizedPage === "calendar" ? <CalendarPage listings={listings} /> : null}
         {normalizedPage === "listings" ? (
@@ -819,7 +833,7 @@ function HostDashboard({ page = "today", userState, setUserState }) {
           )
         ) : null}
         {normalizedPage === "messages" ? <MessagesPage /> : null}
-        {normalizedPage === "tariffs" ? <HostTariffsPage showToast={showToast} /> : null}
+        {normalizedPage === "tariffs" ? <HostTariffsPage showToast={showToast} profile={profile} fetchProfile={fetchProfile} /> : null}
       </section>
 
       {/* Beautiful Custom Alert Popup portal */}

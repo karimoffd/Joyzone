@@ -246,6 +246,7 @@ export default function PartnerOnboarding() {
   const [discounts, setDiscounts] = useState({ newListing: true, lastMinute: true, weekly: true, monthly: true });
   const [selectedDiscountIds, setSelectedDiscountIds] = useState([]);
   const [apiDiscounts, setApiDiscounts] = useState([]);
+  const [profile, setProfile] = useState(null);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
 
   const showToast = (message, type = "success") => {
@@ -256,6 +257,15 @@ export default function PartnerOnboarding() {
   const screenRef = useRef(null);
 
   useEffect(() => {
+    const token = localStorage.getItem("joyzone-access");
+    if (token) {
+      axios.get("http://localhost:8000/api/auth/profile/", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => setProfile(res.data))
+      .catch(err => console.log("Failed to fetch profile in onboarding:", err));
+    }
+
     axios.get("http://localhost:8000/api/categories/")
       .then(res => {
          setCategories(res.data?.results || res.data || []);
@@ -344,6 +354,7 @@ export default function PartnerOnboarding() {
       })
       .catch(err => {
         console.error("Failed to load edit place data:", err);
+        localStorage.removeItem("joyzone-edit-place-id");
       });
     }
   }, []);
@@ -485,6 +496,16 @@ export default function PartnerOnboarding() {
   return (
     <main className="partner-onboarding-page">
       <Header />
+      {profile && (
+        <div className="onboarding-tariff-banner">
+          <span className="onboarding-tariff-banner-name">
+            Вы создаёте объявление по тарифу: <strong>{profile.tariff_details ? (profile.tariff_details.name_ru || profile.tariff_details.name) : "Standard (Базовый)"}</strong>
+          </span>
+          <span className="onboarding-tariff-banner-limit">
+            Лимит мест на аккаунте: <strong>{profile.tariff_details ? profile.tariff_details.max_places : 1}</strong>
+          </span>
+        </div>
+      )}
       <section ref={screenRef} className={`partner-onboarding-screen screen-${step}`}>
         {step === 0 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', padding: '100px 20px', gap: 60}}>
