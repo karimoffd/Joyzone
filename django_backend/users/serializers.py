@@ -8,8 +8,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details')
-        read_only_fields = ('id', 'username', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff')
+        read_only_fields = ('id', 'username', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff')
 
     def get_tariff_details(self, obj):
         if obj.tariff:

@@ -51,7 +51,7 @@ export default function AdminApp() {
           });
           if (res.ok) {
             const profile = await res.json();
-            if (profile.role === 'admin' || profile.role === 'moderator') {
+            if (profile.role === 'admin' || profile.role === 'moderator' || profile.is_superuser || profile.is_staff) {
               isAdmin = true;
             }
           }
