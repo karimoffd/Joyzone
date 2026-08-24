@@ -2833,8 +2833,9 @@
 
 .header-tariff-badge-clickable {
   cursor: pointer;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
-  color: #ffffff;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #e2e8f0;
   padding: 8px 18px;
   border-radius: 12px;
   font-size: 13px;
@@ -2842,27 +2843,23 @@
   display: flex;
   gap: 12px;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
 }
 .header-tariff-badge-clickable:hover {
-  opacity: 0.95;
+  background: #f8fafc;
+  border-color: #cbd5e1;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 .header-tariff-badge-clickable strong {
   font-weight: 800;
+  color: #0f172a;
 }
 .header-tariff-badge-clickable .header-tariff-badge-divider {
   width: 1px;
   height: 12px;
-  background: rgba(255, 255, 255, 0.2);
-}
-.header-tariff-badge-clickable strong.tariff-name {
-  color: var(--orange, #e46630);
-}
-.header-tariff-badge-clickable strong.tariff-limit {
-  color: #22c55e;
+  background: #e2e8f0;
 }
 
 @media (max-width: 768px) {
