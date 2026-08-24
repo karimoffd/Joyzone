@@ -333,15 +333,24 @@
   background: #e46630;
 }
 
+.sd-container {
+  max-width: 1200px;
+  width: 100%;
+  margin-inline: auto;
+}
+
 .sd-content {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
-  gap: clamp(26px, 4vw, 58px);
-  align-items: start;
   border-radius: 30px 30px 0 0;
   background: #f6f1ee;
   padding: clamp(24px, 4vw, 52px) clamp(18px, 5.7vw, 100px);
   box-shadow: 0 -24px 80px rgba(7, 20, 35, 0.18);
+}
+
+.sd-content-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  gap: clamp(26px, 4vw, 58px);
+  align-items: start;
 }
 
 .sd-main {
@@ -1662,7 +1671,7 @@
 
 @media (max-width: 1080px) {
   .sd-hero,
-  .sd-content {
+  .sd-content-inner {
     grid-template-columns: 1fr;
   }
 
@@ -2190,10 +2199,13 @@
   .sd-content {
     padding: 16px !important;
     border-radius: 0 !important;
-    gap: 24px !important;
     box-shadow: none !important;
-    background: #f8fafb;
+    background: #f8fafc;
     margin: 0;
+  }
+
+  .sd-content-inner {
+    gap: 24px !important;
   }
 
   .sd-booking-card {

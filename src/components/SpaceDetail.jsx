@@ -997,6 +997,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       </section>
 
       <section className="sd-content">
+        <div className="sd-container sd-content-inner">
         <div className="sd-main">
           <div className="sd-stat-grid sd-animate">
             <DetailStat icon="users" label={lang === 'uz' ? "Sig'im" : "Вместимость"} value={`${space.people || 0} ${lang === 'uz' ? 'kishi' : 'чел.'}`} />
@@ -1413,17 +1414,20 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </a>
           </div>
         </aside>
+        </div>
       </section>
 
       <section className="sd-similar sd-animate">
-        <div className="sd-section-head">
-          <p>Yana ko'ring</p>
-          <h2>O'xshash joylar</h2>
-        </div>
-        <div className="property-grid">
-          {similarSpaces.map((item, index) => (
-            <PropertyCard key={item.title} item={item} index={index} />
-          ))}
+        <div className="sd-container">
+          <div className="sd-section-head">
+            <p>Yana ko'ring</p>
+            <h2>O'xshash joylar</h2>
+          </div>
+          <div className="property-grid">
+            {similarSpaces.map((item, index) => (
+              <PropertyCard key={item.title} item={item} index={index} />
+            ))}
+          </div>
         </div>
       </section>
 
