@@ -26,7 +26,7 @@
   grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
   gap: clamp(24px, 4vw, 58px);
   align-items: center;
-  padding: 110px clamp(18px, 5.7vw, 100px) 42px;
+  padding: 110px 60px 42px;
   min-height: 100vh;
 }
 
@@ -342,7 +342,7 @@
 .sd-content {
   border-radius: 30px 30px 0 0;
   background: #f6f1ee;
-  padding: clamp(24px, 4vw, 52px) clamp(18px, 5.7vw, 100px);
+  padding: clamp(24px, 4vw, 52px) 60px;
   box-shadow: 0 -24px 80px rgba(7, 20, 35, 0.18);
 }
 
@@ -1493,7 +1493,7 @@
 }
 
 .sd-similar {
-  padding: 64px clamp(18px, 5.7vw, 100px) 82px;
+  padding: 64px 60px 82px;
 }
 
 .sd-similar .sd-section-head {
