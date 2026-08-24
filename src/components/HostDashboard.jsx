@@ -179,10 +179,10 @@ function DashboardHero({ page, profile }) {
         <p>{meta.text}</p>
       </div>
       <div className="host-dashboard-status">
-        <strong>
-          Joyzone host
+        <div className="host-dashboard-status-title">
+          <strong>Joyzone host</strong>
           <span className={badgeClass}>{tariffName}</span>
-        </strong>
+        </div>
         <small>Активность кабинета: высокая</small>
       </div>
     </section>
