@@ -596,14 +596,15 @@ export default function PartnerOnboarding() {
                     </div>
                   )}
                 </div>
-                <div className="variant-body" style={{ padding: "20px 0" }}>
-                  <div className="variant-title-row" style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px" }}>
+                <div className="variant-body" style={{ padding: "20px 0", width: "100%", display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
+                  <div className="variant-title-row" style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px", width: "100%", alignItems: "flex-start", textAlign: "left" }}>
                     <h3 style={{
                       fontSize: "18px",
                       fontWeight: 800,
                       color: "#1e293b",
                       margin: 0,
                       textAlign: "left",
+                      width: "100%",
                       wordBreak: "break-word",
                       display: "-webkit-box",
                       WebkitLineClamp: 2,
@@ -615,7 +616,7 @@ export default function PartnerOnboarding() {
                       {spaceTitle || "Название вашего пространства"}
                     </h3>
                   </div>
-                  <p style={{ color: "#64748b", fontSize: "14px", margin: 0, textAlign: "left", wordBreak: "break-word" }}>
+                  <p style={{ color: "#64748b", fontSize: "14px", margin: 0, textAlign: "left", width: "100%", wordBreak: "break-word" }}>
                     {shortAddress || "Адрес еще не выбран на карте"}
                   </p>
                 </div>
