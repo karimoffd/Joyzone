@@ -535,7 +535,7 @@ export default function PartnerOnboarding() {
           ) : (
             <div style={{ width: "100%" }}>
               <span className="onboarding-preview-title">Предпросмотр в поиске (Search Card)</span>
-              <article className="variant-card variant-estate" style={{ width: "100%", transform: "none", animation: "none", transition: "none", display: "block", margin: 0 }}>
+              <article className="variant-card variant-estate" style={{ width: "100%", transform: "none", animation: "none", transition: "none", margin: 0 }}>
                 <div className="variant-media" style={{ aspectRatio: 1.35 }}>
                   {photos.length > 0 ? (
                     photos.map((photo, idx) => (
