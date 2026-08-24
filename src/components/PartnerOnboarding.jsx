@@ -247,6 +247,7 @@ export default function PartnerOnboarding() {
   const [selectedDiscountIds, setSelectedDiscountIds] = useState([]);
   const [apiDiscounts, setApiDiscounts] = useState([]);
   const [profile, setProfile] = useState(null);
+  const [activePreviewImage, setActivePreviewImage] = useState(0);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
 
   const showToast = (message, type = "success") => {
@@ -496,8 +497,16 @@ export default function PartnerOnboarding() {
   const renderLivePreview = (inputs) => {
     const selectedCategory = categories.find(c => c.id === objectType);
     const selectedSubCategory = selectedCategory?.subcategories?.find(s => s.id === accessType);
-    const displayPriceVal = prices.kunlik || prices.soatlik || prices.oylik || "";
     const isDescriptionStep = step === 7;
+
+    const formatAddress = (addr) => {
+      if (!addr) return "";
+      const parts = addr.split(",");
+      if (parts.length <= 2) return addr;
+      return parts.slice(0, 2).join(",").trim();
+    };
+
+    const shortAddress = formatAddress(address);
     
     return (
       <div className="onboarding-preview-container">
@@ -508,17 +517,17 @@ export default function PartnerOnboarding() {
           {isDescriptionStep ? (
             <div className="space-detail-preview-box" style={{ width: "100%", textAlign: "left", fontFamily: "'Inter', sans-serif" }}>
               <span className="onboarding-preview-title" style={{ marginBottom: "20px" }}>Экран описания (Space Details)</span>
-              <h1 style={{ fontSize: "32px", fontWeight: 850, color: "#12283f", margin: "0 0 12px 0", lineHeight: "1.2" }}>
+              <h1 style={{ fontSize: "28px", fontWeight: 850, color: "#12283f", margin: "0 0 12px 0", lineHeight: "1.2", wordBreak: "break-word" }}>
                 {spaceTitle || "Название вашего пространства"}
               </h1>
               <p style={{ color: "#65717d", fontSize: "14px", fontWeight: 600, margin: "0 0 24px 0" }}>
-                📍 {address || "Адрес еще не выбран на карте"}
+                📍 {shortAddress || "Адрес еще не выбран на карте"}
               </p>
               <hr style={{ border: "none", borderTop: "1px solid #eef2f6", margin: "24px 0" }} />
               <h3 style={{ fontSize: "20px", fontWeight: 900, color: "#12283f", margin: "0 0 12px 0" }}>
                 {activeDescTab === "uz" ? "Tavsif" : activeDescTab === "en" ? "Description" : "Описание"}
               </h3>
-              <p className="sd-description" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+              <p className="sd-description" style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                 {(activeDescTab === "ru" ? descRu : activeDescTab === "uz" ? descUz : descEn) || 
                  "Здесь будет описание вашего потрясающего пространства. Расскажите резидентам о преимуществах, оборудовании и атмосфере."}
               </p>
@@ -528,47 +537,69 @@ export default function PartnerOnboarding() {
               <span className="onboarding-preview-title">Предпросмотр в поиске (Search Card)</span>
               <article className="variant-card variant-estate" style={{ width: "100%", transform: "none", animation: "none", transition: "none", display: "block", margin: 0 }}>
                 <div className="variant-media" style={{ aspectRatio: 1.35 }}>
-                  <img
-                    src={photos.length > 0 ? photos[0].url : "/partner-parameters.jpg"}
-                    alt="Preview"
-                    className="is-active"
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                  />
+                  {photos.length > 0 ? (
+                    photos.map((photo, idx) => (
+                      <img
+                        key={photo.id}
+                        src={photo.url}
+                        alt="Preview"
+                        className={idx === activePreviewImage ? "is-active" : ""}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ))
+                  ) : (
+                    <img
+                      src="/partner-parameters.jpg"
+                      alt="Preview"
+                      className="is-active"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  )}
                   <span className="property-slide-glow" />
-                  <span className="variant-pill">Предпросмотр</span>
+                  <span className="variant-pill">Guest favourite</span>
+                  <button
+                    type="button"
+                    className="variant-save-button"
+                    style={{ zIndex: 20, position: "absolute", top: "16px", right: "16px", pointerEvents: "none", display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <svg viewBox="0 0 24 24" style={{ width: "18px", height: "18px", fill: "none", stroke: "currentColor", strokeWidth: 2.2, color: "#1e293b" }}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  </button>
+
+                  {photos.length > 1 && (
+                    <div className="variant-dots" style={{ zIndex: 20 }}>
+                      {photos.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className={idx === activePreviewImage ? "is-active" : ""}
+                          onClick={() => setActivePreviewImage(idx)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="variant-body" style={{ padding: "20px 0" }}>
-                  <div className="variant-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
-                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#1e293b", margin: 0, textAlign: "left" }}>
+                  <div className="variant-title-row" style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px" }}>
+                    <h3 style={{
+                      fontSize: "18px",
+                      fontWeight: 800,
+                      color: "#1e293b",
+                      margin: 0,
+                      textAlign: "left",
+                      wordBreak: "break-word",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      lineHeight: "1.3"
+                    }}>
                       {spaceTitle || "Название вашего пространства"}
                     </h3>
-                    <div className="variant-price-block" style={{ textAlign: "right" }}>
-                      <strong style={{ fontSize: "18px", color: "var(--orange)", fontWeight: 800, display: "block" }}>
-                        {displayPriceVal ? `${new Intl.NumberFormat("ru-RU").format(displayPriceVal.replace(/\D/g, ''))} UZS` : "Цена не указана"}
-                      </strong>
-                      <span className="variant-price-label">
-                        {prices.kunlik ? "kunlik" : prices.soatlik ? "soatlik" : prices.oylik ? "oylik" : ""}
-                      </span>
-                    </div>
                   </div>
-                  <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0", textAlign: "left" }}>
-                    {address || "Адрес еще не выбран на карте"}
+                  <p style={{ color: "#64748b", fontSize: "14px", margin: 0, textAlign: "left", wordBreak: "break-word" }}>
+                    {shortAddress || "Адрес еще не выбран на карте"}
                   </p>
-                  
-                  <div className="variant-spec-row" style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#475569", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
-                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
-                      {capacity || 0} kishi
-                    </span>
-                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M7 10V5a3 3 0 0 1 6 0v1M5 10h16v2a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-2ZM8 21h8" /></svg>
-                      {selectedSubCategory ? (selectedSubCategory.name_ru || selectedSubCategory.name) : "Тип"}
-                    </span>
-                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8" /></svg>
-                      {area || 0} m2
-                    </span>
-                  </div>
                 </div>
               </article>
             </div>

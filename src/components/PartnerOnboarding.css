@@ -2812,3 +2812,20 @@
     max-width: 440px;
   }
 }
+
+.space-detail-preview-box {
+  background: #ffffff;
+  border: 1px solid rgba(41, 74, 109, 0.12);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+.space-detail-preview-box .sd-description {
+  max-width: 100%;
+  margin: 18px 0 0;
+  color: #65717d;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.75;
+  word-break: break-word;
+}
