@@ -493,6 +493,82 @@ export default function PartnerOnboarding() {
     }
   };
 
+  const renderLivePreview = (inputs) => {
+    const selectedCategory = categories.find(c => c.id === objectType);
+    const selectedSubCategory = selectedCategory?.subcategories?.find(s => s.id === accessType);
+    const displayPriceVal = prices.kunlik || prices.soatlik || prices.oylik || "";
+    
+    return (
+      <div className="onboarding-preview-container">
+        <div className="onboarding-inputs-side">
+          {inputs}
+        </div>
+        <div className="onboarding-preview-side">
+          <span className="onboarding-preview-title">Предпросмотр объявления</span>
+          <div className="variant-card variant-estate" style={{ boxShadow: "none", border: "1px solid rgba(0,0,0,0.06)", display: "block" }}>
+            <div className="variant-media" style={{ aspectRatio: 1.35, position: "relative", overflow: "hidden", borderRadius: "16px" }}>
+              <img
+                src={photos.length > 0 ? photos[0].url : "/partner-parameters.jpg"}
+                alt="Preview Space"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <span className="variant-pill">Предпросмотр</span>
+            </div>
+            <div className="variant-body" style={{ padding: "20px 0" }}>
+              <div className="variant-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#1e293b", margin: 0, textAlign: "left" }}>
+                  {spaceTitle || "Название вашего пространства"}
+                </h3>
+                <div className="variant-price-block" style={{ textAlign: "right" }}>
+                  <strong style={{ fontSize: "18px", color: "var(--orange)", fontWeight: 800, display: "block" }}>
+                    {displayPriceVal ? `${displayPriceVal} UZS` : "Цена не указана"}
+                  </strong>
+                  <span className="variant-price-label">
+                    {prices.kunlik ? "в день" : prices.soatlik ? "в час" : prices.oylik ? "в месяц" : ""}
+                  </span>
+                </div>
+              </div>
+              <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0", textAlign: "left" }}>
+                {address || "Адрес еще не выбран на карте"}
+              </p>
+              
+              {(descRu || descUz || descEn) && (
+                <p style={{
+                  color: "#475569",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  margin: "0 0 16px 0",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  textAlign: "left"
+                }}>
+                  {activeDescTab === "ru" ? descRu : activeDescTab === "uz" ? descUz : descEn}
+                </p>
+              )}
+
+              <div className="variant-spec-row" style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#475569", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                <span className="variant-spec">
+                  👤 {capacity || 0} чел
+                </span>
+                <span className="variant-spec">
+                  📐 {area || 0} м²
+                </span>
+                {selectedSubCategory && (
+                  <span className="variant-spec">
+                    🏢 {selectedSubCategory.name_ru || selectedSubCategory.name}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="partner-onboarding-page">
       <Header />
@@ -619,8 +695,8 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {step === 5 && (
-          <div className="text-detail-layout" style={{maxWidth: 700, margin: '0 auto', paddingBottom: 40}}>
+        {step === 5 && renderLivePreview(
+          <div className="text-detail-layout" style={{paddingBottom: 40}}>
             <div className="details-section-head">
               <h1>Придумайте, как будет называться дом</h1>
               <p style={{fontSize: 16, color: '#64748b'}}>Краткое название — то, что нужно. Не беспокойтесь, вы всегда сможете отредактировать его.</p>
@@ -643,8 +719,8 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {step === 6 && (
-          <div className="text-detail-layout" style={{maxWidth: 700, margin: '0 auto', paddingBottom: 40}}>
+        {step === 6 && renderLivePreview(
+          <div className="text-detail-layout" style={{paddingBottom: 40}}>
             <div className="details-section-head">
               <h1>Составьте описание</h1>
               <p style={{fontSize: 16, color: '#64748b'}}>Расскажите, что делает ваше жилье особенным.</p>
