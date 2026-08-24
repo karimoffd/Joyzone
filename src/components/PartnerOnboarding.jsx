@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import axios from "axios";
 import logoImage from "../assets/img/logoLight.png";
 import "./PartnerOnboarding.css";
+import "./CardVariants.css";
 
 const iconAliases = {
   OF: "building",
@@ -61,12 +62,29 @@ function Icon({ name }) {
   );
 }
 
-function Header() {
+function Header({ profile }) {
   return (
     <header className="partner-onboarding-header">
       <a href="#home" className="partner-onboarding-logo" aria-label="Joyzone bosh sahifa">
         <img src={logoImage} alt="Joyzone" />
       </a>
+      
+      {profile && (
+        <div 
+          onClick={() => { window.location.hash = "#host-tariffs"; }}
+          className="header-tariff-badge-clickable"
+          title="Смотреть список тарифов"
+        >
+          <span>
+            Тариф: <strong className="tariff-name">{profile.tariff_details ? (profile.tariff_details.name_ru || profile.tariff_details.name) : "Standard (Базовый)"}</strong>
+          </span>
+          <span className="header-tariff-badge-divider" />
+          <span>
+            Лимит мест: <strong className="tariff-limit">{profile.tariff_details ? profile.tariff_details.max_places : 1}</strong>
+          </span>
+        </div>
+      )}
+
       <div className="partner-onboarding-actions">
         <a href="#home">Есть вопросы?</a>
         <a href="#home">Выйти</a>
@@ -611,22 +629,7 @@ export default function PartnerOnboarding() {
 
   return (
     <main className="partner-onboarding-page">
-      <Header />
-      {profile && (
-        <div 
-          className="onboarding-tariff-banner" 
-          onClick={() => { window.location.hash = "#host-tariffs"; }}
-          style={{ cursor: 'pointer' }}
-          title="Смотреть список тарифов"
-        >
-          <span className="onboarding-tariff-banner-name">
-            Тариф: <strong>{profile.tariff_details ? (profile.tariff_details.name_ru || profile.tariff_details.name) : "Standard (Базовый)"}</strong>
-          </span>
-          <span className="onboarding-tariff-banner-limit">
-            Лимит мест: <strong>{profile.tariff_details ? profile.tariff_details.max_places : 1}</strong>
-          </span>
-        </div>
-      )}
+      <Header profile={profile} />
       <section ref={screenRef} className={`partner-onboarding-screen screen-${step}`}>
         {step === 0 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', padding: '100px 20px', gap: 60}}>
