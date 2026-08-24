@@ -497,6 +497,7 @@ export default function PartnerOnboarding() {
     const selectedCategory = categories.find(c => c.id === objectType);
     const selectedSubCategory = selectedCategory?.subcategories?.find(s => s.id === accessType);
     const displayPriceVal = prices.kunlik || prices.soatlik || prices.oylik || "";
+    const isDescriptionStep = step === 7;
     
     return (
       <div className="onboarding-preview-container">
@@ -504,66 +505,74 @@ export default function PartnerOnboarding() {
           {inputs}
         </div>
         <div className="onboarding-preview-side">
-          <span className="onboarding-preview-title">Предпросмотр объявления</span>
-          <div className="variant-card variant-estate" style={{ boxShadow: "none", border: "1px solid rgba(0,0,0,0.06)", display: "block" }}>
-            <div className="variant-media" style={{ aspectRatio: 1.35, position: "relative", overflow: "hidden", borderRadius: "16px" }}>
-              <img
-                src={photos.length > 0 ? photos[0].url : "/partner-parameters.jpg"}
-                alt="Preview Space"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-              <span className="variant-pill">Предпросмотр</span>
-            </div>
-            <div className="variant-body" style={{ padding: "20px 0" }}>
-              <div className="variant-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#1e293b", margin: 0, textAlign: "left" }}>
-                  {spaceTitle || "Название вашего пространства"}
-                </h3>
-                <div className="variant-price-block" style={{ textAlign: "right" }}>
-                  <strong style={{ fontSize: "18px", color: "var(--orange)", fontWeight: 800, display: "block" }}>
-                    {displayPriceVal ? `${displayPriceVal} UZS` : "Цена не указана"}
-                  </strong>
-                  <span className="variant-price-label">
-                    {prices.kunlik ? "в день" : prices.soatlik ? "в час" : prices.oylik ? "в месяц" : ""}
-                  </span>
-                </div>
-              </div>
-              <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0", textAlign: "left" }}>
-                {address || "Адрес еще не выбран на карте"}
+          {isDescriptionStep ? (
+            <div className="space-detail-preview-box" style={{ width: "100%", textAlign: "left", fontFamily: "'Inter', sans-serif" }}>
+              <span className="onboarding-preview-title" style={{ marginBottom: "20px" }}>Экран описания (Space Details)</span>
+              <h1 style={{ fontSize: "32px", fontWeight: 850, color: "#12283f", margin: "0 0 12px 0", lineHeight: "1.2" }}>
+                {spaceTitle || "Название вашего пространства"}
+              </h1>
+              <p style={{ color: "#65717d", fontSize: "14px", fontWeight: 600, margin: "0 0 24px 0" }}>
+                📍 {address || "Адрес еще не выбран на карте"}
               </p>
-              
-              {(descRu || descUz || descEn) && (
-                <p style={{
-                  color: "#475569",
-                  fontSize: "13px",
-                  lineHeight: "1.5",
-                  margin: "0 0 16px 0",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 3,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  textAlign: "left"
-                }}>
-                  {activeDescTab === "ru" ? descRu : activeDescTab === "uz" ? descUz : descEn}
-                </p>
-              )}
-
-              <div className="variant-spec-row" style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#475569", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
-                <span className="variant-spec">
-                  👤 {capacity || 0} чел
-                </span>
-                <span className="variant-spec">
-                  📐 {area || 0} м²
-                </span>
-                {selectedSubCategory && (
-                  <span className="variant-spec">
-                    🏢 {selectedSubCategory.name_ru || selectedSubCategory.name}
-                  </span>
-                )}
-              </div>
+              <hr style={{ border: "none", borderTop: "1px solid #eef2f6", margin: "24px 0" }} />
+              <h3 style={{ fontSize: "20px", fontWeight: 900, color: "#12283f", margin: "0 0 12px 0" }}>
+                {activeDescTab === "uz" ? "Tavsif" : activeDescTab === "en" ? "Description" : "Описание"}
+              </h3>
+              <p className="sd-description" style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                {(activeDescTab === "ru" ? descRu : activeDescTab === "uz" ? descUz : descEn) || 
+                 "Здесь будет описание вашего потрясающего пространства. Расскажите резидентам о преимуществах, оборудовании и атмосфере."}
+              </p>
             </div>
-          </div>
+          ) : (
+            <div style={{ width: "100%" }}>
+              <span className="onboarding-preview-title">Предпросмотр в поиске (Search Card)</span>
+              <article className="variant-card variant-estate" style={{ width: "100%", transform: "none", animation: "none", transition: "none", display: "block", margin: 0 }}>
+                <div className="variant-media" style={{ aspectRatio: 1.35 }}>
+                  <img
+                    src={photos.length > 0 ? photos[0].url : "/partner-parameters.jpg"}
+                    alt="Preview"
+                    className="is-active"
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <span className="property-slide-glow" />
+                  <span className="variant-pill">Предпросмотр</span>
+                </div>
+                <div className="variant-body" style={{ padding: "20px 0" }}>
+                  <div className="variant-title-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#1e293b", margin: 0, textAlign: "left" }}>
+                      {spaceTitle || "Название вашего пространства"}
+                    </h3>
+                    <div className="variant-price-block" style={{ textAlign: "right" }}>
+                      <strong style={{ fontSize: "18px", color: "var(--orange)", fontWeight: 800, display: "block" }}>
+                        {displayPriceVal ? `${new Intl.NumberFormat("ru-RU").format(displayPriceVal.replace(/\D/g, ''))} UZS` : "Цена не указана"}
+                      </strong>
+                      <span className="variant-price-label">
+                        {prices.kunlik ? "kunlik" : prices.soatlik ? "soatlik" : prices.oylik ? "oylik" : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 12px 0", textAlign: "left" }}>
+                    {address || "Адрес еще не выбран на карте"}
+                  </p>
+                  
+                  <div className="variant-spec-row" style={{ display: "flex", gap: "16px", fontSize: "13px", color: "#475569", borderTop: "1px solid #f1f5f9", paddingTop: "12px" }}>
+                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+                      {capacity || 0} kishi
+                    </span>
+                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M7 10V5a3 3 0 0 1 6 0v1M5 10h16v2a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-2ZM8 21h8" /></svg>
+                      {selectedSubCategory ? (selectedSubCategory.name_ru || selectedSubCategory.name) : "Тип"}
+                    </span>
+                    <span className="variant-spec" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: "14px", height: "14px" }}><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8" /></svg>
+                      {area || 0} m2
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -695,7 +704,7 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {step === 5 && renderLivePreview(
+        {step === 6 && renderLivePreview(
           <div className="text-detail-layout" style={{paddingBottom: 40}}>
             <div className="details-section-head">
               <h1>Придумайте, как будет называться дом</h1>
@@ -719,7 +728,7 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {step === 6 && renderLivePreview(
+        {step === 7 && renderLivePreview(
           <div className="text-detail-layout" style={{paddingBottom: 40}}>
             <div className="details-section-head">
               <h1>Составьте описание</h1>
@@ -873,7 +882,7 @@ export default function PartnerOnboarding() {
           );
         })()}
 
-        {step === 7 && (
+        {step === 8 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', gap: 60, paddingBottom: 40}}>
             <div style={{textAlign: 'left'}}>
               <div className="details-section-head">
@@ -959,7 +968,7 @@ export default function PartnerOnboarding() {
             </div>
           </div>
         )}
-        {step === 8 && (
+        {step === 9 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'start', maxWidth: 1200, margin: '0 auto', gap: 60, paddingBottom: 40}}>
             <div style={{textAlign: 'left', position: 'sticky', top: 120}}>
               <div className="details-section-head">
@@ -1092,7 +1101,7 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-        {step === 9 && (
+        {step === 5 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'start', maxWidth: 1200, margin: '0 auto', gap: 60, paddingBottom: 40}}>
             <div style={{textAlign: 'left', position: 'sticky', top: 120}}>
               <div className="details-section-head">
