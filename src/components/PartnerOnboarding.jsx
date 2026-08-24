@@ -1064,14 +1064,22 @@ export default function PartnerOnboarding() {
           </div>
         )}
 
-                {step === 11 && (
-          <div className="pricing-layout" style={{maxWidth: 700, margin: '0 auto', paddingBottom: 40}}>
-             <div className="details-section-head">
-              <p className="partner-eyebrow">Цены</p>
-              <h1>Укажите стоимость</h1>
-              <p style={{fontSize: 16, color: '#64748b'}}>Оставьте пустым, если формат не поддерживается.</p>
+        {step === 11 && (
+          <div style={{display: 'grid', gridTemplateColumns: '1.2fr 1fr', alignItems: 'start', maxWidth: 1200, margin: '0 auto', gap: 60, paddingBottom: 40}}>
+            <div style={{textAlign: 'left', position: 'sticky', top: 120}}>
+              <div className="details-section-head">
+                <p className="partner-eyebrow">Цены</p>
+                <h1>Укажите стоимость</h1>
+                <p style={{fontSize: 16, color: '#64748b', marginTop: 12, lineHeight: 1.5}}>
+                  Выберите один или несколько удобных для вас форматов оплаты (почасовая, посуточная, за неделю или месяц) и укажите стоимость. 
+                </p>
+                <p style={{fontSize: 15, color: '#f46f36', fontWeight: 600, marginTop: 16, display: 'flex', alignItems: 'center', gap: 8}}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                  Достаточно заполнить хотя бы один формат оплаты!
+                </p>
+              </div>
             </div>
-            <div style={{display: 'flex', flexDirection: 'column', gap: 20, marginTop: 32}}>
+            <div style={{display: 'flex', flexDirection: 'column', gap: 20, width: '100%'}}>
                {[
                  { id: 'soatlik', label: 'Почасовая (Soatlik)', placeholder: '50 000' },
                  { id: 'kunlik', label: 'За день (Kunlik)', placeholder: '250 000' },
