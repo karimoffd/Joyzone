@@ -382,9 +382,9 @@ export default function PartnerOnboarding() {
     if (step === 2) return !!accessType;
     if (step === 3) return addressConfirmed && address.trim().length > 0;
     if (step === 4) return addressDetails.street.trim().length > 0;
-    if (step === 5) return spaceTitle.trim().length > 0;
-    if (step === 6) return descRu.trim().length > 0 && descUz.trim().length > 0 && descEn.trim().length > 0;
-    if (step === 9) return photos.length >= 4;
+    if (step === 5) return photos.length >= 1;
+    if (step === 6) return spaceTitle.trim().length > 0;
+    if (step === 7) return descRu.trim().length > 0 && descUz.trim().length > 0 && descEn.trim().length > 0;
     if (step === 11) {
       return ['soatlik', 'kunlik', 'haftalik', 'oylik'].some(key => enabledPrices[key] && prices[key].trim() !== "");
     }
