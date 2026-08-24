@@ -613,12 +613,17 @@ export default function PartnerOnboarding() {
     <main className="partner-onboarding-page">
       <Header />
       {profile && (
-        <div className="onboarding-tariff-banner">
+        <div 
+          className="onboarding-tariff-banner" 
+          onClick={() => { window.location.hash = "#host-tariffs"; }}
+          style={{ cursor: 'pointer' }}
+          title="Смотреть список тарифов"
+        >
           <span className="onboarding-tariff-banner-name">
-            Вы создаёте объявление по тарифу: <strong>{profile.tariff_details ? (profile.tariff_details.name_ru || profile.tariff_details.name) : "Standard (Базовый)"}</strong>
+            Тариф: <strong>{profile.tariff_details ? (profile.tariff_details.name_ru || profile.tariff_details.name) : "Standard (Базовый)"}</strong>
           </span>
           <span className="onboarding-tariff-banner-limit">
-            Лимит мест на аккаунте: <strong>{profile.tariff_details ? profile.tariff_details.max_places : 1}</strong>
+            Лимит мест: <strong>{profile.tariff_details ? profile.tariff_details.max_places : 1}</strong>
           </span>
         </div>
       )}
