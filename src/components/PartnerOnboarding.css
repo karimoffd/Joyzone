@@ -2856,6 +2856,11 @@
   font-weight: 800;
   color: #0f172a;
 }
+.header-tariff-badge-clickable .tariff-name {
+  font-weight: 500;
+  color: #e46630;
+  font-size: 12.5px;
+}
 .header-tariff-badge-clickable .header-tariff-badge-divider {
   width: 1px;
   height: 12px;
