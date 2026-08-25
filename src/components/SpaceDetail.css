@@ -1096,7 +1096,7 @@
 
 .sd-calendar-stage {
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   min-height: 292px;
 }
 
