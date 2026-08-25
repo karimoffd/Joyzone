@@ -683,12 +683,6 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const monthNames = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
 
   const [reviews, setReviews] = useState(reviewList);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newReviewName, setNewReviewName] = useState("");
-  const [newReviewRole, setNewReviewRole] = useState("");
-  const [newReviewRating, setNewReviewRating] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [newReviewText, setNewReviewText] = useState("");
   const [helpfulCounts, setHelpfulCounts] = useState({});
 
   // Fetch reviews from backend API on mount or space change
@@ -715,51 +709,6 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       ...prev,
       [name]: (prev[name] || 0) + 1
     }));
-  };
-
-  const handleAddReview = async (e) => {
-    e.preventDefault();
-    if (!newReviewName.trim() || !newReviewText.trim()) return;
-
-    const spaceId = space.id || space._id || "648312e0f40a1b2c3d4e5f67";
-    const spaceName = space.title || space.name || "Focus Hub Coworking";
-
-    const newReviewData = {
-      space_id: spaceId,
-      space_name: spaceName,
-      name: newReviewName.trim(),
-      role: newReviewRole.trim() || "Mehmon",
-      rating: newReviewRating,
-      text: newReviewText.trim()
-    };
-
-    try {
-      const res = await axios.post("http://localhost:8000/api/reviews/", newReviewData, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}` }
-      });
-      if (res.status === 201) {
-        setReviews(prev => [res.data, ...prev]);
-      }
-    } catch (err) {
-      console.error("Fikr yuborishda xatolik, local simulyatsiya:", err);
-      const simulatedReview = {
-        space_id: spaceId,
-        space_name: spaceName,
-        name: newReviewName.trim(),
-        role: newReviewRole.trim() || "Mehmon",
-        rating: newReviewRating,
-        text: newReviewText.trim(),
-        date: "Hozirgina"
-      };
-      setReviews(prev => [simulatedReview, ...prev]);
-    }
-
-    // Reset form
-    setNewReviewName("");
-    setNewReviewRole("");
-    setNewReviewRating(5);
-    setNewReviewText("");
-    setShowReviewForm(false);
   };
 
   const averageRating = useMemo(() => {
@@ -1079,83 +1028,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 <p>Sharhlar ({reviews.length})</p>
                 <h2>Mehmonlar fikri</h2>
               </div>
-              <button 
-                type="button" 
-                className={`sd-write-review-btn ${showReviewForm ? 'is-active' : ''}`}
-                onClick={() => setShowReviewForm(!showReviewForm)}
-              >
-                {showReviewForm ? "Yopish" : "Fikr qoldirish"}
-              </button>
             </div>
-
-            {showReviewForm && (
-              <form onSubmit={handleAddReview} className="sd-review-form sd-animate">
-                <h3>O'z fikringizni yozib qoldiring</h3>
-                <div className="sd-form-grid">
-                  <label className="sd-form-label">
-                    <span>Ismingiz *</span>
-                    <input 
-                      type="text" 
-                      required 
-                      placeholder="Masalan: Jamshid" 
-                      value={newReviewName} 
-                      onChange={(e) => setNewReviewName(e.target.value)} 
-                    />
-                  </label>
-                  <label className="sd-form-label">
-                    <span>Kasbingiz yoki Statusingiz</span>
-                    <input 
-                      type="text" 
-                      placeholder="Masalan: Dizayner" 
-                      value={newReviewRole} 
-                      onChange={(e) => setNewReviewRole(e.target.value)} 
-                    />
-                  </label>
-                </div>
-
-                <div className="sd-rating-select-row">
-                  <span>Baho bering:</span>
-                  <div className="sd-rating-stars-input">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        onClick={() => setNewReviewRating(star)}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        aria-label={`${star} yulduz`}
-                        className="sd-star-input-btn"
-                      >
-                        <svg 
-                          viewBox="0 0 24 24" 
-                          fill={(hoverRating || newReviewRating) >= star ? "#ffbd22" : "none"} 
-                          stroke="#ffbd22" 
-                          strokeWidth="2"
-                          style={{ width: "26px", height: "26px", transition: "transform 0.15s ease, fill 0.15s ease" }}
-                        >
-                          <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9 6.6 19.8l1-6.1-4.4-4.3 6.1-.9L12 3Z" />
-                        </svg>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <label className="sd-form-label">
-                  <span>Fikringiz *</span>
-                  <textarea 
-                    required 
-                    rows="4" 
-                    placeholder="Joy sizga qanday yoqdi? Sharoitlar va aloqa sifati haqida yozing..." 
-                    value={newReviewText} 
-                    onChange={(e) => setNewReviewText(e.target.value)}
-                  />
-                </label>
-
-                <button type="submit" className="sd-submit-review-btn">
-                  Yuborish
-                </button>
-              </form>
-            )}
 
             <div className="sd-reviews-panel">
               <aside className="sd-review-score">
