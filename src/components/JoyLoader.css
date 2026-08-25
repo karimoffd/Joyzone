@@ -94,27 +94,10 @@
   align-items: center;
 }
 
-.joy-loader-brand {
-  position: relative;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  color: #f6f1ee;
-  font-size: clamp(30px, 4vw, 46px);
-  font-weight: 900;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow: 0 18px 46px rgba(7, 20, 35, 0.34);
-}
-
-.joy-loader-pin {
-  display: inline-flex;
-  width: 24px;
-  height: 31px;
-  margin: 0 2px;
-  border: 6px solid #e46630;
-  border-radius: 999px 999px 999px 0;
-  transform: rotate(-45deg);
+.joy-loader-logo {
+  height: clamp(34px, 5.2vw, 54px);
+  width: auto;
+  filter: brightness(0) invert(1) drop-shadow(0 8px 24px rgba(7, 20, 35, 0.34));
 }
 
 .joy-loader-copy {

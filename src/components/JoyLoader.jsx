@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { gsap } from "gsap";
+import logoImage from "../assets/img/Logo.png";
 import "./JoyLoader.css";
 
 export default function JoyLoader({ active }) {
@@ -31,11 +32,7 @@ export default function JoyLoader({ active }) {
         <span className="loader-line loader-line-6" />
       </div>
       <div className="joy-loader-content">
-        <div className="joy-loader-brand">
-          <span>JOY</span>
-          <span className="joy-loader-pin" />
-          <span>ZONE</span>
-        </div>
+        <img src={logoImage} alt="Joyzone" className="joy-loader-logo" />
         <div className="joy-loader-copy">Joylar tayyorlanmoqda</div>
         <div className="joy-loader-progress">
           <span />
