@@ -596,7 +596,7 @@ export default function FilterPage({ userState, setUserState }) {
   }, []);
 
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("list");
+  const [viewMode, setViewMode] = useState("grid");
   const [sortOption, setSortOption] = useState("Relevans");
   
   const [selectedCategory, setSelectedCategory] = useState("");
