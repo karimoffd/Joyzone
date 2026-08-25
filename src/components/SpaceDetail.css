@@ -15,7 +15,6 @@
 }
 
 .sd-hero,
-.sd-content,
 .sd-similar {
   width: 100%;
   margin-inline: auto;
@@ -334,6 +333,8 @@
 }
 
 .sd-content {
+  width: 100%;
+  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
   gap: clamp(26px, 4vw, 58px);
