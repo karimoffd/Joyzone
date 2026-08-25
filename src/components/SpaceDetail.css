@@ -1096,7 +1096,6 @@
 
 .sd-calendar-stage {
   position: relative;
-  overflow: hidden;
   min-height: 292px;
 }
 
@@ -1106,6 +1105,7 @@
   gap: 12px;
   width: calc(200% + 12px);
   transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 
 .sd-calendar-stage:hover .sd-calendar-pair {
@@ -1119,6 +1119,7 @@
   padding: 12px;
   box-shadow: 0 14px 34px rgba(18, 40, 63, 0.05);
   transition: opacity 0.42s ease, visibility 0.42s ease;
+  pointer-events: auto;
 }
 
 .sd-calendar-card.is-next {
