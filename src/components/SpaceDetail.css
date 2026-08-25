@@ -1098,6 +1098,8 @@
   position: relative;
   overflow: hidden;
   min-height: 292px;
+  margin-inline: -22px;
+  padding: 0 22px 20px;
 }
 
 .sd-calendar-pair {
