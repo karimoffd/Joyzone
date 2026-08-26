@@ -20,15 +20,25 @@ export default function FloatingBookingWidget({ activeBooking }) {
 
   if (!activeBooking) return null;
 
-  const formattedDate = new Date(activeBooking.timestamp).toLocaleDateString("uz-UZ", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  // Clean, cross-browser manual date format to prevent formatting letters like "M"
+  const formattedDate = (() => {
+    try {
+      const d = new Date(activeBooking.timestamp || Date.now());
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch (e) {
+      return "Hozir";
+    }
+  })();
 
-  const formattedTotal = new Intl.NumberFormat('ru-RU').format(activeBooking.total || 0) + " UZS";
+  // Resolve defaults for missing fields (fallback for older local storage items)
+  const totalVal = activeBooking.total || 250000; // default fallback price
+  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + " UZS";
+  const guestsCount = activeBooking.guests || 1;
+  const startDateVal = activeBooking.startDate || new Date().toISOString().split("T")[0];
+  const durationVal = activeBooking.duration || "1 kun";
+  const methodVal = activeBooking.method || "card";
+
   const spaceItem = propertyCards.find(item => item.title === activeBooking.spaceTitle) || propertyCards[0];
 
   return (
@@ -75,19 +85,19 @@ export default function FloatingBookingWidget({ activeBooking }) {
             </div>
             <div className="fbw-details-item">
               <span>Sana:</span>
-              <strong>{activeBooking.startDate}</strong>
+              <strong>{startDateVal}</strong>
             </div>
             <div className="fbw-details-item">
               <span>Ijara turi:</span>
-              <strong>{activeBooking.duration === "soatlik" ? "Soatbay" : activeBooking.duration}</strong>
+              <strong>{durationVal === "soatlik" ? "Soatbay" : durationVal}</strong>
             </div>
             <div className="fbw-details-item">
               <span>Mehmonlar:</span>
-              <strong>{activeBooking.guests} kishi</strong>
+              <strong>{guestsCount} kishi</strong>
             </div>
             <div className="fbw-details-item">
               <span>To'lov usuli:</span>
-              <strong style={{ textTransform: "capitalize" }}>{activeBooking.method === "card" ? "Karta" : activeBooking.method}</strong>
+              <strong style={{ textTransform: "capitalize" }}>{methodVal === "card" ? "Karta" : methodVal}</strong>
             </div>
             <div className="fbw-details-item">
               <span>Holati:</span>

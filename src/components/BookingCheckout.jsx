@@ -82,7 +82,12 @@ export default function BookingCheckout({ route, userState, setUserState }) {
               ...userState,
               activeBooking: {
                 spaceTitle: space.title,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                method: method,
+                total: totalPayable,
+                duration: pendingBooking?.duration || "1 kun",
+                guests: pendingBooking?.guests || 1,
+                startDate: pendingBooking?.startDate || new Date().toISOString().split("T")[0]
               }
             });
             localStorage.removeItem("joyzone-pending-booking");

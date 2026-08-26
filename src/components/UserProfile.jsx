@@ -407,16 +407,15 @@ function UserProfile({ userState, setUserState }) {
   const activeBookingObj = userState?.activeBooking ? {
     title: userState.activeBooking.spaceTitle,
     type: "Kovorking / Ofis",
-    date: new Date(userState.activeBooking.timestamp).toLocaleDateString("uz-UZ", { day: "numeric", month: "long", year: "numeric" }),
-    time: userState.activeBooking.duration === "soatlik" ? "Band qilingan soatlar" : "10:00 - 18:00",
+    date: userState.activeBooking.startDate || new Date(userState.activeBooking.timestamp || Date.now()).toLocaleDateString("uz-UZ", { day: "numeric", month: "long", year: "numeric" }),
+    time: (userState.activeBooking.duration || "1 kun") === "soatlik" ? "Band qilingan soatlar" : (userState.activeBooking.duration || "1 kun"),
     location: "Toshkent",
     status: "Kutishda (Pending)",
     href: `#space-${slugify(userState.activeBooking.spaceTitle)}`
   } : null;
 
-  const formattedTotal = userState?.activeBooking?.total 
-    ? new Intl.NumberFormat('ru-RU').format(userState.activeBooking.total) + " UZS"
-    : "0 UZS";
+  const totalVal = userState?.activeBooking?.total || 250000;
+  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + " UZS";
 
   const displayedBookings = activeBookingObj ? [activeBookingObj, ...bookings] : bookings;
 
