@@ -36,7 +36,7 @@ class TariffPlanCreateView(generics.CreateAPIView):
 
 
 class SubscribeToTariffView(APIView):
-    """Partner requests a tariff subscription"""
+    """Partner requests a tariff subscription (auto-activates immediately)"""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
@@ -51,24 +51,26 @@ class SubscribeToTariffView(APIView):
 
         user = request.user
 
-        # Create subscription record
+        # Auto-activate immediately for all tariffs!
+        start_date = timezone.now()
         end_date = timezone.now() + timedelta(days=tariff.duration_days) if not tariff.is_free else None
+
         sub = TariffSubscription.objects.create(
             partner=user,
             tariff=tariff,
-            status='active' if tariff.is_free else 'pending',
+            status='active',
+            start_date=start_date,
             end_date=end_date,
         )
 
-        # If free tariff, activate immediately
-        if tariff.is_free:
-            user.tariff = tariff
-            user.tariff_expires_at = None
-            user.role = 'partner'
-            user.save()
+        # Update user's tariff details
+        user.tariff = tariff
+        user.tariff_expires_at = end_date
+        user.role = 'partner'
+        user.save()
 
         return Response({
-            'detail': 'Subscribed successfully' if tariff.is_free else 'Subscription request sent. Admin will activate it shortly.',
+            'detail': 'Subscribed and activated successfully',
             'subscription_id': sub.id,
             'status': sub.status,
             'tariff': TariffPlanSerializer(tariff).data,

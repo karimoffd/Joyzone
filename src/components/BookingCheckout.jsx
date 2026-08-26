@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { gsap } from "gsap";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { propertyCards } from "../data/content.js";
+import PaymentModal from "./PaymentModal.jsx";
 import "./BookingCheckout.css";
 
 function slugify(text) {
@@ -19,6 +20,19 @@ function resolveSpace(route) {
 
 export default function BookingCheckout({ route, userState, setUserState }) {
   const space = resolveSpace(route);
+  const [pendingBooking, setPendingBooking] = useState(null);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("joyzone-pending-booking");
+      if (saved) {
+        setPendingBooking(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   useEffect(() => {
     // Initial entrance animations
@@ -51,10 +65,21 @@ export default function BookingCheckout({ route, userState, setUserState }) {
             timestamp: Date.now()
           }
         });
+        // Clear pending booking
+        localStorage.removeItem("joyzone-pending-booking");
         // Redirect to profile
         window.location.hash = "#profile";
       }
     });
+  };
+
+  const getPayAmount = () => {
+    if (!pendingBooking) return space.price;
+    const t = pendingBooking.total;
+    if (typeof t === 'number') {
+      return new Intl.NumberFormat('ru-RU').format(Math.round(t)) + " UZS";
+    }
+    return t;
   };
 
   return (
@@ -85,25 +110,45 @@ export default function BookingCheckout({ route, userState, setUserState }) {
 
           <div className="bc-summary-details">
             <div className="bc-summary-row">
-              <span>Kunlik narx</span>
-              <strong>{space.price}</strong>
+              <span>Muddati</span>
+              <strong>
+                {pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}
+              </strong>
             </div>
             <div className="bc-summary-row">
               <span>Mijoz</span>
-              <strong>Tasdiqlangan foydalanuvchi</strong>
+              <strong>{userState.name || 'Tasdiqlangan foydalanuvchi'}</strong>
             </div>
+            <div className="bc-summary-row">
+              <span>Mehmonlar</span>
+              <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
+            </div>
+            {pendingBooking?.discount > 0 && (
+              <div className="bc-summary-row" style={{ color: "#22c55e" }}>
+                <span>Chegirma {pendingBooking.discountName ? `(${pendingBooking.discountName})` : ''}</span>
+                <strong>-{typeof pendingBooking.discount === 'number' ? new Intl.NumberFormat('ru-RU').format(pendingBooking.discount) + " UZS" : pendingBooking.discount}</strong>
+              </div>
+            )}
             <div className="bc-summary-divider" />
             <div className="bc-summary-total">
-              <span>To'lov (joyida qabul qilinadi)</span>
-              <strong>{space.price}</strong>
+              <span>To'lov summasi</span>
+              <strong>{getPayAmount()}</strong>
             </div>
           </div>
 
-          <button type="button" className="bc-confirm-btn btn-shine" onClick={handleConfirm}>
+          <button type="button" className="bc-confirm-btn btn-shine" onClick={() => setIsPaymentOpen(true)}>
             Tasdiqlash
           </button>
         </div>
       </section>
+
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        amount={getPayAmount()}
+        title="Joy ijarasi bronlash"
+        onSuccess={handleConfirm}
+      />
     </main>
   );
 }

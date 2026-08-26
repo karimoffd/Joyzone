@@ -6,6 +6,7 @@ import { LanguageContext } from "../App.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
+import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
 
 const pageMeta = {
@@ -564,6 +565,7 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
   const [tariffs, setTariffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(null);
+  const [paymentTarget, setPaymentTarget] = useState(null);
   const { lang } = useContext(LanguageContext);
 
   const fetchTariffs = async () => {
@@ -581,7 +583,12 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
     fetchTariffs();
   }, []);
 
-  const handleSubscribe = async (tariff) => {
+  const handleSubscribe = async (tariff, skipPayment = false) => {
+    if (!tariff.is_free && !skipPayment) {
+      setPaymentTarget(tariff);
+      return;
+    }
+
     const token = localStorage.getItem("joyzone-access");
     if (!token) return;
     setSubmitting(tariff.id);
@@ -594,7 +601,7 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
       showToast(
         tariff.is_free 
           ? `Тариф «${tariff.name_ru || tariff.name}» успешно активирован!` 
-          : "Заявка отправлена! Администратор активирует её в ближайшее время.",
+          : `Тариф «${tariff.name_ru || tariff.name}» успешно оплачен и активирован!`,
         "success"
       );
       fetchProfile();
@@ -741,6 +748,20 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
             );
           })}
         </div>
+      )}
+
+      {paymentTarget && (
+        <PaymentModal
+          isOpen={!!paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          amount={formatPrice(paymentTarget)}
+          title="Покупка тарифа"
+          onSuccess={() => {
+            const t = paymentTarget;
+            setPaymentTarget(null);
+            handleSubscribe(t, true);
+          }}
+        />
       )}
     </section>
   );

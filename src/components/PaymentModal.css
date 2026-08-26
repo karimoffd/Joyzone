@@ -1,0 +1,322 @@
+.pm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.pm-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(8, 25, 41, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.pm-modal {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(8, 25, 41, 0.16);
+  padding: 32px;
+  overflow: hidden;
+}
+
+.pm-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.pm-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.pm-header {
+  margin-bottom: 24px;
+}
+
+.pm-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.pm-header p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Credit Card Mockup */
+.pm-card-preview {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  padding: 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.15);
+  margin-bottom: 24px;
+  transition: all 0.3s;
+}
+
+.pm-card-preview.type-uzcard {
+  background: linear-gradient(135deg, #1e40af 0%, #1e1b4b 100%);
+}
+
+.pm-card-preview.type-humo {
+  background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+}
+
+.pm-card-preview.type-visa {
+  background: linear-gradient(135deg, #1d4ed8 0%, #172554 100%);
+}
+
+.pm-card-preview.type-mastercard {
+  background: linear-gradient(135deg, #ea580c 0%, #7c2d12 100%);
+}
+
+.pm-card-chip {
+  width: 42px;
+  height: 32px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border-radius: 6px;
+  position: relative;
+}
+
+.pm-card-logo-area {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+.card-brand-logo {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.uzcard-logo {
+  color: #38bdf8;
+}
+
+.humo-logo {
+  color: #34d399;
+}
+
+.visa-logo {
+  color: #facc15;
+  font-style: italic;
+}
+
+.mc-logo {
+  color: #fb923c;
+}
+
+.pm-card-number {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  margin: 16px 0;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.pm-card-footer {
+  display: flex;
+  justify-content: space-between;
+}
+
+.pm-card-holder span, .pm-card-expiry span {
+  display: block;
+  font-size: 9px;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.pm-card-holder strong, .pm-card-expiry strong {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Inputs Form */
+.pm-inputs-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.pm-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pm-input-group label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pm-input-group input {
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 14px;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.25s;
+}
+
+.pm-input-group input:focus {
+  border-color: #e46630;
+  box-shadow: 0 0 0 3px rgba(228, 102, 48, 0.12);
+}
+
+.pm-row {
+  display: flex;
+  gap: 16px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* Action Area */
+.pm-pay-action {
+  border-top: 1.5px dashed #e2e8f0;
+  padding-top: 20px;
+}
+
+.pm-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.pm-total-row span {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.pm-total-row strong {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pm-pay-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #e46630 0%, #ea580c 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  box-shadow: 0 4px 12px rgba(228, 102, 48, 0.2);
+}
+
+.pm-pay-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(228, 102, 48, 0.3);
+}
+
+/* Loading & Success States */
+.pm-loading-state, .pm-success-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.pm-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f1f5f9;
+  border-top-color: #e46630;
+  border-radius: 50%;
+  animation: pm-spin 0.8s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes pm-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pm-loading-state h3, .pm-success-state h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.pm-loading-state p, .pm-success-state p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.pm-success-circle {
+  width: 64px;
+  height: 64px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+  animation: pm-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.pm-success-circle svg {
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes pm-pop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
