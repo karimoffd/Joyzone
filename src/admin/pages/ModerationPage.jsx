@@ -360,7 +360,7 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
       <div className="mod-modal detail-modal">
         <div className="detail-modal-header">
           <span className="mod-slug-badge" style={{ background: '#e46630', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '4px 10px', borderRadius: '20px' }}>
-            {place.category}
+            {place.category_name} {place.subcategory_name ? ` › ${place.subcategory_name}` : ''}
           </span>
           <button className="btn-close-modal" onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>✕</button>
         </div>
@@ -392,6 +392,14 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
               <h2 className="detail-modal-title">{place.title}</h2>
 
               <div className="detail-modal-grid">
+                <div className="detail-modal-grid-item">
+                  <span className="label">Категория:</span>
+                  <span>{place.category_name}</span>
+                </div>
+                <div className="detail-modal-grid-item">
+                  <span className="label">Подкатегория:</span>
+                  <span>{place.subcategory_name || 'Не указана'}</span>
+                </div>
                 <div className="detail-modal-grid-item">
                   <span className="label">Владелец:</span>
                   <span>{place.owner_info?.first_name ? `${place.owner_info.first_name} ${place.owner_info.last_name}` : (place.owner_name || 'Неизвестно')}</span>
@@ -591,7 +599,8 @@ export default function ModerationPage() {
                 <div className="mod-card-info">
                   <div className="mod-card-title" onClick={() => setDetailTarget(place)}>{place.title}</div>
                   <div className="mod-card-meta-grid">
-                    <div className="meta-item"><span className="meta-label">Категория:</span><span className="meta-val">{place.category}</span></div>
+                    <div className="meta-item"><span className="meta-label">Категория:</span><span className="meta-val">{place.category_name}</span></div>
+                    <div className="meta-item"><span className="meta-label">Подкатегория:</span><span className="meta-val">{place.subcategory_name || 'Не указана'}</span></div>
                     <div className="meta-item"><span className="meta-label">Владелец:</span><span className="meta-val">{place.owner_name || 'Неизвестно'}</span></div>
                     <div className="meta-item"><span className="meta-label">Адрес:</span><span className="meta-val">{place.location}</span></div>
                     <div className="meta-item"><span className="meta-label">Цена:</span><span className="meta-val">{place.price}</span></div>

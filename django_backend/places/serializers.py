@@ -53,6 +53,8 @@ class PlaceSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField()
     moderated_by_name = serializers.SerializerMethodField()
     subcategory_info = SubCategorySerializer(source='subcategory', read_only=True)
+    category_name = serializers.SerializerMethodField()
+    subcategory_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
@@ -68,6 +70,16 @@ class PlaceSerializer(serializers.ModelSerializer):
         if obj.moderated_by:
             return obj.moderated_by.get_full_name() or obj.moderated_by.username
         return None
+
+    def get_category_name(self, obj):
+        if obj.subcategory and obj.subcategory.category:
+            return obj.subcategory.category.name_ru
+        return obj.category
+
+    def get_subcategory_name(self, obj):
+        if obj.subcategory:
+            return obj.subcategory.name_ru
+        return ""
 
     def validate_images(self, value):
         """Limit to max 10 images per place."""
