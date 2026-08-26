@@ -142,11 +142,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
               {/* Phone Input field for apps payments */}
               {method !== 'card' && (
                 <div className="pm-app-inputs" style={{ marginTop: 20 }}>
-                  <div className="pm-provider-mockup">
-                    <span className="pm-provider-badge">{method.toUpperCase()} Pay</span>
-                    <p>To'lov so'rovini qabul qilish uchun telefon raqamingizni kiriting:</p>
-                  </div>
-                  <div className="pm-input-group" style={{ marginTop: 16 }}>
+                  <div className="pm-input-group">
                     <label>Telefon raqam</label>
                     <input type="tel" required value={phone} onChange={handlePhoneChange} placeholder="+998 90 123 45 67" />
                   </div>
@@ -163,7 +159,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
               <h3 className="pm-summary-title">To'lov turi</h3>
               
               {/* Payment Methods selector (moved to the right) */}
-              <div className="pm-methods-selector" style={{ marginBottom: 32 }}>
+              <div className="pm-methods-selector" style={{ marginBottom: 16 }}>
                 <button type="button" className={`pm-method-tab ${method === 'card' ? 'active' : ''}`} onClick={() => setMethod('card')}>
                   💳 Karta
                 </button>
@@ -177,6 +173,13 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                   Uzum
                 </button>
               </div>
+
+              {/* Simple Provider Info Text */}
+              {method !== 'card' && (
+                <div className="pm-provider-text" style={{ fontSize: "13px", color: "#64748b", lineHeight: "1.5", marginBottom: 20 }}>
+                  To'lov so'rovi <strong>{method.toUpperCase()} Pay</strong> orqali kiritilgan telefon raqamiga yuboriladi.
+                </div>
+              )}
 
               <div className="pm-billing-details" style={{ marginTop: "auto" }}>
                 <h3 className="pm-summary-title" style={{ fontSize: "14px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", marginBottom: "16px" }}>To'lov tafsilotlari</h3>
