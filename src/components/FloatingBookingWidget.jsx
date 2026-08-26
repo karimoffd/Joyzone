@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+import { PropertyCard } from "./ListingsSection.jsx";
+import { propertyCards } from "../data/content.js";
 import "./FloatingBookingWidget.css";
 
 export default function FloatingBookingWidget({ activeBooking }) {
@@ -27,6 +29,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
   });
 
   const formattedTotal = new Intl.NumberFormat('ru-RU').format(activeBooking.total || 0) + " UZS";
+  const spaceItem = propertyCards.find(item => item.title === activeBooking.spaceTitle) || propertyCards[0];
 
   return (
     <div className={`floating-booking-widget ${showDetails ? 'expanded' : ''}`} ref={widgetRef}>
@@ -46,8 +49,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
           </div>
           <button className="fbw-link-btn" type="button" aria-label="Batafsil">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
+              <polyline points="18 15 12 9 6 15" />
             </svg>
           </button>
         </div>
@@ -58,11 +60,15 @@ export default function FloatingBookingWidget({ activeBooking }) {
             <button className="fbw-close-sub-btn" onClick={() => setShowDetails(false)}>✕</button>
           </div>
 
+          {/* Render space details card */}
+          <div className="fbw-card-container" style={{ marginBottom: "20px", borderRadius: "16px", overflow: "hidden" }}>
+            <PropertyCard item={{
+              ...spaceItem,
+              price: formattedTotal
+            }} index={0} />
+          </div>
+
           <div className="fbw-details-list">
-            <div className="fbw-details-item">
-              <span>Obyekt:</span>
-              <strong>{activeBooking.spaceTitle}</strong>
-            </div>
             <div className="fbw-details-item">
               <span>Yuborilgan vaqt:</span>
               <strong>{formattedDate}</strong>
@@ -82,10 +88,6 @@ export default function FloatingBookingWidget({ activeBooking }) {
             <div className="fbw-details-item">
               <span>To'lov usuli:</span>
               <strong style={{ textTransform: "capitalize" }}>{activeBooking.method === "card" ? "Karta" : activeBooking.method}</strong>
-            </div>
-            <div className="fbw-details-item">
-              <span>Summa:</span>
-              <strong style={{ color: "#fb923c" }}>{formattedTotal}</strong>
             </div>
             <div className="fbw-details-item">
               <span>Holati:</span>
