@@ -115,8 +115,8 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                 <p>{method === 'card' ? "To'lovni amalga oshirish uchun karta ma'lumotlarini kiriting" : "To'lov so'rovini yuborish uchun telefon raqamingizni kiriting"}</p>
               </div>
 
-              {/* Card Inputs Wrapper (Always visible, but dimmed/disabled when not 'card' method) */}
-              <div className="pm-inputs-wrapper" style={{ opacity: method === 'card' ? 1 : 0.45, pointerEvents: method === 'card' ? 'auto' : 'none', transition: 'all 0.3s ease' }}>
+              {/* Card Inputs Wrapper (Always rendered, animated via CSS classes) */}
+              <div className={`pm-inputs-wrapper ${method !== 'card' ? 'dimmed' : ''}`} style={{ pointerEvents: method === 'card' ? 'auto' : 'none' }}>
                 <div className="pm-inputs-grid">
                   <div className="pm-input-group">
                     <label>Karta raqami</label>
@@ -139,15 +139,13 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                 </div>
               </div>
 
-              {/* Phone Input field for apps payments */}
-              {method !== 'card' && (
-                <div className="pm-app-inputs" style={{ marginTop: 20 }}>
-                  <div className="pm-input-group">
-                    <label>Telefon raqam</label>
-                    <input type="tel" required value={phone} onChange={handlePhoneChange} placeholder="+998 90 123 45 67" />
-                  </div>
+              {/* Phone Input field for apps payments (always rendered, animated via class toggle) */}
+              <div className={`pm-app-inputs ${method !== 'card' ? 'open' : ''}`}>
+                <div className="pm-input-group">
+                  <label>Telefon raqam</label>
+                  <input type="tel" required={method !== 'card'} value={phone} onChange={handlePhoneChange} placeholder="+998 90 123 45 67" />
                 </div>
-              )}
+              </div>
 
               <button type="submit" className="pm-pay-btn btn-shine" style={{ marginTop: 24 }}>
                 Tasdiqlash va to'lash
