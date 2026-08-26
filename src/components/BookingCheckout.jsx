@@ -81,25 +81,6 @@ export default function BookingCheckout({ route, userState, setUserState }) {
     }, 1800);
   };
 
-  const detectCardType = (number) => {
-    const cleanNum = number.replace(/\D/g, "");
-    if (cleanNum.startsWith("8600")) return "uzcard";
-    if (cleanNum.startsWith("9860")) return "humo";
-    if (cleanNum.startsWith("4")) return "visa";
-    if (cleanNum.startsWith("5")) return "mastercard";
-    return "unknown";
-  };
-
-  const getCardLogo = (type) => {
-    switch (type) {
-      case "uzcard": return <span className="card-brand-logo uzcard-logo">UZCARD</span>;
-      case "humo": return <span className="card-brand-logo humo-logo">HUMO</span>;
-      case "visa": return <span className="card-brand-logo visa-logo">VISA</span>;
-      case "mastercard": return <span className="card-brand-logo mc-logo">Mastercard</span>;
-      default: return null;
-    }
-  };
-
   const handleNumberChange = (e) => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 16) value = value.slice(0, 16);
@@ -197,53 +178,38 @@ export default function BookingCheckout({ route, userState, setUserState }) {
                 </button>
               </div>
 
-              {method === 'card' ? (
-                <div className="pm-card-inputs">
-                  {/* Card mockup */}
-                  <div className={`pm-card-preview type-${detectCardType(cardNumber)}`}>
-                    <div className="pm-card-chip" />
-                    <div className="pm-card-logo-area">{getCardLogo(detectCardType(cardNumber))}</div>
-                    <div className="pm-card-number">{cardNumber || "•••• •••• •••• ••••"}</div>
-                    <div className="pm-card-footer">
-                      <div className="pm-card-holder">
-                        <span>KARTA EGASI</span>
-                        <strong>{(cardHolder || "FULL NAME").toUpperCase()}</strong>
-                      </div>
-                      <div className="pm-card-expiry">
-                        <span>MUDDATI</span>
-                        <strong>{expiry || "MM/YY"}</strong>
-                      </div>
-                    </div>
+              {/* Card Inputs Wrapper (Always visible, but dimmed/disabled when not 'card' method) */}
+              <div className="pm-inputs-wrapper" style={{ opacity: method === 'card' ? 1 : 0.45, pointerEvents: method === 'card' ? 'auto' : 'none', transition: 'all 0.3s ease' }}>
+                <div className="pm-inputs-grid">
+                  <div className="pm-input-group">
+                    <label>Karta raqami</label>
+                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
                   </div>
-
-                  <div className="pm-inputs-grid">
-                    <div className="pm-input-group">
-                      <label>Karta raqami</label>
-                      <input type="text" required placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
+                  <div className="pm-input-group">
+                    <label>Karta egasining ismi</label>
+                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                  </div>
+                  <div className="pm-row">
+                    <div className="pm-input-group flex-1">
+                      <label>Amal qilish muddati</label>
+                      <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
                     </div>
-                    <div className="pm-input-group">
-                      <label>Karta egasining ismi</label>
-                      <input type="text" required placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
-                    </div>
-                    <div className="pm-row">
-                      <div className="pm-input-group flex-1">
-                        <label>Amal qilish muddati</label>
-                        <input type="text" required placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
-                      </div>
-                      <div className="pm-input-group flex-1">
-                        <label>CVV / CVC</label>
-                        <input type="password" required placeholder="•••" value={cvv} onChange={handleCvvChange} />
-                      </div>
+                    <div className="pm-input-group flex-1">
+                      <label>CVV / CVC</label>
+                      <input type="password" disabled={method !== 'card'} required={method === 'card'} placeholder="•••" value={cvv} onChange={handleCvvChange} />
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="pm-app-inputs">
+              </div>
+
+              {/* Phone Input field for apps payments */}
+              {method !== 'card' && (
+                <div className="pm-app-inputs" style={{ marginTop: 20 }}>
                   <div className="pm-provider-mockup">
                     <span className="pm-provider-badge">{method.toUpperCase()} Pay</span>
                     <p>To'lov so'rovini qabul qilish uchun telefon raqamingizni kiriting:</p>
                   </div>
-                  <div className="pm-input-group" style={{ marginTop: 20 }}>
+                  <div className="pm-input-group" style={{ marginTop: 16 }}>
                     <label>Telefon raqam</label>
                     <input type="tel" required value={phone} onChange={handlePhoneChange} placeholder="+998 90 123 45 67" />
                   </div>
@@ -259,33 +225,31 @@ export default function BookingCheckout({ route, userState, setUserState }) {
             <div className="pm-right-col">
               <h3 className="pm-summary-title">Buyurtma tafsilotlari</h3>
               
-              <div className="checkout-receipt-card">
-                <div className="receipt-image-wrapper">
-                  <img src={space.images[0]} alt={space.title} />
-                  <span className="receipt-badge">⭐ {space.rating || "4.9"}</span>
+              <div className="pm-info-text-list">
+                <div className="pm-info-text-row">
+                  <span>Xizmat nomi:</span>
+                  <strong>{space.title}</strong>
                 </div>
-                <div className="receipt-content">
-                  <span className="receipt-category">{space.category || "Coworking Space"}</span>
-                  <h4>{space.title}</h4>
-                  <p className="receipt-location">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    {space.location}
-                  </p>
-                  
-                  <div className="receipt-meta-grid">
-                    <div className="receipt-meta-item">
-                      <span>MUDDATI</span>
-                      <strong>{pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}</strong>
-                    </div>
-                    <div className="receipt-meta-item">
-                      <span>MEHMONLAR</span>
-                      <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
-                    </div>
+                <div className="pm-info-text-row">
+                  <span>Manzil:</span>
+                  <strong>{space.location}</strong>
+                </div>
+                <div className="pm-info-text-row">
+                  <span>Ijara muddati:</span>
+                  <strong>
+                    {pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}
+                  </strong>
+                </div>
+                <div className="pm-info-text-row">
+                  <span>Mehmonlar soni:</span>
+                  <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
+                </div>
+                {pendingBooking?.discount > 0 && (
+                  <div className="pm-info-text-row" style={{ color: "#22c55e" }}>
+                    <span>Chegirma:</span>
+                    <strong>-{typeof pendingBooking.discount === 'number' ? new Intl.NumberFormat('ru-RU').format(pendingBooking.discount) + " UZS" : pendingBooking.discount}</strong>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="pm-billing-details">

@@ -181,91 +181,6 @@
   line-height: 1.5;
 }
 
-/* Credit Card Mockup */
-.pm-card-preview {
-  position: relative;
-  width: 100%;
-  height: 160px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  color: #ffffff;
-  padding: 20px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.1);
-  margin-bottom: 20px;
-  transition: all 0.3s;
-}
-
-.pm-card-preview.type-uzcard {
-  background: linear-gradient(135deg, #1e40af 0%, #1e1b4b 100%);
-}
-
-.pm-card-preview.type-humo {
-  background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
-}
-
-.pm-card-preview.type-visa {
-  background: linear-gradient(135deg, #1d4ed8 0%, #172554 100%);
-}
-
-.pm-card-preview.type-mastercard {
-  background: linear-gradient(135deg, #ea580c 0%, #7c2d12 100%);
-}
-
-.pm-card-chip {
-  width: 36px;
-  height: 26px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border-radius: 4px;
-}
-
-.pm-card-logo-area {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-}
-
-.card-brand-logo {
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-}
-
-.uzcard-logo { color: #38bdf8; }
-.humo-logo { color: #34d399; }
-.visa-logo { color: #facc15; font-style: italic; }
-.mc-logo { color: #fb923c; }
-
-.pm-card-number {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  margin: 10px 0;
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.pm-card-footer {
-  display: flex;
-  justify-content: space-between;
-}
-
-.pm-card-holder span, .pm-card-expiry span {
-  display: block;
-  font-size: 8px;
-  color: #94a3b8;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-
-.pm-card-holder strong, .pm-card-expiry strong {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
 /* Inputs Form */
 .pm-inputs-grid {
   display: flex;
@@ -300,6 +215,13 @@
 .pm-input-group input:focus {
   border-color: #e46630;
   box-shadow: 0 0 0 3px rgba(228, 102, 48, 0.12);
+}
+
+.pm-input-group input:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .pm-row {
@@ -338,36 +260,34 @@
   letter-spacing: 0.5px;
 }
 
-.pm-product-info {
-  background: #fff;
+.pm-info-text-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 18px;
   margin-bottom: 24px;
 }
 
-.pm-product-info h4 {
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0 0 4px 0;
-}
-
-.pm-product-info p {
-  font-size: 12.5px;
-  color: #64748b;
-  margin: 0 0 12px 0;
+.pm-info-text-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13.5px;
   line-height: 1.4;
 }
 
-.pm-meta-badge {
-  display: inline-block;
-  font-size: 11px;
+.pm-info-text-row span {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.pm-info-text-row strong {
+  color: #334155;
+  text-align: right;
   font-weight: 700;
-  background: #f1f5f9;
-  color: #475569;
-  padding: 4px 10px;
-  border-radius: 8px;
 }
 
 .pm-billing-details {

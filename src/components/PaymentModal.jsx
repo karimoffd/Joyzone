@@ -42,25 +42,6 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
     gsap.to(modalRef.current, { scale: 0.95, opacity: 0, y: 20, duration: 0.25, ease: "power2.in", onComplete: onClose });
   };
 
-  const detectCardType = (number) => {
-    const cleanNum = number.replace(/\D/g, "");
-    if (cleanNum.startsWith("8600")) return "uzcard";
-    if (cleanNum.startsWith("9860")) return "humo";
-    if (cleanNum.startsWith("4")) return "visa";
-    if (cleanNum.startsWith("5")) return "mastercard";
-    return "unknown";
-  };
-
-  const getCardLogo = (type) => {
-    switch (type) {
-      case "uzcard": return <span className="card-brand-logo uzcard-logo">UZCARD</span>;
-      case "humo": return <span className="card-brand-logo humo-logo">HUMO</span>;
-      case "visa": return <span className="card-brand-logo visa-logo">VISA</span>;
-      case "mastercard": return <span className="card-brand-logo mc-logo">Mastercard</span>;
-      default: return null;
-    }
-  };
-
   const handleNumberChange = (e) => {
     let value = e.target.value.replace(/\D/g, "");
     if (value.length > 16) value = value.slice(0, 16);
@@ -150,53 +131,38 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                 </button>
               </div>
 
-              {method === 'card' ? (
-                <div className="pm-card-inputs">
-                  {/* Virtual Card Preview */}
-                  <div className={`pm-card-preview type-${detectCardType(cardNumber)}`}>
-                    <div className="pm-card-chip" />
-                    <div className="pm-card-logo-area">{getCardLogo(detectCardType(cardNumber))}</div>
-                    <div className="pm-card-number">{cardNumber || "•••• •••• •••• ••••"}</div>
-                    <div className="pm-card-footer">
-                      <div className="pm-card-holder">
-                        <span>KARTA EGASI</span>
-                        <strong>{(cardHolder || "FULL NAME").toUpperCase()}</strong>
-                      </div>
-                      <div className="pm-card-expiry">
-                        <span>MUDDATI</span>
-                        <strong>{expiry || "MM/YY"}</strong>
-                      </div>
-                    </div>
+              {/* Card Inputs Wrapper (Always visible, but dimmed/disabled when not 'card' method) */}
+              <div className="pm-inputs-wrapper" style={{ opacity: method === 'card' ? 1 : 0.45, pointerEvents: method === 'card' ? 'auto' : 'none', transition: 'all 0.3s ease' }}>
+                <div className="pm-inputs-grid">
+                  <div className="pm-input-group">
+                    <label>Karta raqami</label>
+                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
                   </div>
-
-                  <div className="pm-inputs-grid">
-                    <div className="pm-input-group">
-                      <label>Karta raqami</label>
-                      <input type="text" required placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
+                  <div className="pm-input-group">
+                    <label>Karta egasining ismi</label>
+                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                  </div>
+                  <div className="pm-row">
+                    <div className="pm-input-group flex-1">
+                      <label>Amal qilish muddati</label>
+                      <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
                     </div>
-                    <div className="pm-input-group">
-                      <label>Karta egasining ismi</label>
-                      <input type="text" required placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
-                    </div>
-                    <div className="pm-row">
-                      <div className="pm-input-group flex-1">
-                        <label>Amal qilish muddati</label>
-                        <input type="text" required placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
-                      </div>
-                      <div className="pm-input-group flex-1">
-                        <label>CVV / CVC</label>
-                        <input type="password" required placeholder="•••" value={cvv} onChange={handleCvvChange} />
-                      </div>
+                    <div className="pm-input-group flex-1">
+                      <label>CVV / CVC</label>
+                      <input type="password" disabled={method !== 'card'} required={method === 'card'} placeholder="•••" value={cvv} onChange={handleCvvChange} />
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="pm-app-inputs">
+              </div>
+
+              {/* Phone Input field for apps payments */}
+              {method !== 'card' && (
+                <div className="pm-app-inputs" style={{ marginTop: 20 }}>
                   <div className="pm-provider-mockup">
                     <span className="pm-provider-badge">{method.toUpperCase()} Pay</span>
                     <p>To'lov so'rovini qabul qilish uchun telefon raqamingizni kiriting:</p>
                   </div>
-                  <div className="pm-input-group" style={{ marginTop: 20 }}>
+                  <div className="pm-input-group" style={{ marginTop: 16 }}>
                     <label>Telefon raqam</label>
                     <input type="tel" required value={phone} onChange={handlePhoneChange} placeholder="+998 90 123 45 67" />
                   </div>
@@ -208,21 +174,28 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
               </button>
             </form>
 
-            {/* Right Column - Billing Info / Tax */}
+            {/* Right Column - Billing Info */}
             <div className="pm-right-col">
               <h3 className="pm-summary-title">To'lov tafsilotlari</h3>
-              {productDetails ? (
-                <div className="pm-product-info">
-                  <h4>{productDetails.name}</h4>
-                  {productDetails.description && <p>{productDetails.description}</p>}
-                  {productDetails.limit && <div className="pm-meta-badge">Лимит: {productDetails.limit} мест</div>}
+              
+              <div className="pm-info-text-list">
+                <div className="pm-info-text-row">
+                  <span>Mahsulot nomi:</span>
+                  <strong>{productDetails?.name || "Tarif plani"}</strong>
                 </div>
-              ) : (
-                <div className="pm-product-info">
-                  <h4>Joyzone xizmati ijarasi</h4>
-                  <p>Xavfsiz tranzaksiya kafolati</p>
-                </div>
-              )}
+                {productDetails?.description && (
+                  <div className="pm-info-text-row">
+                    <span>Tavsif:</span>
+                    <strong>{productDetails.description}</strong>
+                  </div>
+                )}
+                {productDetails?.limit && (
+                  <div className="pm-info-text-row">
+                    <span>Лимит мест:</span>
+                    <strong>{productDetails.limit}</strong>
+                  </div>
+                )}
+              </div>
 
               <div className="pm-billing-details">
                 <div className="pm-billing-row">
@@ -246,7 +219,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
         {loading && (
           <div className="pm-loading-state">
             <div className="pm-spinner" />
-            <h3>To'lov amalга oshirilmoqda...</h3>
+            <h3>To'lov amalga oshirilmoqda...</h3>
             <p>Iltimos, sahifani yopmang yoki yangilamang.</p>
           </div>
         )}
