@@ -7,6 +7,10 @@ import { propertyCards } from "../data/content.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
 
+function slugify(text) {
+  return (text || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
 const initialProfile = {
   name: "Aziz Karimov",
   role: "Founder, product jamoasi",
