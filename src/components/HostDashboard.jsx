@@ -756,6 +756,7 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
           onClose={() => setPaymentTarget(null)}
           amount={formatPrice(paymentTarget)}
           title="Покупка тарифа"
+          defaultPhone={profile?.phone_number}
           productDetails={{
             name: paymentTarget.name_ru || paymentTarget.name,
             description: paymentTarget.description_ru || paymentTarget.description,

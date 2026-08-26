@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import "./PaymentModal.css";
 
-export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess, productDetails }) {
+export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess, productDetails, defaultPhone }) {
   const [method, setMethod] = useState("card"); // card, click, payme, uzum
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolder, setCardHolder] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
-  const [phone, setPhone] = useState("+998 ");
+  const [phone, setPhone] = useState(defaultPhone || "+998 ");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -22,7 +22,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
       setCardHolder("");
       setExpiry("");
       setCvv("");
-      setPhone("+998 ");
+      setPhone(defaultPhone || "+998 ");
       setLoading(false);
       setSuccess(false);
 

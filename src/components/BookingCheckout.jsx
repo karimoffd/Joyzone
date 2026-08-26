@@ -27,7 +27,11 @@ export default function BookingCheckout({ route, userState, setUserState }) {
   const [cardHolder, setCardHolder] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvv, setCvv] = useState("");
-  const [phone, setPhone] = useState("+998 ");
+  const [phone, setPhone] = useState(() => {
+    if (userState?.phone) return userState.phone;
+    if (userState?.email && userState.email.startsWith("+998")) return userState.email;
+    return "+998 ";
+  });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -41,6 +45,14 @@ export default function BookingCheckout({ route, userState, setUserState }) {
       console.error(e);
     }
   }, []);
+
+  useEffect(() => {
+    if (userState?.phone) {
+      setPhone(userState.phone);
+    } else if (userState?.email && userState.email.startsWith("+998")) {
+      setPhone(userState.email);
+    }
+  }, [userState]);
 
   useEffect(() => {
     // Initial entrance animations

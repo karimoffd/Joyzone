@@ -58,10 +58,11 @@ function useUserState() {
         isPartner: localStorage.getItem("joyzone-role") === "partner",
         name: localStorage.getItem("joyzone-name") || "Mehmon",
         email: localStorage.getItem("joyzone-email") || "",
+        phone: localStorage.getItem("joyzone-phone") || "",
         activeBooking: JSON.parse(localStorage.getItem("joyzone-booking") || "null")
       };
     } catch (error) {
-      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", activeBooking: null };
+      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", phone: "", activeBooking: null };
     }
   };
 
@@ -75,9 +76,11 @@ function useUserState() {
       if (nextState.isAuthed) {
         if (nextState.name) localStorage.setItem("joyzone-name", nextState.name);
         if (nextState.email) localStorage.setItem("joyzone-email", nextState.email);
+        if (nextState.phone) localStorage.setItem("joyzone-phone", nextState.phone);
       } else {
         localStorage.removeItem("joyzone-name");
         localStorage.removeItem("joyzone-email");
+        localStorage.removeItem("joyzone-phone");
         localStorage.removeItem("joyzone-access");
         localStorage.removeItem("joyzone-refresh");
       }
@@ -217,7 +220,8 @@ function AppContent() {
       isAuthed: true, 
       isPartner: profile.role === "partner", 
       name: profile.first_name ? `${profile.first_name} ${profile.last_name}`.trim() : (profile.username || "Foydalanuvchi"), 
-      email: profile.email || profile.phone_number 
+      email: profile.email || profile.phone_number,
+      phone: profile.phone_number
     });
     window.location.hash = "#home";
   };
