@@ -1,7 +1,10 @@
-.card-variants-page {
+:root {
   --variant-blue: #1f78d1;
   --variant-navy: #12283f;
   --variant-cream: #f6f1ee;
+}
+
+.card-variants-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
