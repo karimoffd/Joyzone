@@ -20,7 +20,6 @@ function resolveSpace(route) {
 export default function BookingCheckout({ route, userState, setUserState }) {
   const space = resolveSpace(route);
   const [pendingBooking, setPendingBooking] = useState(null);
-  const [step, setStep] = useState(1); // 1 = Summary, 2 = Payment
   
   // Payment states
   const [method, setMethod] = useState("card"); // card, click, payme, uzum
@@ -50,7 +49,7 @@ export default function BookingCheckout({ route, userState, setUserState }) {
       { y: 30, opacity: 0, scale: 0.98 },
       { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }
     );
-  }, [space, step]);
+  }, [space]);
 
   const handleConfirm = () => {
     setLoading(true);
@@ -80,15 +79,6 @@ export default function BookingCheckout({ route, userState, setUserState }) {
         });
       }, 1500);
     }, 1800);
-  };
-
-  const getPayAmount = () => {
-    if (!pendingBooking) return space.price;
-    const t = pendingBooking.total;
-    if (typeof t === 'number') {
-      return new Intl.NumberFormat('ru-RU').format(Math.round(t)) + " UZS";
-    }
-    return t;
   };
 
   const detectCardType = (number) => {
@@ -139,85 +129,43 @@ export default function BookingCheckout({ route, userState, setUserState }) {
     setPhone(val);
   };
 
-  const handleProceedToPayment = () => {
-    gsap.to(".bc-card", {
-      opacity: 0,
-      y: -10,
-      duration: 0.25,
-      onComplete: () => {
-        setStep(2);
-      }
-    });
-  };
-
-  const basePriceVal = pendingBooking ? pendingBooking.total : (Number(space.price.replace(/[^\d]/g, "")) || 0);
+  const basePriceVal = pendingBooking ? (Number(pendingBooking.total) || 0) : (Number(space.price.replace(/[^\d]/g, "")) || 0);
   const taxVal = Math.round(basePriceVal * 0.12);
+  const totalPayable = basePriceVal + taxVal;
+
+  const formattedBase = new Intl.NumberFormat('ru-RU').format(basePriceVal) + " UZS";
   const formattedTax = new Intl.NumberFormat('ru-RU').format(taxVal) + " UZS";
+  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalPayable) + " UZS";
 
   return (
     <main className="booking-checkout-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={-1} />
 
       <section className="bc-container">
-        {/* Step 1: Summary Page */}
-        {step === 1 && (
-          <div className="bc-card">
-            <a href={`#space-${slugify(space.title)}`} className="bc-back-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-              </svg>
-              Joy sahifasiga qaytish
-            </a>
-
-            <div className="bc-header">
-              <h1>Bronni tasdiqlash</h1>
-              <p>Siz tizimga kiritilgansiz. Ma'lumotlaringiz xavfsiz himoyalangan.</p>
-            </div>
-
-            <div className="bc-space-preview">
-              <img src={space.images[0]} alt={space.title} />
-              <div>
-                <h3>{space.title}</h3>
-                <p>{space.location}</p>
-              </div>
-            </div>
-
-            <div className="bc-summary-details">
-              <div className="bc-summary-row">
-                <span>Muddati</span>
-                <strong>
-                  {pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}
-                </strong>
-              </div>
-              <div className="bc-summary-row">
-                <span>Mijoz</span>
-                <strong>{userState.name || 'Tasdiqlangan foydalanuvchi'}</strong>
-              </div>
-              <div className="bc-summary-row">
-                <span>Mehmonlar</span>
-                <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
-              </div>
-              {pendingBooking?.discount > 0 && (
-                <div className="bc-summary-row" style={{ color: "#22c55e" }}>
-                  <span>Chegirma {pendingBooking.discountName ? `(${pendingBooking.discountName})` : ''}</span>
-                  <strong>-{typeof pendingBooking.discount === 'number' ? new Intl.NumberFormat('ru-RU').format(pendingBooking.discount) + " UZS" : pendingBooking.discount}</strong>
-                </div>
-              )}
-              <div className="bc-summary-divider" />
-              <div className="bc-summary-total">
-                <span>To'lov summasi</span>
-                <strong>{getPayAmount()}</strong>
-              </div>
-            </div>
-
-            <button type="button" className="bc-confirm-btn btn-shine" onClick={handleProceedToPayment}>
-              Tasdiqlash
-            </button>
+        {/* Loading state directly in card */}
+        {loading && (
+          <div className="bc-card pm-loading-state">
+            <div className="pm-spinner" />
+            <h3>To'lov amalga oshirilmoqda...</h3>
+            <p>Iltimos, sahifani yopmang yoki yangilamang.</p>
           </div>
         )}
 
-        {/* Step 2: Split Screen Payment Page */}
-        {step === 2 && !loading && !success && (
+        {/* Success state directly in card */}
+        {success && (
+          <div className="bc-card pm-success-state">
+            <div className="pm-success-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+            <h3>To'lov muvaffaqiyatli bajarildi!</h3>
+            <p>Sizning ijarangiz faollashtirildi. Profilga yo'naltirilmoqda...</p>
+          </div>
+        )}
+
+        {/* Regular split checkout screen */}
+        {!loading && !success && (
           <div className="bc-card wide pm-checkout-grid">
             {/* Left Column: Form Fields */}
             <form onSubmit={(e) => { e.preventDefault(); handleConfirm(); }} className="pm-left-col">
@@ -315,7 +263,7 @@ export default function BookingCheckout({ route, userState, setUserState }) {
               <div className="pm-billing-details">
                 <div className="pm-billing-row">
                   <span>Asosiy ijara</span>
-                  <strong>{getPayAmount()}</strong>
+                  <strong>{formattedBase}</strong>
                 </div>
                 <div className="pm-billing-row">
                   <span>QQS (Soliq 12%)</span>
@@ -324,31 +272,10 @@ export default function BookingCheckout({ route, userState, setUserState }) {
                 <div className="pm-billing-divider" />
                 <div className="pm-billing-total">
                   <span>Jami to'lov</span>
-                  <strong>{getPayAmount()}</strong>
+                  <strong>{formattedTotal}</strong>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Loading and Success states directly in card */}
-        {step === 2 && loading && (
-          <div className="bc-card pm-loading-state">
-            <div className="pm-spinner" />
-            <h3>To'lov amalga oshirilmoqda...</h3>
-            <p>Iltimos, sahifani yopmang yoki yangilamang.</p>
-          </div>
-        )}
-
-        {step === 2 && success && (
-          <div className="bc-card pm-success-state">
-            <div className="pm-success-circle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-            </div>
-            <h3>To'lov muvaffaqiyatli bajarildi!</h3>
-            <p>Sizning ijarangiz faollashtirildi. Profilga yo'naltirilmoqda...</p>
           </div>
         )}
       </section>
