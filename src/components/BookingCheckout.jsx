@@ -169,6 +169,13 @@ export default function BookingCheckout({ route, userState, setUserState }) {
           <div className="bc-card wide pm-checkout-grid">
             {/* Left Column: Form Fields */}
             <form onSubmit={(e) => { e.preventDefault(); handleConfirm(); }} className="pm-left-col">
+              <a href={`#space-${slugify(space.title)}`} className="bc-back-btn" style={{ marginBottom: 20, display: "inline-flex", alignItems: "center", textDecoration: "none", fontSize: "14px", fontWeight: "600", color: "#64748b", gap: "6px" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
+                  <path d="M19 12H5M12 5l-7 7 7 7"/>
+                </svg>
+                Orqaga qaytish
+              </a>
+
               <div className="pm-header">
                 <h2>To'lov usuli</h2>
                 <p>To'lov turini tanlang va kartangiz ma'lumotlarini kiriting</p>
@@ -252,11 +259,32 @@ export default function BookingCheckout({ route, userState, setUserState }) {
             <div className="pm-right-col">
               <h3 className="pm-summary-title">Buyurtma tafsilotlari</h3>
               
-              <div className="pm-product-info" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <img src={space.images[0]} alt={space.title} style={{ width: "60px", height: "60px", borderRadius: "10px", objectFit: "cover" }} />
-                <div>
-                  <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 700 }}>{space.title}</h4>
-                  <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>{space.location}</p>
+              <div className="checkout-receipt-card">
+                <div className="receipt-image-wrapper">
+                  <img src={space.images[0]} alt={space.title} />
+                  <span className="receipt-badge">⭐ {space.rating || "4.9"}</span>
+                </div>
+                <div className="receipt-content">
+                  <span className="receipt-category">{space.category || "Coworking Space"}</span>
+                  <h4>{space.title}</h4>
+                  <p className="receipt-location">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {space.location}
+                  </p>
+                  
+                  <div className="receipt-meta-grid">
+                    <div className="receipt-meta-item">
+                      <span>MUDDATI</span>
+                      <strong>{pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}</strong>
+                    </div>
+                    <div className="receipt-meta-item">
+                      <span>MEHMONLAR</span>
+                      <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 
