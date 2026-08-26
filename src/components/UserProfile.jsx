@@ -414,6 +414,10 @@ function UserProfile({ userState, setUserState }) {
     href: `#space-${slugify(userState.activeBooking.spaceTitle)}`
   } : null;
 
+  const formattedTotal = userState?.activeBooking?.total 
+    ? new Intl.NumberFormat('ru-RU').format(userState.activeBooking.total) + " UZS"
+    : "0 UZS";
+
   const displayedBookings = activeBookingObj ? [activeBookingObj, ...bookings] : bookings;
 
   const tabs = [
@@ -585,6 +589,50 @@ function UserProfile({ userState, setUserState }) {
                     </a>
                   </div>
                 </section>
+
+                {activeBookingObj && (
+                  <section className="profile-active-booking-section" style={{ marginTop: "32px" }}>
+                    <div className="profile-section-head">
+                      <div>
+                        <span>Kutishdagi buyurtma</span>
+                        <h2>Arizangiz holati</h2>
+                      </div>
+                    </div>
+                    <div className="profile-bookings-grid" style={{ gridTemplateColumns: "1fr" }}>
+                      <article className="profile-booking-card" style={{
+                        background: "#fffdfa",
+                        border: "1px solid rgba(249, 115, 22, 0.2)",
+                        boxShadow: "0 10px 25px rgba(249, 115, 22, 0.05)"
+                      }}>
+                        <div>
+                          <span style={{ background: "rgba(249, 115, 22, 0.15)", color: "#ea580c" }}>
+                            {activeBookingObj.status}
+                          </span>
+                          <h3 style={{ marginTop: "12px" }}>{activeBookingObj.title}</h3>
+                          <p>{activeBookingObj.type}</p>
+                        </div>
+                        <dl>
+                          <div>
+                            <dt>Sana</dt>
+                            <dd>{activeBookingObj.date}</dd>
+                          </div>
+                          <div>
+                            <dt>Vaqt</dt>
+                            <dd>{activeBookingObj.time}</dd>
+                          </div>
+                          <div>
+                            <dt>To'lov summasi</dt>
+                            <dd style={{ color: "#ea580c", fontWeight: "700" }}>{formattedTotal}</dd>
+                          </div>
+                        </dl>
+                        <a className="profile-booking-link" href={activeBookingObj.href} style={{ borderTopColor: "rgba(249, 115, 22, 0.1)" }}>
+                          E'lonni ko'rish
+                          <ProfileIcon type="arrow" />
+                        </a>
+                      </article>
+                    </div>
+                  </section>
+                )}
               </div>
             ) : null}
 
