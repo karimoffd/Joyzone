@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import "./FloatingBookingWidget.css";
 
 export default function FloatingBookingWidget({ activeBooking }) {
   const widgetRef = useRef(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     if (activeBooking && widgetRef.current) {
@@ -17,27 +18,89 @@ export default function FloatingBookingWidget({ activeBooking }) {
 
   if (!activeBooking) return null;
 
+  const formattedDate = new Date(activeBooking.timestamp).toLocaleDateString("uz-UZ", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  const formattedTotal = new Intl.NumberFormat('ru-RU').format(activeBooking.total || 0) + " UZS";
+
   return (
-    <div className="floating-booking-widget" ref={widgetRef}>
+    <div className={`floating-booking-widget ${showDetails ? 'expanded' : ''}`} ref={widgetRef}>
       <div className="fbw-glow"></div>
-      <div className="fbw-content">
-        <div className="fbw-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
+      
+      {!showDetails ? (
+        <div className="fbw-content" onClick={() => setShowDetails(true)} style={{ cursor: "pointer" }}>
+          <div className="fbw-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+          </div>
+          <div className="fbw-text">
+            <strong>Aktiv bron: {activeBooking.spaceTitle}</strong>
+            <span>Tafsilotlarni ko'rish...</span>
+          </div>
+          <button className="fbw-link-btn" type="button" aria-label="Batafsil">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
         </div>
-        <div className="fbw-text">
-          <strong>Aktiv bron: {activeBooking.spaceTitle}</strong>
-          <span>So'rov ko'rib chiqilmoqda...</span>
+      ) : (
+        <div className="fbw-expanded-panel">
+          <div className="fbw-expanded-header">
+            <h3>So'rov tafsilotlari</h3>
+            <button className="fbw-close-sub-btn" onClick={() => setShowDetails(false)}>✕</button>
+          </div>
+
+          <div className="fbw-details-list">
+            <div className="fbw-details-item">
+              <span>Obyekt:</span>
+              <strong>{activeBooking.spaceTitle}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Yuborilgan vaqt:</span>
+              <strong>{formattedDate}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Sana:</span>
+              <strong>{activeBooking.startDate}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Ijara turi:</span>
+              <strong>{activeBooking.duration === "soatlik" ? "Soatbay" : activeBooking.duration}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Mehmonlar:</span>
+              <strong>{activeBooking.guests} kishi</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>To'lov usuli:</span>
+              <strong style={{ textTransform: "capitalize" }}>{activeBooking.method === "card" ? "Karta" : activeBooking.method}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Summa:</span>
+              <strong style={{ color: "#fb923c" }}>{formattedTotal}</strong>
+            </div>
+            <div className="fbw-details-item">
+              <span>Holati:</span>
+              <strong className="status-badge-pending">Kutishda (Pending)</strong>
+            </div>
+          </div>
+
+          <div className="fbw-footer">
+            <p>Sizning so'rovingiz qabul qilindi. Operator tasdiqlashini kuting.</p>
+            <a href="#profile" className="fbw-profile-action-btn" onClick={() => setShowDetails(false)}>
+              Mening profilimga o'tish
+            </a>
+          </div>
         </div>
-        <a href="#profile" className="fbw-link" aria-label="Profilga o'tish">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </a>
-      </div>
+      )}
     </div>
   );
 }

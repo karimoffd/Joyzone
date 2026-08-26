@@ -400,9 +400,27 @@ function UserProfile({ userState, setUserState }) {
     return `${new Intl.NumberFormat("uz-UZ").format(val)} so'm`;
   };
 
+  const activeBookingObj = userState?.activeBooking ? {
+    title: userState.activeBooking.spaceTitle,
+    type: "Kovorking / Ofis",
+    date: new Date(userState.activeBooking.timestamp).toLocaleDateString("uz-UZ", { day: "numeric", month: "long", year: "numeric" }),
+    time: userState.activeBooking.duration === "soatlik" ? "Band qilingan soatlar" : "10:00 - 18:00",
+    location: "Toshkent",
+    status: "Kutishda (Pending)",
+    href: `#space-${slugify(userState.activeBooking.spaceTitle)}`
+  } : null;
+
+  const displayedBookings = activeBookingObj ? [activeBookingObj, ...bookings] : bookings;
+
   const tabs = [
-    { id: "about", label: "Profil", count: `${completion}%`, icon: "user" },
-    { id: "history", label: "Tarix", count: bookings.length, icon: "calendar" },
+    { 
+      id: "about", 
+      label: "Profil", 
+      count: `${completion}%`, 
+      icon: "user",
+      badge: completion < 100 ? "To'ldirilmagan" : null
+    },
+    { id: "history", label: "Tarix", count: displayedBookings.length, icon: "calendar" },
     { id: "likes", label: "Saqlangan", count: likedSpaces.length, icon: "heart" }
   ];
 
@@ -424,6 +442,21 @@ function UserProfile({ userState, setUserState }) {
                 <span className="profile-tab-label">
                   <ProfileIcon type={tab.icon} />
                   <b>{tab.label}</b>
+                  {tab.badge && (
+                    <span className="profile-tab-badge animate-pulse" style={{
+                      background: "#ef4444",
+                      color: "#ffffff",
+                      fontSize: "9px",
+                      fontWeight: "700",
+                      padding: "2px 6px",
+                      borderRadius: "8px",
+                      marginLeft: "8px",
+                      textTransform: "uppercase",
+                      display: "inline-block"
+                    }}>
+                      {tab.badge}
+                    </span>
+                  )}
                 </span>
                 <small>{tab.count}</small>
               </button>
@@ -440,6 +473,26 @@ function UserProfile({ userState, setUserState }) {
                       <span>Joyzone profile</span>
                       <h1>{profileData.name}</h1>
                       <p>{profileData.role}</p>
+                      {completion < 100 && (
+                        <div className="profile-warning-badge" style={{
+                          background: "#fffbeb",
+                          border: "1px solid #fef3c7",
+                          color: "#d97706",
+                          padding: "6px 12px",
+                          borderRadius: "12px",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          marginTop: "8px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px"
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#d97706", display: "inline-block" }} />
+                          Profil to'ldirilmagan ({completion}%)
+                        </div>
+                      )}
                     </div>
                     <a className="profile-edit-button" href="#profile-edit">
                       <ProfileIcon type="edit" />
@@ -484,7 +537,7 @@ function UserProfile({ userState, setUserState }) {
                 </div>
 
                 <div className="profile-bookings-grid">
-                  {bookings.map((booking) => (
+                  {displayedBookings.map((booking) => (
                     <article key={`${booking.title}-${booking.date}`} className="profile-booking-card">
                       <div>
                         <span>{booking.status}</span>

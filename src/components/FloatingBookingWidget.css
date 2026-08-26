@@ -11,15 +11,29 @@
   padding: 14px 20px;
   color: white;
   box-shadow: 0 16px 32px rgba(14, 21, 30, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  width: 340px;
 }
 
 .floating-booking-widget:hover {
   transform: translateY(-4px);
   background: rgba(41, 74, 109, 0.95);
   box-shadow: 0 20px 40px rgba(14, 21, 30, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.floating-booking-widget.expanded {
+  width: 380px;
+  max-width: calc(100vw - 48px);
+  background: rgba(8, 25, 41, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 24px;
+  cursor: default;
+}
+
+.floating-booking-widget.expanded:hover {
+  transform: none;
 }
 
 .fbw-glow {
@@ -55,6 +69,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .fbw-icon svg {
@@ -68,39 +83,145 @@
 }
 
 .fbw-text strong {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   color: #ffffff;
   margin-bottom: 2px;
+  line-height: 1.3;
 }
 
 .fbw-text span {
-  font-size: 12px;
+  font-size: 11.5px;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.fbw-link {
+.fbw-expanded-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 12px;
+  z-index: 1;
+}
+
+.fbw-expanded-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.fbw-close-sub-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  margin-left: 8px;
-  transition: all 0.2s ease;
+  font-size: 10px;
+  transition: all 0.2s;
 }
 
-.fbw-link svg {
-  width: 16px;
-  height: 16px;
+.fbw-close-sub-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.floating-booking-widget:hover .fbw-link {
-  background: #e46630;
-  color: white;
-  transform: translateX(2px);
+.fbw-details-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  z-index: 1;
+}
+
+.fbw-details-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.fbw-details-item span {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fbw-details-item strong {
+  color: #fff;
+  font-weight: 600;
+  text-align: right;
+}
+
+.status-badge-pending {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fbw-footer {
+  position: relative;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+  z-index: 1;
+}
+
+.fbw-footer p {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.fbw-profile-action-btn {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, #e46630 0%, #ea580c 100%);
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  padding: 11px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  transition: all 0.25s;
+  box-shadow: 0 4px 12px rgba(228, 102, 48, 0.2);
+}
+
+.fbw-profile-action-btn:hover {
+  background: #ea580c;
+  transform: translateY(-1.5px);
+  box-shadow: 0 8px 16px rgba(228, 102, 48, 0.3);
+}
+
+.fbw-link-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.fbw-link-btn svg {
+  width: 18px;
+  height: 18px;
+  transform: rotate(90deg);
+}
+
+.floating-booking-widget:hover .fbw-link-btn {
+  color: #fff;
 }
 
 @media (max-width: 576px) {
@@ -108,6 +229,7 @@
     bottom: 16px;
     right: 16px;
     left: 16px;
+    width: auto;
     border-radius: 14px;
   }
 }
