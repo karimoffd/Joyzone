@@ -470,9 +470,90 @@ function UserProfile({ userState, setUserState }) {
           <div className="profile-tab-content">
             {activeTab === "about" ? (
               <div className="profile-tab-panel" key="about">
+                {/* Active booking pending warning banner */}
+                {userState?.activeBooking && (
+                  <div className="profile-active-alert" style={{
+                    background: "rgba(249, 115, 22, 0.08)",
+                    border: "1px solid rgba(249, 115, 22, 0.15)",
+                    borderRadius: "18px",
+                    padding: "16px 20px",
+                    color: "#ea580c",
+                    marginBottom: "24px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span className="profile-alert-pulse" style={{
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: "#ea580c",
+                        display: "inline-block"
+                      }} />
+                      <div>
+                        <strong style={{ display: "block", fontSize: "14px", fontWeight: "700" }}>
+                          Ko'rib chiqilayotgan buyurtma (Kutishda)
+                        </strong>
+                        <span style={{ fontSize: "12px", opacity: 0.85 }}>
+                          {userState.activeBooking.spaceTitle} uchun ijara so'rovi yuborilgan.
+                        </span>
+                      </div>
+                    </div>
+                    <button onClick={() => setActiveTab("history")} style={{
+                      background: "#ea580c",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}>
+                      Tafsilotlar
+                    </button>
+                  </div>
+                )}
+
                 <section className="profile-hero-panel profile-edit-hero">
                   <div className="profile-main-card">
-                    <div className="profile-avatar">AK</div>
+                    {/* Avatar with Progress Circle wrapper */}
+                    <div className="profile-avatar-wrapper">
+                      <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: "rotate(-90deg)", position: "absolute", top: 0, left: 0 }}>
+                        <circle cx="40" cy="40" r="36" fill="transparent" stroke="#e2e8f0" strokeWidth="3.5" />
+                        <circle cx="40" cy="40" r="36" fill="transparent" stroke="#ea580c" strokeWidth="4" 
+                          strokeDasharray={2 * Math.PI * 36}
+                          strokeDashoffset={2 * Math.PI * 36 * (1 - completion / 100)}
+                          style={{ transition: "stroke-dashoffset 0.5s ease" }}
+                        />
+                      </svg>
+                      
+                      <div className="profile-avatar" style={{
+                        width: "66px",
+                        height: "66px",
+                        borderRadius: "50%",
+                        background: "linear-gradient(135deg, #12283f, #294a6d)",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        fontWeight: "750",
+                        position: "absolute",
+                        top: "7px",
+                        left: "7px",
+                        boxShadow: "none"
+                      }}>
+                        AK
+                      </div>
+
+                      <a href="#profile-edit" className="profile-avatar-tooltip">
+                        Заполнить до конца
+                      </a>
+                    </div>
+
                     <div className="profile-heading">
                       <span>Joyzone profile</span>
                       <h1>{profileData.name}</h1>
@@ -502,29 +583,6 @@ function UserProfile({ userState, setUserState }) {
                       <ProfileIcon type="edit" />
                       Anketa tahrirlash
                     </a>
-                  </div>
-                </section>
-
-                <section className="profile-questionnaire">
-                  <div className="profile-completion-card profile-questionnaire-summary">
-                    <div className="profile-progress-ring" style={{ "--profile-progress": `${completion}%` }}>
-                      <strong>{completion}%</strong>
-                    </div>
-                    <div className="profile-completion-copy">
-                      <span>Anketa</span>
-                      <h2>Profilni to'ldiring</h2>
-                      <p>Etishmayotgan ma'lumotlarni qo'shing — hamkorlar bronni tezroq tasdiqlaydi.</p>
-                    </div>
-                    <div className="profile-checklist">
-                      <span className="is-done"><ProfileIcon type="check" /> Ism va kontaktlar</span>
-                      <span className="is-done"><ProfileIcon type="check" /> Shahar</span>
-                      <span><ProfileIcon type="check" /> O'zim haqimda</span>
-                      <span><ProfileIcon type="check" /> Qiziqishlar</span>
-                    </div>
-                    <div className="profile-questionnaire-actions">
-                      <a href="#profile-edit" className="profile-save-action">Boshlash</a>
-                      <a href="#profile-edit" className="profile-cancel-action">Tahrirlash</a>
-                    </div>
                   </div>
                 </section>
               </div>
