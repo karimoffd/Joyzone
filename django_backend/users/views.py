@@ -5,7 +5,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from .models import OTPVerification
-from .serializers import UserSerializer, SendOTPSerializer, VerifyOTPSerializer
+from .serializers import UserSerializer, SendOTPSerializer, VerifyOTPSerializer, AdminUserSerializer
 import random
 
 User = get_user_model()
@@ -111,3 +111,15 @@ class DevAdminLoginView(APIView):
             "access": str(refresh.access_token),
             "profile": profile_serializer.data
         })
+
+
+class UserListView(generics.ListAPIView):
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = AdminUserSerializer
+    permission_classes = (permissions.IsAdminUser,)
+
+
+class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.all()
+    serializer_class = AdminUserSerializer
+    permission_classes = (permissions.IsAdminUser,)
