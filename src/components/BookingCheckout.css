@@ -135,6 +135,11 @@
   font-weight: 700;
 }
 
+.bc-card.wide {
+  max-width: 820px;
+  padding: 0;
+}
+
 .bc-confirm-btn {
   width: 100%;
   background: linear-gradient(135deg, #e46630, #ff8e53);

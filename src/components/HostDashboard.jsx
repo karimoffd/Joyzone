@@ -756,6 +756,11 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
           onClose={() => setPaymentTarget(null)}
           amount={formatPrice(paymentTarget)}
           title="Покупка тарифа"
+          productDetails={{
+            name: paymentTarget.name_ru || paymentTarget.name,
+            description: paymentTarget.description_ru || paymentTarget.description,
+            limit: paymentTarget.max_places
+          }}
           onSuccess={() => {
             const t = paymentTarget;
             setPaymentTarget(null);
