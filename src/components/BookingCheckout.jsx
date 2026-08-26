@@ -158,24 +158,8 @@ export default function BookingCheckout({ route, userState, setUserState }) {
               </a>
 
               <div className="pm-header">
-                <h2>To'lov usuli</h2>
-                <p>To'lov turini tanlang va kartangiz ma'lumotlarini kiriting</p>
-              </div>
-
-              {/* Payment Methods selector */}
-              <div className="pm-methods-selector">
-                <button type="button" className={`pm-method-tab ${method === 'card' ? 'active' : ''}`} onClick={() => setMethod('card')}>
-                  Karta
-                </button>
-                <button type="button" className={`pm-method-tab method-click ${method === 'click' ? 'active' : ''}`} onClick={() => setMethod('click')}>
-                  Click
-                </button>
-                <button type="button" className={`pm-method-tab method-payme ${method === 'payme' ? 'active' : ''}`} onClick={() => setMethod('payme')}>
-                  Payme
-                </button>
-                <button type="button" className={`pm-method-tab method-uzum ${method === 'uzum' ? 'active' : ''}`} onClick={() => setMethod('uzum')}>
-                  Uzum
-                </button>
+                <h2>{method === 'card' ? "Karta ma'lumotlari" : "Telefon raqami"}</h2>
+                <p>{method === 'card' ? "To'lovni amalga oshirish uchun karta ma'lumotlarini kiriting" : "To'lov so'rovini yuborish uchun telefon raqamingizni kiriting"}</p>
               </div>
 
               {/* Card Inputs Wrapper (Always visible, but dimmed/disabled when not 'card' method) */}
@@ -223,36 +207,26 @@ export default function BookingCheckout({ route, userState, setUserState }) {
 
             {/* Right Column: Order Info and Taxes */}
             <div className="pm-right-col">
-              <h3 className="pm-summary-title">Buyurtma tafsilotlari</h3>
+              <h3 className="pm-summary-title">To'lov turi</h3>
               
-              <div className="pm-info-text-list">
-                <div className="pm-info-text-row">
-                  <span>Xizmat nomi:</span>
-                  <strong>{space.title}</strong>
-                </div>
-                <div className="pm-info-text-row">
-                  <span>Manzil:</span>
-                  <strong>{space.location}</strong>
-                </div>
-                <div className="pm-info-text-row">
-                  <span>Ijara muddati:</span>
-                  <strong>
-                    {pendingBooking ? (pendingBooking.duration === 'soatlik' ? 'Soatlik' : pendingBooking.duration === 'haftalik' ? 'Haftalik' : pendingBooking.duration === 'oylik' ? 'Oylik' : 'Kunlik') : 'Kunlik'}
-                  </strong>
-                </div>
-                <div className="pm-info-text-row">
-                  <span>Mehmonlar soni:</span>
-                  <strong>{pendingBooking ? `${pendingBooking.guests} kishi` : '1 kishi'}</strong>
-                </div>
-                {pendingBooking?.discount > 0 && (
-                  <div className="pm-info-text-row" style={{ color: "#22c55e" }}>
-                    <span>Chegirma:</span>
-                    <strong>-{typeof pendingBooking.discount === 'number' ? new Intl.NumberFormat('ru-RU').format(pendingBooking.discount) + " UZS" : pendingBooking.discount}</strong>
-                  </div>
-                )}
+              {/* Payment Methods selector (moved to the right) */}
+              <div className="pm-methods-selector" style={{ marginBottom: 32 }}>
+                <button type="button" className={`pm-method-tab ${method === 'card' ? 'active' : ''}`} onClick={() => setMethod('card')}>
+                  Karta
+                </button>
+                <button type="button" className={`pm-method-tab method-click ${method === 'click' ? 'active' : ''}`} onClick={() => setMethod('click')}>
+                  Click
+                </button>
+                <button type="button" className={`pm-method-tab method-payme ${method === 'payme' ? 'active' : ''}`} onClick={() => setMethod('payme')}>
+                  Payme
+                </button>
+                <button type="button" className={`pm-method-tab method-uzum ${method === 'uzum' ? 'active' : ''}`} onClick={() => setMethod('uzum')}>
+                  Uzum
+                </button>
               </div>
 
-              <div className="pm-billing-details">
+              <div className="pm-billing-details" style={{ marginTop: "auto" }}>
+                <h3 className="pm-summary-title" style={{ fontSize: "14px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", marginBottom: "16px" }}>To'lov tafsilotlari</h3>
                 <div className="pm-billing-row">
                   <span>Asosiy ijara</span>
                   <strong>{formattedBase}</strong>

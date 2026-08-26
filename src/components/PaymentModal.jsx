@@ -111,24 +111,8 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
             {/* Left Column - Payment Fields */}
             <form onSubmit={handlePay} className="pm-left-col">
               <div className="pm-header">
-                <h2>{title || "To'lov xonasi"}</h2>
-                <p>To'lov usulini tanlang va ma'lumotlarni kiriting</p>
-              </div>
-
-              {/* Payment Methods Badges */}
-              <div className="pm-methods-selector">
-                <button type="button" className={`pm-method-tab ${method === 'card' ? 'active' : ''}`} onClick={() => setMethod('card')}>
-                  💳 Karta
-                </button>
-                <button type="button" className={`pm-method-tab method-click ${method === 'click' ? 'active' : ''}`} onClick={() => setMethod('click')}>
-                  Click
-                </button>
-                <button type="button" className={`pm-method-tab method-payme ${method === 'payme' ? 'active' : ''}`} onClick={() => setMethod('payme')}>
-                  Payme
-                </button>
-                <button type="button" className={`pm-method-tab method-uzum ${method === 'uzum' ? 'active' : ''}`} onClick={() => setMethod('uzum')}>
-                  Uzum
-                </button>
+                <h2>{method === 'card' ? "Karta ma'lumotlari" : "Telefon raqami"}</h2>
+                <p>{method === 'card' ? "To'lovni amalga oshirish uchun karta ma'lumotlarini kiriting" : "To'lov so'rovini yuborish uchun telefon raqamingizni kiriting"}</p>
               </div>
 
               {/* Card Inputs Wrapper (Always visible, but dimmed/disabled when not 'card' method) */}
@@ -176,28 +160,26 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
 
             {/* Right Column - Billing Info */}
             <div className="pm-right-col">
-              <h3 className="pm-summary-title">To'lov tafsilotlari</h3>
+              <h3 className="pm-summary-title">To'lov turi</h3>
               
-              <div className="pm-info-text-list">
-                <div className="pm-info-text-row">
-                  <span>Mahsulot nomi:</span>
-                  <strong>{productDetails?.name || "Tarif plani"}</strong>
-                </div>
-                {productDetails?.description && (
-                  <div className="pm-info-text-row">
-                    <span>Tavsif:</span>
-                    <strong>{productDetails.description}</strong>
-                  </div>
-                )}
-                {productDetails?.limit && (
-                  <div className="pm-info-text-row">
-                    <span>Лимит мест:</span>
-                    <strong>{productDetails.limit}</strong>
-                  </div>
-                )}
+              {/* Payment Methods selector (moved to the right) */}
+              <div className="pm-methods-selector" style={{ marginBottom: 32 }}>
+                <button type="button" className={`pm-method-tab ${method === 'card' ? 'active' : ''}`} onClick={() => setMethod('card')}>
+                  💳 Karta
+                </button>
+                <button type="button" className={`pm-method-tab method-click ${method === 'click' ? 'active' : ''}`} onClick={() => setMethod('click')}>
+                  Click
+                </button>
+                <button type="button" className={`pm-method-tab method-payme ${method === 'payme' ? 'active' : ''}`} onClick={() => setMethod('payme')}>
+                  Payme
+                </button>
+                <button type="button" className={`pm-method-tab method-uzum ${method === 'uzum' ? 'active' : ''}`} onClick={() => setMethod('uzum')}>
+                  Uzum
+                </button>
               </div>
 
-              <div className="pm-billing-details">
+              <div className="pm-billing-details" style={{ marginTop: "auto" }}>
+                <h3 className="pm-summary-title" style={{ fontSize: "14px", borderBottom: "1px solid #e2e8f0", paddingBottom: "10px", marginBottom: "16px" }}>To'lov tafsilotlari</h3>
                 <div className="pm-billing-row">
                   <span>Asosiy summa</span>
                   <strong>{amount}</strong>
