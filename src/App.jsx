@@ -223,12 +223,20 @@ function AppContent() {
   }, [displayedRoute, bootLoading]);
 
   const handleAuthSuccess = (profile) => {
+    const fullName = profile?.first_name 
+      ? `${profile.first_name} ${profile.last_name || ""}`.trim() 
+      : (profile?.name || profile?.username || "Foydalanuvchi");
+    const phoneStr = profile?.phone_number || profile?.phone || "";
+    const emailStr = profile?.email || "";
+    const avatarStr = profile?.avatar || userState.avatar || null;
+
     setUserState({ 
       isAuthed: true, 
-      isPartner: profile.role === "partner", 
-      name: profile.first_name ? `${profile.first_name} ${profile.last_name}`.trim() : (profile.username || "Foydalanuvchi"), 
-      email: profile.email || profile.phone_number,
-      phone: profile.phone_number
+      isPartner: profile?.role === "partner", 
+      name: fullName, 
+      email: emailStr,
+      phone: phoneStr,
+      avatar: avatarStr
     });
     window.location.hash = "#home";
   };

@@ -158,7 +158,17 @@ function getCompletion(data) {
 function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
   const avatarInputRef = useRef(null);
-  const profileData = initialProfile;
+  const profileData = useMemo(() => {
+    const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov";
+    const activeEmail = userState?.email || localStorage.getItem("joyzone-email") || "abdulboriy@gmail.com";
+    const activePhone = userState?.phone || localStorage.getItem("joyzone-phone") || "+998992775455";
+    return {
+      ...initialProfile,
+      name: activeName,
+      email: activeEmail,
+      phone: activePhone
+    };
+  }, [userState]);
   const completion = 50;
   const likedSpaces = propertyCards;
 
