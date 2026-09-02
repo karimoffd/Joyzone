@@ -48,7 +48,27 @@ export default function AdminMessagesPage() {
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>{CHATS.find(c=>c.id===active)?.name}</div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {(msgs[active]||[]).map((m,i) => (
-              <div key={i} style={{ alignSelf: m.from==='host' ? 'flex-end' : 'flex-start', maxWidth: '75%', background: m.from==='host' ? '#294a6d' : '#f6f1ee', color: m.from==='host' ? '#fff' : 'var(--text)', padding: '10px 14px', borderRadius: m.from==='host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', fontSize: 14, lineHeight: 1.5 }}>{m.text}</div>
+              <div 
+                key={i} 
+                style={{ 
+                  alignSelf: m.from==='host' ? 'flex-end' : 'flex-start', 
+                  width: 'fit-content',
+                  maxWidth: 'min(62%, 380px)', 
+                  background: m.from==='host' ? '#294a6d' : '#f6f1ee', 
+                  color: m.from==='host' ? '#fff' : 'var(--text)', 
+                  padding: '10px 14px', 
+                  borderRadius: m.from==='host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
+                  fontSize: 14, 
+                  lineHeight: 1.5,
+                  overflowWrap: 'anywhere',
+                  wordBreak: 'break-word',
+                  wordWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {m.text}
+              </div>
             ))}
           </div>
           <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
