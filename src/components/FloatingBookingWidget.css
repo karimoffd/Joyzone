@@ -64,7 +64,54 @@
   align-items: center;
   gap: 16px;
   z-index: 1;
+  transition: opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease;
+  max-height: 100px;
 }
+
+.fbw-content.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+.fbw-content.is-visible {
+  opacity: 1;
+  visibility: visible;
+  max-height: 100px;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.fbw-expanded-panel {
+  position: relative;
+  z-index: 1;
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.34, 1.25, 0.64, 1), max-height 0.35s ease;
+  max-height: 1000px;
+}
+
+.fbw-expanded-panel.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  transform: scale(0.95) translateY(12px);
+  pointer-events: none;
+}
+
+.fbw-expanded-panel.is-visible {
+  opacity: 1;
+  visibility: visible;
+  max-height: 1000px;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.fbw-expanded-header {
 
 .fbw-icon {
   width: 36px;
