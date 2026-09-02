@@ -2856,3 +2856,13 @@
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(234, 88, 12, 0.45);
 }
+
+/* Hide floating widgets when burger menu is open */
+body.is-menu-open .floating-booking-widget,
+body.is-menu-open .joy-floating-contact {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(24px) scale(0.92) !important;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
+}

@@ -366,6 +366,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
     if (!overlay || !bg) return;
 
     if (open) {
+      document.body.classList.add("is-menu-open");
       gsap.set(overlay, { display: "flex", pointerEvents: "auto" });
       document.body.style.overflow = "hidden";
 
@@ -376,6 +377,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
       tlRef.current.fromTo(".menu-nav-link", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, stagger: 0.07 }, "-=0.25");
       tlRef.current.fromTo(".menu-sidebar-col, .menu-widget-partner, .menu-widget-user, .menu-widget-auth", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, stagger: 0.06 }, "-=0.3");
     } else {
+      document.body.classList.remove("is-menu-open");
       document.body.style.overflow = "";
       gsap.to(bg, {
         x: "100%",
@@ -394,7 +396,10 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
     }
   }, [open]);
 
-  useEffect(() => () => { document.body.style.overflow = ""; }, []);
+  useEffect(() => () => { 
+    document.body.style.overflow = ""; 
+    document.body.classList.remove("is-menu-open");
+  }, []);
 
   useEffect(() => {
     if (!open) setActiveSubmenuId(null);
