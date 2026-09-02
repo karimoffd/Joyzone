@@ -463,26 +463,32 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
           <div className="menu-main-header">
             <img src={logoImage} alt="Joyzone" className="premium-menu-logo mobile-only-logo" />
             
-            <div className="d-flex align-items-center gap-3 ms-auto">
-              {/* White & Orange Pill Language Switcher (Exact match to screenshot) */}
-              <div className="drawer-lang-pill">
-                <button 
-                  type="button" 
-                  className={`drawer-lang-btn ${lang === 'uz' ? 'is-active' : ''}`}
-                  onClick={() => setLang('uz')}
-                >
-                  UZ
-                </button>
-                <button 
-                  type="button" 
-                  className={`drawer-lang-btn ${lang === 'ru' ? 'is-active' : ''}`}
-                  onClick={() => setLang('ru')}
-                >
-                  RU
-                </button>
-              </div>
+            {/* White & Orange Pill Language Switcher (UZ / RU / EN) placed to the left */}
+            <div className="drawer-lang-pill me-auto">
+              <button 
+                type="button" 
+                className={`drawer-lang-btn ${lang === 'uz' ? 'is-active' : ''}`}
+                onClick={() => setLang('uz')}
+              >
+                UZ
+              </button>
+              <button 
+                type="button" 
+                className={`drawer-lang-btn ${lang === 'ru' ? 'is-active' : ''}`}
+                onClick={() => setLang('ru')}
+              >
+                RU
+              </button>
+              <button 
+                type="button" 
+                className={`drawer-lang-btn ${lang === 'en' ? 'is-active' : ''}`}
+                onClick={() => setLang('en')}
+              >
+                EN
+              </button>
+            </div>
 
-              <button className="menu-close-btn" onClick={onClose} aria-label="Yopish">
+              <button className="menu-close-btn ms-auto" onClick={onClose} aria-label="Yopish">
                 <span className="menu-close-label">Yopish</span>
                 <span className="menu-close-icon">
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -490,7 +496,6 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                   </svg>
                 </span>
               </button>
-            </div>
           </div>
 
           <div className="menu-main-body">
