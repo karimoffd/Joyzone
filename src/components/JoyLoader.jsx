@@ -3,7 +3,7 @@ import { gsap } from "gsap";
 import logoImage from "../assets/img/Logo.png";
 import "./JoyLoader.css";
 
-export default function JoyLoader({ active }) {
+export default function JoyLoader({ active = true }) {
   useEffect(() => {
     if (!active) return undefined;
 

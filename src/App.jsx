@@ -481,25 +481,28 @@ export default function App() {
     // Fetch places first, then content
     axios.get("http://localhost:8000/api/places/")
       .then((res) => {
-        const backendPlaces = (res.data?.results || res.data || []).map((place, idx) => ({
-          id: place.id,
-          title: place.title,
-          category: place.category,
-          location: place.location,
-          price: place.price,
-          prices: {
-            soatlik: place.price.toLowerCase().includes("soat") ? place.price : null,
-            kunlik: place.price.toLowerCase().includes("kun") ? place.price : place.price,
-            haftalik: place.price.toLowerCase().includes("hafta") ? place.price : null,
-            oylik: place.price.toLowerCase().includes("oy") ? place.price : null
-          },
-          people: place.people,
-          area: place.area,
-          images: place.images && place.images.length > 0 ? place.images : [
-            "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
-          ],
-          promoted: place.promoted
-        }));
+        const backendPlaces = (res.data?.results || res.data || []).map((place, idx) => {
+          const priceStr = String(place.price || "");
+          return {
+            id: place.id,
+            title: place.title,
+            category: place.category,
+            location: place.location,
+            price: place.price,
+            prices: {
+              soatlik: priceStr.toLowerCase().includes("soat") ? priceStr : null,
+              kunlik: priceStr.toLowerCase().includes("kun") ? priceStr : priceStr,
+              haftalik: priceStr.toLowerCase().includes("hafta") ? priceStr : null,
+              oylik: priceStr.toLowerCase().includes("oy") ? priceStr : null
+            },
+            people: place.people,
+            area: place.area,
+            images: place.images && place.images.length > 0 ? place.images : [
+              "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
+            ],
+            promoted: place.promoted
+          };
+        });
         if (backendPlaces.length > 0) {
           propertyCards.splice(0, propertyCards.length, ...backendPlaces);
         }
@@ -541,7 +544,7 @@ export default function App() {
   }, []);
 
   if (!placesLoaded) {
-    return <JoyLoader />;
+    return <JoyLoader active={true} />;
   }
 
   return (
