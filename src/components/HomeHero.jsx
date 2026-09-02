@@ -209,10 +209,6 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
               </div>
 
               <div className="nav-right d-flex align-items-center">
-                <div className="lang-switcher d-flex align-items-center me-3" style={{ background: 'var(--surface-color, rgba(0,0,0,0.05))', padding: '4px', borderRadius: '8px', gap: '2px' }}>
-                  <button onClick={() => setLang('uz')} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: lang === 'uz' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'uz' ? '#fff' : 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: '0.2s' }}>UZ</button>
-                  <button onClick={() => setLang('ru')} style={{ padding: '4px 8px', borderRadius: '6px', border: 'none', background: lang === 'ru' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'ru' ? '#fff' : 'inherit', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: '0.2s' }}>RU</button>
-                </div>
                 <a className="login-button btn-shine" href={statusHref}>
                   {statusLabel}
                 </a>
@@ -342,6 +338,7 @@ const mobileQuickActions = [
 ];
 
 function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
+  const { lang, setLang } = useContext(LanguageContext);
   const overlayRef = useRef(null);
   const bgRef = useRef(null);
   const tlRef = useRef(null);
@@ -460,14 +457,22 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
         <div className="menu-main-col">
           <div className="menu-main-header">
             <img src={logoImage} alt="Joyzone" className="premium-menu-logo mobile-only-logo" />
-            <button className="menu-close-btn" onClick={onClose} aria-label="Yopish">
-              <span className="menu-close-label">Yopish</span>
-              <span className="menu-close-icon">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
-                </svg>
-              </span>
-            </button>
+            
+            <div className="d-flex align-items-center gap-3 ms-auto">
+              <div className="lang-switcher d-flex align-items-center me-2" style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '3px 4px', borderRadius: '10px', gap: '4px', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
+                <button type="button" onClick={() => setLang('uz')} style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: lang === 'uz' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'uz' ? '#fff' : 'rgba(255, 255, 255, 0.65)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>UZ</button>
+                <button type="button" onClick={() => setLang('ru')} style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: lang === 'ru' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'ru' ? '#fff' : 'rgba(255, 255, 255, 0.65)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>RU</button>
+              </div>
+
+              <button className="menu-close-btn" onClick={onClose} aria-label="Yopish">
+                <span className="menu-close-label">Yopish</span>
+                <span className="menu-close-icon">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+                  </svg>
+                </span>
+              </button>
+            </div>
           </div>
 
           <div className="menu-main-body">
