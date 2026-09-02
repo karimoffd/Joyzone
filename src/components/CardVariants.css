@@ -268,24 +268,35 @@
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1.5px solid var(--variant-blue);
+  border: none !important;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--variant-blue);
+  background: rgba(255, 255, 255, 0.95);
+  color: #12283f !important;
   cursor: pointer;
-  box-shadow: 0 12px 26px rgba(31, 120, 209, 0.2);
+  box-shadow: 0 4px 14px rgba(18, 40, 63, 0.14);
   transition:
     transform 180ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.variant-save-button svg {
+  color: #12283f !important;
+  stroke: #12283f !important;
 }
 
 .variant-save-button.is-saved {
   background: #ffffff;
-  color: var(--variant-blue);
+  color: #ea580c !important;
+}
+
+.variant-save-button.is-saved svg {
+  color: #ea580c !important;
+  stroke: #ea580c !important;
 }
 
 .variant-save-button:hover {
-  transform: translateY(-1px) scale(1.04);
+  transform: translateY(-1px) scale(1.06);
 }
 
 .variant-dots {
@@ -851,8 +862,8 @@
   top: 16px;
   right: 16px;
   background: #ffffff;
-  border: 1px solid rgba(41, 74, 109, 0.1);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(18, 40, 63, 0.12);
   z-index: 20;
 }
 
