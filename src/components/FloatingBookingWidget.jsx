@@ -6,8 +6,11 @@ import "./FloatingBookingWidget.css";
 
 export default function FloatingBookingWidget({ activeBooking }) {
   const widgetRef = useRef(null);
+  const panelRef = useRef(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
+  // Entrance animation when activeBooking appears
   useEffect(() => {
     if (activeBooking && widgetRef.current) {
       gsap.fromTo(
@@ -18,9 +21,79 @@ export default function FloatingBookingWidget({ activeBooking }) {
     }
   }, [activeBooking]);
 
+  // Click outside to close
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        showDetails &&
+        !isClosing &&
+        widgetRef.current &&
+        !widgetRef.current.contains(event.target)
+      ) {
+        handleClose();
+      }
+    }
+
+    if (showDetails) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showDetails, isClosing]);
+
+  // Animate opening of expanded panel
+  const handleOpen = () => {
+    setShowDetails(true);
+    setIsClosing(false);
+  };
+
+  useEffect(() => {
+    if (showDetails && panelRef.current && !isClosing) {
+      gsap.fromTo(
+        widgetRef.current,
+        { scale: 0.94, opacity: 0.8 },
+        { scale: 1, opacity: 1, duration: 0.35, ease: "power3.out" }
+      );
+
+      gsap.fromTo(
+        panelRef.current.children,
+        { y: 16, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, ease: "power2.out", delay: 0.05 }
+      );
+    }
+  }, [showDetails]);
+
+  // Animate closing of expanded panel
+  const handleClose = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isClosing) return;
+    setIsClosing(true);
+
+    if (panelRef.current) {
+      gsap.to(panelRef.current, {
+        opacity: 0,
+        y: 12,
+        scale: 0.96,
+        duration: 0.25,
+        ease: "power2.inOut",
+        onComplete: () => {
+          setShowDetails(false);
+          setIsClosing(false);
+        }
+      });
+    } else {
+      setShowDetails(false);
+      setIsClosing(false);
+    }
+  };
+
   if (!activeBooking) return null;
 
-  // Clean, cross-browser manual date format to prevent formatting letters like "M"
+  // Clean, cross-browser manual date format
   const formattedDate = (() => {
     try {
       const d = new Date(activeBooking.timestamp || Date.now());
@@ -31,8 +104,8 @@ export default function FloatingBookingWidget({ activeBooking }) {
     }
   })();
 
-  // Resolve defaults for missing fields (fallback for older local storage items)
-  const totalVal = activeBooking.total || 250000; // default fallback price
+  // Resolve defaults for missing fields
+  const totalVal = activeBooking.total || 250000;
   const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + " UZS";
   const guestsCount = activeBooking.guests || 1;
   const startDateVal = activeBooking.startDate || new Date().toISOString().split("T")[0];
@@ -46,7 +119,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
       <div className="fbw-glow"></div>
       
       {!showDetails ? (
-        <div className="fbw-content" onClick={() => setShowDetails(true)} style={{ cursor: "pointer" }}>
+        <div className="fbw-content" onClick={handleOpen} style={{ cursor: "pointer" }}>
           <div className="fbw-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
@@ -64,10 +137,10 @@ export default function FloatingBookingWidget({ activeBooking }) {
           </button>
         </div>
       ) : (
-        <div className="fbw-expanded-panel">
+        <div className="fbw-expanded-panel" ref={panelRef}>
           <div className="fbw-expanded-header">
             <h3>So'rov tafsilotlari</h3>
-            <button className="fbw-close-sub-btn" onClick={() => setShowDetails(false)}>✕</button>
+            <button className="fbw-close-sub-btn" onClick={handleClose}>✕</button>
           </div>
 
           {/* Render space details card */}
@@ -107,7 +180,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
 
           <div className="fbw-footer">
             <p>Sizning so'rovingiz qabul qilindi. Operator tasdiqlashini kuting.</p>
-            <a href="#profile" className="fbw-profile-action-btn" onClick={() => setShowDetails(false)}>
+            <a href="#profile" className="fbw-profile-action-btn" onClick={handleClose}>
               Mening profilimga o'tish
             </a>
           </div>
