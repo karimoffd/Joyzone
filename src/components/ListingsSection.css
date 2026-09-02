@@ -1743,7 +1743,7 @@
 .joy-floating-contact {
   position: fixed !important;
   right: 24px !important;
-  bottom: 24px !important;
+  bottom: 34px !important;
   z-index: 999999 !important;
   display: grid;
   width: 64px;
@@ -1752,6 +1752,8 @@
   border-radius: 50%;
   background: #e46630;
   color: #ffffff;
+  border: none;
+  cursor: pointer;
   text-decoration: none;
   box-shadow:
     0 20px 42px rgba(228, 102, 48, 0.34),
@@ -1767,13 +1769,13 @@
 
 /* Position adjustment when compact FloatingBookingWidget is active: float UP above widget */
 body.has-active-booking .joy-floating-contact {
-  bottom: 96px !important;
+  bottom: 108px !important;
   right: 24px !important;
 }
 
 /* Position adjustment when FloatingBookingWidget is EXPANDED: float LEFT of expanded panel */
 body.has-active-booking-expanded .joy-floating-contact {
-  bottom: 24px !important;
+  bottom: 34px !important;
   right: 424px !important;
   transform: scale(0.96);
 }

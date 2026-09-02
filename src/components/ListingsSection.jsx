@@ -762,10 +762,18 @@ export function JoyFooter() {
       </div>
 
       {typeof document !== "undefined" && createPortal(
-        <a href="#contact" className="joy-floating-contact" aria-label="Joyzone bilan bog'lanish">
+        <button 
+          type="button" 
+          className="joy-floating-contact" 
+          aria-label="Joyzone bilan bog'lanish"
+          onClick={(e) => {
+            e.preventDefault();
+            // Prevent scrolling to footer
+          }}
+        >
           <FooterIcon type="chat" />
           <span>Yordam kerakmi?</span>
-        </a>,
+        </button>,
         document.body
       )}
     </footer>
