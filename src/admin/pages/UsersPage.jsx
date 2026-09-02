@@ -46,9 +46,40 @@ const formatMoney = (val) => {
 function UserEditModal({ user, onClose, onSave }) {
   const [role, setRole] = useState(user.role || 'client');
   const [loading, setLoading] = useState(false);
+  const [showWarningConfirm, setShowWarningConfirm] = useState(false);
+  const [placesCount, setPlacesCount] = useState(user.places_count || 1);
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    if (user.role === 'partner' || user.id) {
+      const getHeaders = () => {
+        const t = localStorage.getItem('joyzone-access');
+        return t ? { Authorization: `Bearer ${t}` } : {};
+      };
+      axios.get(`http://localhost:8000/api/places/?owner=${user.id}`, { headers: getHeaders() })
+        .then(res => {
+          const list = res.data?.results || res.data || [];
+          if (Array.isArray(list) && list.length > 0) {
+            setPlacesCount(list.length);
+          } else {
+            setPlacesCount(user.places_count || 1);
+          }
+        })
+        .catch(() => {
+          setPlacesCount(user.places_count || 1);
+        });
+    }
+  }, [user.id, user.role]);
+
+  const handleSubmit = (e) => {
     e.preventDefault();
+    if (user.role === 'partner' && role !== 'partner') {
+      setShowWarningConfirm(true);
+      return;
+    }
+    executeSave();
+  };
+
+  const executeSave = async () => {
     setLoading(true);
     await onSave(user.id, { role });
     setLoading(false);
@@ -57,6 +88,8 @@ function UserEditModal({ user, onClose, onSave }) {
   const fullName = user.first_name || user.last_name 
     ? `${user.first_name || ''} ${user.last_name || ''}`.trim() 
     : user.username;
+
+  const targetRoleObj = ROLE_OPTIONS.find(r => r.id === role);
 
   return createPortal(
     <div className="adm-user-modal-overlay" onClick={onClose}>
@@ -160,6 +193,40 @@ function UserEditModal({ user, onClose, onSave }) {
         </form>
 
       </div>
+
+      {/* Partner Role Change Safety Warning Dialog */}
+      {showWarningConfirm && (
+        <div className="adm-confirm-overlay" onClick={() => setShowWarningConfirm(false)}>
+          <div className="adm-confirm-card" onClick={(e) => e.stopPropagation()}>
+            <div className="adm-confirm-icon-box">⚠️</div>
+            <h3>Внимание! Перевод партнёра в другую роль</h3>
+            <p>
+              У пользователя <strong>{fullName}</strong> имеется <strong>{placesCount} {placesCount === 1 ? 'объект' : placesCount < 5 ? 'объекта' : 'объектов'}</strong>.
+            </p>
+            <div className="adm-confirm-alert-box">
+              При изменении роли с <strong>"Партнёр"</strong> на <strong>"{targetRoleObj?.label || 'Клиент'}"</strong>, все <strong>{placesCount} {placesCount === 1 ? 'объект' : placesCount < 5 ? 'объекта' : 'объектов'}</strong> будут автоматически отправлены в <strong>архив</strong> и заблокированы для публичного бронирования!
+            </div>
+            <div className="adm-confirm-actions">
+              <button 
+                type="button" 
+                className="adm-modal-btn confirm-archive" 
+                disabled={loading}
+                onClick={executeSave}
+              >
+                {loading ? 'Архивирование...' : 'Да, перевести в архив и изменить роль'}
+              </button>
+              <button 
+                type="button" 
+                className="adm-modal-btn cancel" 
+                onClick={() => setShowWarningConfirm(false)}
+              >
+                Отмена (Сохранить роль)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>,
     document.body
   );
