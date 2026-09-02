@@ -61,7 +61,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
           <div className="host-detail-title-group">
             <span className="host-detail-category">{item.category || "Joyzone Space"}</span>
             <h2>{item.title}</h2>
-            <span className="host-detail-location">📍 {item.location || item.city || "Toshkent"}</span>
+            <span className="host-detail-location">{item.location || item.city || "Toshkent"}</span>
           </div>
           <button type="button" className="host-detail-close-btn" onClick={handleClose} aria-label="Yopish">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -76,7 +76,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
           <div className="host-detail-main-img-wrap">
             <img src={images[activeImgIndex]} alt={item.title} className="host-detail-main-img" />
             <span className={`host-detail-status-pill ${item.status === "approved" ? "is-live" : item.status === "rejected" ? "is-rejected" : "is-pending"}`}>
-              {item.status === "approved" ? "🟢 Опубликовано" : item.status === "rejected" ? "🔴 Отклонено" : "🟡 На модерации"}
+              {item.status === "approved" ? "Опубликовано" : item.status === "rejected" ? "Отклонено" : "На модерации"}
             </span>
           </div>
 
@@ -121,7 +121,6 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
           {/* Booking Financial & Duration Receipt Breakdown */}
           <div className="host-detail-financial-receipt">
             <div className="host-receipt-header">
-              <span className="host-receipt-icon">💳</span>
               <div>
                 <h4>To'lov va bandlik tafsilotlari</h4>
                 <small>Tranzaksiya va kunlar hisobi</small>
@@ -168,7 +167,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
             <h3>Qulayliklar</h3>
             <div className="host-detail-tags">
               {(item.amenities || ["Wi-Fi", "Konditsioner", "Proyektor", "Kofe apparat", "Avtoturargoh"]).map((amenity, idx) => (
-                <span key={idx} className="host-detail-tag">✨ {amenity}</span>
+                <span key={idx} className="host-detail-tag">{amenity}</span>
               ))}
             </div>
           </div>
@@ -181,11 +180,11 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
             className="host-detail-act-btn space-detail"
             onClick={handleClose}
           >
-            🏢 Space details
+            Space details
           </a>
           {onEdit && (
             <button type="button" className="host-detail-act-btn edit" onClick={() => { handleClose(); onEdit(item); }}>
-              ✏️ Tahrirlash
+              Tahrirlash
             </button>
           )}
           <button type="button" className="host-detail-act-btn close" onClick={handleClose}>
