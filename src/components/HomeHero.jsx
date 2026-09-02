@@ -697,14 +697,13 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </div>
                   )}
                 </div>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
-
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 }
 
 function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {

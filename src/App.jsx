@@ -478,40 +478,54 @@ export default function App() {
   }, [lang]);
 
   useEffect(() => {
-    // Fetch places first, then content
+    const safetyTimer = setTimeout(() => {
+      setPlacesLoaded(true);
+    }, 1200);
+
     axios.get("http://localhost:8000/api/places/")
       .then((res) => {
-        const backendPlaces = (res.data?.results || res.data || []).map((place, idx) => {
-          const priceStr = String(place.price || "");
-          return {
-            id: place.id,
-            title: place.title,
-            category: place.category,
-            location: place.location,
-            price: place.price,
-            prices: {
-              soatlik: priceStr.toLowerCase().includes("soat") ? priceStr : null,
-              kunlik: priceStr.toLowerCase().includes("kun") ? priceStr : priceStr,
-              haftalik: priceStr.toLowerCase().includes("hafta") ? priceStr : null,
-              oylik: priceStr.toLowerCase().includes("oy") ? priceStr : null
-            },
-            people: place.people,
-            area: place.area,
-            images: place.images && place.images.length > 0 ? place.images : [
-              "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
-            ],
-            promoted: place.promoted
-          };
-        });
-        if (backendPlaces.length > 0) {
-          propertyCards.splice(0, propertyCards.length, ...backendPlaces);
+        try {
+          const fetchedData = Array.isArray(res.data) ? res.data : (res.data?.results || []);
+          if (Array.isArray(fetchedData) && fetchedData.length > 0) {
+            const backendPlaces = fetchedData.map((place) => {
+              const priceStr = String(place?.price || "");
+              return {
+                id: place.id || Math.random(),
+                title: place.title || "Joyzone",
+                category: place.category || "Dacha",
+                location: place.location || "Toshkent",
+                price: place.price || "1,500,000 so'm/kun",
+                prices: {
+                  soatlik: priceStr.toLowerCase().includes("soat") ? priceStr : null,
+                  kunlik: priceStr.toLowerCase().includes("kun") ? priceStr : priceStr,
+                  haftalik: priceStr.toLowerCase().includes("hafta") ? priceStr : null,
+                  oylik: priceStr.toLowerCase().includes("oy") ? priceStr : null
+                },
+                people: place.people || 6,
+                area: place.area || 120,
+                images: Array.isArray(place.images) && place.images.length > 0 ? place.images : [
+                  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
+                ],
+                promoted: Boolean(place.promoted)
+              };
+            });
+            if (backendPlaces.length > 0) {
+              propertyCards.splice(0, propertyCards.length, ...backendPlaces);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing backend places:", e);
         }
-        setPlacesLoaded(true);
       })
       .catch((err) => {
         console.error("Failed to fetch places", err);
+      })
+      .finally(() => {
+        clearTimeout(safetyTimer);
         setPlacesLoaded(true);
       });
+
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   useEffect(() => {
