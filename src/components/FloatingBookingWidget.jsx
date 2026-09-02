@@ -8,6 +8,29 @@ export default function FloatingBookingWidget({ activeBooking }) {
   const widgetRef = useRef(null);
   const [showDetails, setShowDetails] = useState(false);
 
+  // Manage body classes for coordinating position with floating contact button
+  useEffect(() => {
+    if (activeBooking) {
+      document.body.classList.add("has-active-booking");
+    } else {
+      document.body.classList.remove("has-active-booking");
+      document.body.classList.remove("has-active-booking-expanded");
+    }
+
+    return () => {
+      document.body.classList.remove("has-active-booking");
+      document.body.classList.remove("has-active-booking-expanded");
+    };
+  }, [activeBooking]);
+
+  useEffect(() => {
+    if (activeBooking && showDetails) {
+      document.body.classList.add("has-active-booking-expanded");
+    } else {
+      document.body.classList.remove("has-active-booking-expanded");
+    }
+  }, [activeBooking, showDetails]);
+
   // Initial entrance animation when activeBooking first appears
   useEffect(() => {
     if (activeBooking && widgetRef.current) {

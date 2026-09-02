@@ -1742,12 +1742,12 @@
 
 .joy-floating-contact {
   position: fixed !important;
-  right: clamp(34px, 5vw, 72px);
-  bottom: clamp(48px, 7vw, 92px);
+  right: 24px !important;
+  bottom: 24px !important;
   z-index: 999999 !important;
   display: grid;
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   place-items: center;
   border-radius: 50%;
   background: #e46630;
@@ -1758,10 +1758,31 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.22);
   animation: floatingContactPulse 3s ease-in-out infinite;
   transition:
+    bottom 0.4s cubic-bezier(0.34, 1.25, 0.64, 1),
+    right 0.4s cubic-bezier(0.34, 1.25, 0.64, 1),
+    transform 0.3s cubic-bezier(0.34, 1.25, 0.64, 1),
     width 280ms ease,
-    border-radius 280ms ease,
-    transform 220ms ease,
     background 220ms ease;
+}
+
+/* Position adjustment when compact FloatingBookingWidget is active: float UP above widget */
+body.has-active-booking .joy-floating-contact {
+  bottom: 96px !important;
+  right: 24px !important;
+}
+
+/* Position adjustment when FloatingBookingWidget is EXPANDED: float LEFT of expanded panel */
+body.has-active-booking-expanded .joy-floating-contact {
+  bottom: 24px !important;
+  right: 424px !important;
+  transform: scale(0.96);
+}
+
+@media (max-width: 768px) {
+  body.has-active-booking-expanded .joy-floating-contact {
+    bottom: calc(100vh - 84px) !important;
+    right: 20px !important;
+  }
 }
 
 .joy-floating-contact::before,
