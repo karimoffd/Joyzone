@@ -637,13 +637,13 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     <div className="menu-widget-user">
                       <div className="menu-user-avatar">
                         {userState.avatar ? (
-                          <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
                         ) : (
-                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AN"
                         )}
                       </div>
                       <div className="menu-user-details">
-                        <strong>{userState.name || "Aziz Karimov"}</strong>
+                        <strong>{userState.name || "Abdulboriy Nosirov"}</strong>
                         <span>{userState.phone || userState.email || "+998992775455"}</span>
                       </div>
                       <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
@@ -655,13 +655,13 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                       <div className="menu-widget-user">
                         <div className="menu-user-avatar">
                           {userState.avatar ? (
-                            <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                            <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
                           ) : (
-                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AN"
                           )}
                         </div>
                         <div className="menu-user-details">
-                          <strong>{userState.name || "Aziz Karimov"}</strong>
+                          <strong>{userState.name || "Abdulboriy Nosirov"}</strong>
                           <span>{userState.phone || userState.email || "+998992775455"}</span>
                         </div>
                         <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
