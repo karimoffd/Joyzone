@@ -445,7 +445,35 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                 <a href="https://facebook.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Facebook</a>
               </div>
 
-              <div className="menu-sidebar-copyright">
+              {/* Premium Language Card Block in Sidebar */}
+              <div className="menu-sidebar-lang-block">
+                <div className="menu-sidebar-lang-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span>Interfeys tili</span>
+                </div>
+                <div className="menu-sidebar-lang-options">
+                  <button 
+                    type="button" 
+                    className={`menu-sidebar-lang-opt ${lang === 'uz' ? 'is-active' : ''}`}
+                    onClick={() => setLang('uz')}
+                  >
+                    <span>🇺🇿 O'zbek</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`menu-sidebar-lang-opt ${lang === 'ru' ? 'is-active' : ''}`}
+                    onClick={() => setLang('ru')}
+                  >
+                    <span>🇷🇺 Русский</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="menu-sidebar-copyright" style={{ marginTop: "16px" }}>
                 <span>© {new Date().getFullYear()} Joyzone.</span>
                 <span>Powered by IT Comfort.</span>
               </div>
@@ -459,9 +487,29 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
             <img src={logoImage} alt="Joyzone" className="premium-menu-logo mobile-only-logo" />
             
             <div className="d-flex align-items-center gap-3 ms-auto">
-              <div className="lang-switcher d-flex align-items-center me-2" style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '3px 4px', borderRadius: '10px', gap: '4px', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
-                <button type="button" onClick={() => setLang('uz')} style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: lang === 'uz' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'uz' ? '#fff' : 'rgba(255, 255, 255, 0.65)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>UZ</button>
-                <button type="button" onClick={() => setLang('ru')} style={{ padding: '4px 10px', borderRadius: '7px', border: 'none', background: lang === 'ru' ? 'var(--primary-color, #e46630)' : 'transparent', color: lang === 'ru' ? '#fff' : 'rgba(255, 255, 255, 0.65)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: '0.2s' }}>RU</button>
+              {/* Premium Glass Pill Language Switcher */}
+              <div className="drawer-lang-pill">
+                <div className="drawer-lang-globe">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </div>
+                <button 
+                  type="button" 
+                  className={`drawer-lang-btn ${lang === 'uz' ? 'is-active' : ''}`}
+                  onClick={() => setLang('uz')}
+                >
+                  UZ
+                </button>
+                <button 
+                  type="button" 
+                  className={`drawer-lang-btn ${lang === 'ru' ? 'is-active' : ''}`}
+                  onClick={() => setLang('ru')}
+                >
+                  RU
+                </button>
               </div>
 
               <button className="menu-close-btn" onClick={onClose} aria-label="Yopish">
