@@ -12,17 +12,17 @@ function slugify(text) {
 }
 
 const initialProfile = {
-  name: "Aziz Karimov",
-  role: "Founder, product jamoasi",
+  name: "",
+  role: "Joyzone foydalanuvchisi",
   city: "Toshkent",
   birthYear: "",
   languages: "Uzbek, Russian",
-  email: "aziz.karimov@mail.com",
+  email: "",
   phone: "",
-  work: "Product jamoasi asoschisi",
+  work: "",
   company: "",
   interests: "",
-  about: "Ish uchrashuvlari va jamoa sessiyalari uchun tinch, qulay joylarni tanlayman."
+  about: ""
 };
 
 const profileSections = [
@@ -159,9 +159,9 @@ function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
   const avatarInputRef = useRef(null);
   const profileData = useMemo(() => {
-    const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov";
-    const activeEmail = userState?.email || localStorage.getItem("joyzone-email") || "abdulboriy@gmail.com";
-    const activePhone = userState?.phone || localStorage.getItem("joyzone-phone") || "+998992775455";
+    const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi";
+    const activeEmail = userState?.email || localStorage.getItem("joyzone-email") || "";
+    const activePhone = userState?.phone || localStorage.getItem("joyzone-phone") || "";
     return {
       ...initialProfile,
       name: activeName,

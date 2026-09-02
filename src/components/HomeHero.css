@@ -1983,12 +1983,12 @@
 }
 
 .menu-user-details strong {
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 800;
   color: #12283f;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .menu-user-details span {

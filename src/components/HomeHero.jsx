@@ -639,12 +639,12 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         {userState.avatar ? (
                           <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
                         ) : (
-                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AN"
+                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
                         )}
                       </div>
                       <div className="menu-user-details">
-                        <strong>{userState.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov"}</strong>
-                        <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || "+998 99 277 54 55"}</span>
+                        <strong>{userState.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi"}</strong>
+                        <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || ""}</span>
                       </div>
                       <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                         <IconUser /> Profile ochish
@@ -657,12 +657,12 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                           {userState.avatar ? (
                             <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
                           ) : (
-                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AN"
+                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
                           )}
                         </div>
                         <div className="menu-user-details">
-                          <strong>{userState.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov"}</strong>
-                          <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || "+998 99 277 54 55"}</span>
+                          <strong>{userState.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi"}</strong>
+                          <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || ""}</span>
                         </div>
                         <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                           <IconUser /> Kabinetga o'tish
