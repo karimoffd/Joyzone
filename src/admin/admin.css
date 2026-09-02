@@ -105,6 +105,340 @@
 .adm-booking-name { font-size:14px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .adm-booking-meta { font-size:11px; color:var(--text-muted); margin-top:1px; }
 .adm-status-pill { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; flex-shrink:0; }
+/* ============================================
+   ADMIN USER DETAIL MODAL OVERLAY — Full Viewport
+   ============================================ */
+.adm-user-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(14, 23, 42, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.adm-user-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28), 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: admModalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes admModalPop {
+  from { opacity: 0; transform: scale(0.92) translateY(20px); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+.adm-user-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.adm-user-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adm-user-modal-logo {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+}
+
+.adm-user-modal-brand-divider {
+  width: 1px;
+  height: 22px;
+  background: #e2e8f0;
+}
+
+.adm-user-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+.adm-user-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+}
+
+.adm-user-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.adm-user-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.adm-user-profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.adm-user-avatar-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.adm-user-status-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 3px solid #ffffff;
+}
+
+.adm-user-banner-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.adm-user-banner-name {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.adm-user-banner-handle {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.adm-user-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.adm-user-detail-item {
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adm-user-detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.adm-user-detail-val {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Styled Role Selector Cards */
+.adm-role-selector-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.adm-role-selector-head h4 {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.adm-role-selector-head p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.adm-role-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.adm-role-card-option {
+  position: relative;
+  padding: 14px;
+  border-radius: 16px;
+  border: 2px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.adm-role-card-option:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
+
+.adm-role-card-option.is-selected {
+  border-color: var(--role-accent, #2563eb);
+  background: var(--role-bg, rgba(37, 99, 235, 0.05));
+  box-shadow: 0 8px 24px var(--role-glow, rgba(37, 99, 235, 0.15));
+}
+
+.adm-role-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.adm-role-card-option.is-selected .adm-role-icon-box {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.adm-role-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.adm-role-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.adm-role-card-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.adm-role-check-mark {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--role-accent, #2563eb);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.adm-user-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.adm-modal-btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.adm-modal-btn.cancel {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.adm-modal-btn.cancel:hover {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+
+.adm-modal-btn.save {
+  background: #ea580c;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);
+}
+
+.adm-modal-btn.save:hover {
+  background: #c2410c;
+  transform: translateY(-1px);
+}
 .adm-status-pill.pending { background:rgba(228,102,48,0.12); color:var(--orange); }
 .adm-status-pill.confirmed { background:rgba(34,197,94,0.12); color:#16a34a; }
 .adm-status-pill.paid { background:rgba(41,74,109,0.12); color:var(--navy); }

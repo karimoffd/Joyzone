@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
+import logoImage from '../../assets/img/Logo.png';
 
 const ROLE_MAP = {
   client: { label: 'Клиент', bg: 'rgba(41,74,109,0.1)', color: '#294a6d' },
@@ -7,6 +9,13 @@ const ROLE_MAP = {
   admin: { label: 'Админ', bg: 'rgba(228,102,48,0.12)', color: '#e46630' },
   moderator: { label: 'Модератор', bg: 'rgba(74,48,112,0.1)', color: '#4a3070' }
 };
+
+const ROLE_OPTIONS = [
+  { id: 'client', label: 'Клиент', desc: 'Аренда пространств и бронирование', icon: '👤', accent: '#2563eb', bg: 'rgba(37, 99, 235, 0.06)', glow: 'rgba(37, 99, 235, 0.15)' },
+  { id: 'partner', label: 'Партнёр', desc: 'Сдача объектов и менеджмент мест', icon: '🏢', accent: '#059669', bg: 'rgba(5, 150, 105, 0.06)', glow: 'rgba(5, 150, 105, 0.15)' },
+  { id: 'moderator', label: 'Модератор', desc: 'Контроль контента и объявлений', icon: '🛡️', accent: '#7c3aed', bg: 'rgba(124, 58, 237, 0.06)', glow: 'rgba(124, 58, 237, 0.15)' },
+  { id: 'admin', label: 'Администратор', desc: 'Полный доступ ко всей системе', icon: '⚡', accent: '#ea580c', bg: 'rgba(234, 88, 12, 0.06)', glow: 'rgba(234, 88, 12, 0.15)' }
+];
 
 const TABS = ['Все', 'client', 'partner', 'moderator', 'admin'];
 
@@ -21,11 +30,11 @@ const getInitials = (user) => {
 
 const getAvatarColor = (id) => {
   const colors = ['#294a6d', '#1a6b6b', '#e46630', '#4a3070', '#2a5a8a', '#10b981', '#f59e0b'];
-  return colors[id % colors.length] || '#294a6d';
+  return colors[(id || 0) % colors.length] || '#294a6d';
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) return '';
+  if (!dateStr) return '—';
   const date = new Date(dateStr);
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }).replace(' г.', '');
 };
@@ -35,53 +44,124 @@ const formatMoney = (val) => {
 };
 
 function UserEditModal({ user, onClose, onSave }) {
-  const [role, setRole] = useState(user.role);
-  const [balance, setBalance] = useState(user.balance || 0);
+  const [role, setRole] = useState(user.role || 'client');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await onSave(user.id, { role, balance });
+    await onSave(user.id, { role });
     setLoading(false);
   };
 
-  return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-      <div className="adm-card" style={{ width: 400, padding: 24, borderRadius: 16, background: '#fff', boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>Редактирование пользователя</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#64748b' }}>✕</button>
+  const fullName = user.first_name || user.last_name 
+    ? `${user.first_name || ''} ${user.last_name || ''}`.trim() 
+    : user.username;
+
+  return createPortal(
+    <div className="adm-user-modal-overlay" onClick={onClose}>
+      <div className="adm-user-modal-card" onClick={(e) => e.stopPropagation()}>
+        
+        {/* Header with Joyzone Brand Logo */}
+        <div className="adm-user-modal-header">
+          <div className="adm-user-modal-brand">
+            <img src={logoImage} alt="Joyzone Logo" className="adm-user-modal-logo" />
+            <div className="adm-user-modal-brand-divider" />
+            <h3 className="adm-user-modal-title">Профиль пользователя</h3>
+          </div>
+          <button type="button" className="adm-user-modal-close-btn" onClick={onClose} aria-label="Закрыть">
+            ✕
+          </button>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <strong style={{ fontSize: 15, color: 'var(--navy)' }}>
-              {user.first_name || user.last_name ? `${user.first_name || ''} ${user.last_name || ''}` : 'Без имени'}
-            </strong>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>@{user.username}</div>
+
+        {/* Modal Body */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <div className="adm-user-modal-body">
+            
+            {/* User Profile Banner */}
+            <div className="adm-user-profile-banner">
+              <div 
+                className="adm-user-avatar-wrap" 
+                style={{ background: getAvatarColor(user.id) }}
+              >
+                {getInitials(user)}
+                <span className="adm-user-status-dot" title="Активный аккаунт" />
+              </div>
+              <div className="adm-user-banner-info">
+                <h4 className="adm-user-banner-name">{fullName}</h4>
+                <span className="adm-user-banner-handle">@{user.username || 'user'}</span>
+              </div>
+            </div>
+
+            {/* User Details Grid */}
+            <div className="adm-user-details-grid">
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Телефон</span>
+                <span className="adm-user-detail-val">{user.phone_number || user.phone || 'Не указан'}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Email</span>
+                <span className="adm-user-detail-val">{user.email || 'Не указан'}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Дата регистрации</span>
+                <span className="adm-user-detail-val">{formatDate(user.date_joined)}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">ID Пользователя</span>
+                <span className="adm-user-detail-val">#{user.id}</span>
+              </div>
+            </div>
+
+            {/* Role Selection */}
+            <div>
+              <div className="adm-role-selector-head">
+                <h4>Роль пользователя</h4>
+                <p>Выберите привилегии и уровень доступа в системе</p>
+              </div>
+
+              <div className="adm-role-cards-grid">
+                {ROLE_OPTIONS.map((opt) => {
+                  const isSelected = role === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      className={`adm-role-card-option ${isSelected ? 'is-selected' : ''}`}
+                      style={{
+                        '--role-accent': opt.accent,
+                        '--role-bg': opt.bg,
+                        '--role-glow': opt.glow
+                      }}
+                      onClick={() => setRole(opt.id)}
+                    >
+                      <div className="adm-role-icon-box">{opt.icon}</div>
+                      <div className="adm-role-card-info">
+                        <span className="adm-role-card-title">{opt.label}</span>
+                        <span className="adm-role-card-desc">{opt.desc}</span>
+                      </div>
+                      {isSelected && <span className="adm-role-check-mark">✓</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Роль</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, outline: 'none', background: '#fff' }}>
-              <option value="client">Клиент</option>
-              <option value="partner">Партнёр</option>
-              <option value="moderator">Модератор</option>
-              <option value="admin">Администратор</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Баланс (UZS)</label>
-            <input type="number" value={balance} onChange={(e) => setBalance(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, outline: 'none' }} />
-          </div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-            <button type="button" onClick={onClose} className="adm-btn adm-btn-outline" style={{ flex: 1, padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>Отмена</button>
-            <button type="submit" disabled={loading} className="adm-btn" style={{ flex: 1, padding: '10px 16px', borderRadius: 8, background: 'var(--orange)', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
-              {loading ? 'Сохранение...' : 'Сохранить'}
+
+          {/* Modal Footer */}
+          <div className="adm-user-modal-footer">
+            <button type="button" onClick={onClose} className="adm-modal-btn cancel">
+              Отмена
+            </button>
+            <button type="submit" disabled={loading} className="adm-modal-btn save">
+              {loading ? 'Сохранение...' : 'Сохранить изменения'}
             </button>
           </div>
         </form>
+
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
