@@ -547,7 +547,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                 </div>
               </section>
             ) : (
-              <>                <div className="menu-mobile-hero">
+              <>
+                <div className="menu-mobile-hero">
                   <div className="menu-mobile-profile">
                     <div className="menu-mobile-avatar">
                       {userState.avatar ? (
@@ -577,9 +578,6 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </a>
                   ))}
                 </div>
-              </>
-            )}
-          </div>
 
                 <nav className="menu-nav">
                   <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
@@ -697,13 +695,14 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      </div>,
-      document.body
-    );
+      </div>
+    </div>,
+    document.body
+  );
 }
 
 function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {
