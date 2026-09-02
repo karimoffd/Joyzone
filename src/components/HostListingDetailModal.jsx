@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
 import "./HostListingDetailModal.css";
 
@@ -51,7 +52,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
     "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80"
   ];
 
-  return (
+  return createPortal(
     <div className="host-detail-modal-overlay" ref={overlayRef} onClick={handleClose}>
       <div className="host-detail-modal-card" ref={cardRef} onClick={(e) => e.stopPropagation()}>
         
@@ -186,6 +187,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
