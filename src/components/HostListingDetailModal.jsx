@@ -176,6 +176,13 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
 
         {/* Footer Actions */}
         <div className="host-detail-modal-footer">
+          <a
+            href={`#space-${(item.title || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
+            className="host-detail-act-btn space-detail"
+            onClick={handleClose}
+          >
+            🏢 Space details
+          </a>
           {onEdit && (
             <button type="button" className="host-detail-act-btn edit" onClick={() => { handleClose(); onEdit(item); }}>
               ✏️ Tahrirlash

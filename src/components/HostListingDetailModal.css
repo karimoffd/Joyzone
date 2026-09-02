@@ -337,6 +337,22 @@
   transition: all 0.2s ease;
 }
 
+.host-detail-act-btn.space-detail {
+  background: #0f172a;
+  color: #ffffff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.host-detail-act-btn.space-detail:hover {
+  background: #1e293b;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
 .host-detail-act-btn.edit {
   background: #ea580c;
   color: #ffffff;
