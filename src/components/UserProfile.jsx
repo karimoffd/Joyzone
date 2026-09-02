@@ -519,16 +519,20 @@ function UserProfile({ userState, setUserState }) {
                   <ProfileIcon type={tab.icon} />
                   <b>{tab.label}</b>
                   {tab.badge && (
-                    <span className="profile-tab-badge animate-pulse" style={{
-                      background: "#ef4444",
-                      color: "#ffffff",
-                      fontSize: "9px",
-                      fontWeight: "700",
+                    <span className="profile-tab-badge" style={{
+                      background: "rgba(239, 68, 68, 0.15)",
+                      color: "#ef4444",
+                      fontSize: "8.5px",
+                      fontWeight: "800",
                       padding: "2px 6px",
-                      borderRadius: "8px",
-                      marginLeft: "8px",
+                      borderRadius: "6px",
+                      marginLeft: "6px",
                       textTransform: "uppercase",
-                      display: "inline-block"
+                      letterSpacing: "0.02em",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0
                     }}>
                       {tab.badge}
                     </span>
