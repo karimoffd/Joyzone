@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import axios from "axios";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -760,10 +761,13 @@ export function JoyFooter() {
         </div>
       </div>
 
-      <a href="#contact" className="joy-floating-contact" aria-label="Joyzone bilan bog'lanish">
-        <FooterIcon type="chat" />
-        <span>Yordam kerakmi?</span>
-      </a>
+      {typeof document !== "undefined" && createPortal(
+        <a href="#contact" className="joy-floating-contact" aria-label="Joyzone bilan bog'lanish">
+          <FooterIcon type="chat" />
+          <span>Yordam kerakmi?</span>
+        </a>,
+        document.body
+      )}
     </footer>
   );
 }
