@@ -284,3 +284,9 @@
     border-radius: 14px;
   }
 }
+
+.route-screen-profile .floating-booking-widget,
+.route-screen-profile-edit .floating-booking-widget,
+body.route-profile .floating-booking-widget {
+  display: none !important;
+}

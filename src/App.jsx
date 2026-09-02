@@ -344,7 +344,6 @@ function AppContent() {
           <UserProfile userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
-        <FloatingBookingWidget activeBooking={userState.activeBooking} />
       </>
     );
   }

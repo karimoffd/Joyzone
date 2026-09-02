@@ -27,10 +27,10 @@ const DURATION_LABELS = {
   oylik: "/ oy"
 };
 
-export function PropertyCard({ item, index, href, selectedDuration, viewMode = "grid" }) {
+export function PropertyCard({ item, index, href, onClick, selectedDuration, viewMode = "grid" }) {
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(false);
-  const cardHref = href || getSpaceHref(item.title);
+  const cardHref = onClick ? "#" : (href || getSpaceHref(item.title));
   const mediaRef = useRef(null);
   const saveRef = useRef(null);
   const manualSlideAt = useRef(0);
@@ -73,7 +73,19 @@ export function PropertyCard({ item, index, href, selectedDuration, viewMode = "
 
   return (
     <article className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""} ${viewMode === "list" ? "is-list-view" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
-      <a className="property-card-link" href={cardHref} aria-label={`${item.title} sahifasini ochish`} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }} />
+      <a 
+        className="property-card-link" 
+        href={cardHref} 
+        aria-label={`${item.title} sahifasini ochish`} 
+        onClick={(e) => {
+          if (onClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            onClick(item);
+          }
+        }}
+        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }} 
+      />
       <button
         ref={saveRef}
         type="button"

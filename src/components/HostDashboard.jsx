@@ -5,6 +5,7 @@ import { LanguageContext } from "../App.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
+import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
 import { propertyCards } from "../data/content.js";
 import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
@@ -382,6 +383,8 @@ function CalendarPage({ listings = [] }) {
 }
 
 function ListingsPage({ listings = [], onEdit, onDelete }) {
+  const [selectedListing, setSelectedListing] = useState(null);
+
   return (
     <section className="host-main-surface">
       <div className="host-section-head">
@@ -405,10 +408,14 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
         ) : (
           listings.map((item, index) => (
             <article className="host-listing-shell" key={item.id || item.title}>
-              <PropertyCard item={{
-                ...item,
-                price: item.price || "0 UZS"
-              }} index={index} />
+              <PropertyCard
+                item={{
+                  ...item,
+                  price: item.price || "0 UZS"
+                }}
+                index={index}
+                onClick={() => setSelectedListing(item)}
+              />
               <div className="host-listing-meta">
                 <span className={item.status === "approved" ? "is-live" : ""}>
                   {item.status === "approved" ? "Опубликовано" : item.status === "rejected" ? "Отклонено" : "Модерация"}
@@ -424,6 +431,14 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
           ))
         )}
       </div>
+
+      {selectedListing && (
+        <HostListingDetailModal
+          item={selectedListing}
+          onClose={() => setSelectedListing(null)}
+          onEdit={onEdit}
+        />
+      )}
     </section>
   );
 }

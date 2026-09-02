@@ -3,6 +3,7 @@ import axios from "axios";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
+import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
 import { propertyCards } from "../data/content.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
@@ -157,6 +158,7 @@ function getCompletion(data) {
 
 function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
+  const [selectedListing, setSelectedListing] = useState(null);
   const avatarInputRef = useRef(null);
   const profileData = useMemo(() => {
     const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi";
@@ -737,10 +739,14 @@ function UserProfile({ userState, setUserState }) {
                     </div>
                     <div className="host-listings-grid" style={{ display: "grid", gap: "24px" }}>
                       <article className="host-listing-shell" style={{ overflow: "visible" }}>
-                        <PropertyCard item={{
-                          ...(propertyCards.find(item => item.title === userState?.activeBooking?.spaceTitle) || propertyCards[0]),
-                          price: formattedTotal
-                        }} index={0} />
+                        <PropertyCard 
+                          item={{
+                            ...(propertyCards.find(item => item.title === userState?.activeBooking?.spaceTitle) || propertyCards[0]),
+                            price: formattedTotal
+                          }} 
+                          index={0} 
+                          onClick={(targetItem) => setSelectedListing(targetItem)}
+                        />
                         
                         <div className="host-listing-meta" style={{ padding: "20px" }}>
                           <span style={{ 
@@ -822,13 +828,18 @@ function UserProfile({ userState, setUserState }) {
                 <div className="profile-section-head">
                   <div>
                     <span>Saqlangan</span>
-                    <h2>Yoqtirilgan joylar</h2>
+                    <h2>Saqlangan joylar</h2>
                   </div>
-                  <a href="#filter">Barchasini ko'rish</a>
                 </div>
+
                 <div className="profile-liked-grid">
                   {likedSpaces.map((item, index) => (
-                    <PropertyCard key={`liked-${item.title}`} item={item} index={index} />
+                    <PropertyCard 
+                      key={`liked-${item.title}`} 
+                      item={item} 
+                      index={index} 
+                      onClick={(targetItem) => setSelectedListing(targetItem)}
+                    />
                   ))}
                 </div>
               </div>
@@ -837,6 +848,12 @@ function UserProfile({ userState, setUserState }) {
         </section>
       </section>
 
+      {selectedListing && (
+        <HostListingDetailModal
+          item={selectedListing}
+          onClose={() => setSelectedListing(null)}
+        />
+      )}
     </main>
   );
 }
