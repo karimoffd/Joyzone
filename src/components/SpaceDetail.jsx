@@ -8,6 +8,8 @@ import { LanguageContext } from "../App.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { HeartIcon } from "./ui/Shared.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
+import { DirectChatDrawer } from "./DirectChatDrawer.jsx";
+import { startOrGetChatForSpace } from "../utils/chatManager.js";
 import { propertyCards } from "../data/content.js";
 import "./ListingsSection.css";
 import "./SpaceDetail.css";
@@ -311,6 +313,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [liked, setLiked] = useState(false);
   const likeBtnRef = useRef(null);
   const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
+  const [activeChatId, setActiveChatId] = useState(null);
 
   const handleLikeToggle = () => {
     setLiked(!liked);
@@ -1284,9 +1287,34 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               <Icon type="phone" />
               Qo'ng'iroq qilish
             </a>
+            <button
+              type="button"
+              className="sd-secondary-btn sd-chat-btn"
+              onClick={() => {
+                const targetChat = startOrGetChatForSpace({
+                  spaceTitle: space.title,
+                  hostName: space.hostName || "Bekzod Tursunov"
+                });
+                setActiveChatId(targetChat.id);
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Ega bilan bog'lanish
+            </button>
           </div>
         </aside>
       </section>
+
+      {activeChatId && (
+        <DirectChatDrawer
+          chatId={activeChatId}
+          spaceTitle={space.title}
+          hostName={space.hostName || "Bekzod Tursunov"}
+          onClose={() => setActiveChatId(null)}
+        />
+      )}
 
       <section className="sd-similar sd-animate">
         <div className="sd-section-head">

@@ -1,63 +1,71 @@
-import React, { useState } from 'react';
-
-const CHATS = [
-  { id: 1, name: 'Amir Karimov', last: 'Можно ли подготовить доску до 10:00?', time: '12 мин', unread: 2, color: '#294a6d' },
-  { id: 2, name: 'Dilnoza Yusupova', last: 'Спасибо, всё отлично!', time: 'Вчера', unread: 0, color: '#1a6b6b' },
-  { id: 3, name: 'Bekzod Tursunov', last: 'Хотим забронировать зал на 100 чел.', time: '2 дня', unread: 1, color: '#e46630' },
-];
-
-const MESSAGES = {
-  1: [{from:'guest',text:'Здравствуйте! Можно ли подготовить доску и воду до 10:00?'},{from:'host',text:'Да, конечно! Всё будет готово.'},{from:'guest',text:'Отлично, спасибо большое!'}],
-  2: [{from:'guest',text:'Спасибо, всё прошло отлично!'},{from:'host',text:'Рады помочь! Ждём вас снова.'}],
-  3: [{from:'guest',text:'Хотим забронировать зал на 100 человек.'}],
-};
+import React, { useState, useEffect } from 'react';
+import { getStoredChats, sendMessageToChat } from '../../utils/chatManager.js';
 
 export default function AdminMessagesPage() {
+  const [chats, setChats] = useState(() => getStoredChats());
   const [active, setActive] = useState(null);
   const [draft, setDraft] = useState('');
-  const [msgs, setMsgs] = useState(MESSAGES);
+
+  const refreshChats = () => {
+    setChats(getStoredChats());
+  };
+
+  useEffect(() => {
+    refreshChats();
+    window.addEventListener('joyzone-chat-update', refreshChats);
+    window.addEventListener('storage', refreshChats);
+    return () => {
+      window.removeEventListener('joyzone-chat-update', refreshChats);
+      window.removeEventListener('storage', refreshChats);
+    };
+  }, []);
 
   const send = () => {
     if (!draft.trim() || !active) return;
-    setMsgs(m => ({ ...m, [active]: [...(m[active] || []), { from: 'host', text: draft }] }));
+    sendMessageToChat(active, { from: 'host', text: draft });
     setDraft('');
+    refreshChats();
   };
+
+  const activeChat = chats.find((c) => String(c.id) === String(active));
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 0, height: 'calc(100vh - 160px)', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', background: '#fff' }}>
       {/* Chat list */}
       <div style={{ borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
         <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>Чаты</div>
-        {CHATS.map(c => (
-          <div key={c.id} onClick={() => setActive(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: active === c.id ? 'rgba(228,102,48,0.07)' : 'transparent', borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, background: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{c.name.slice(0,2).toUpperCase()}</div>
+        {chats.map(c => (
+          <div key={c.id} onClick={() => setActive(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: String(active) === String(c.id) ? 'rgba(228,102,48,0.07)' : 'transparent', borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: c.color || '#294a6d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{c.name.slice(0,2).toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.last}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.preview || c.last}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
               <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.time}</span>
-              {c.unread > 0 && <span style={{ background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>{c.unread}</span>}
+              {c.unread && <span style={{ background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>NEW</span>}
             </div>
           </div>
         ))}
       </div>
       {/* Chat panel */}
-      {active ? (
+      {activeChat ? (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>{CHATS.find(c=>c.id===active)?.name}</div>
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>
+            {activeChat.name} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 8 }}>({activeChat.space || activeChat.spaceTitle})</span>
+          </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(msgs[active]||[]).map((m,i) => (
+            {(activeChat.messages || []).map((m, i) => (
               <div 
                 key={i} 
                 style={{ 
-                  alignSelf: m.from==='host' ? 'flex-end' : 'flex-start', 
+                  alignSelf: m.from === 'host' ? 'flex-end' : 'flex-start', 
                   width: 'fit-content',
                   maxWidth: 'min(62%, 380px)', 
-                  background: m.from==='host' ? '#294a6d' : '#f6f1ee', 
-                  color: m.from==='host' ? '#fff' : 'var(--text)', 
+                  background: m.from === 'host' ? '#294a6d' : '#f6f1ee', 
+                  color: m.from === 'host' ? '#fff' : 'var(--text)', 
                   padding: '10px 14px', 
-                  borderRadius: m.from==='host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
+                  borderRadius: m.from === 'host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
                   fontSize: 14, 
                   lineHeight: 1.5,
                   overflowWrap: 'anywhere',

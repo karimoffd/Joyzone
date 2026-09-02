@@ -6,6 +6,7 @@ import { LanguageContext } from "../App.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
+import { getStoredChats, sendMessageToChat } from "../utils/chatManager.js";
 import { propertyCards } from "../data/content.js";
 import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
@@ -444,11 +445,25 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
 }
 
 function MessagesPage() {
-  const [chats, setChats] = useState(inbox);
+  const [chats, setChats] = useState(() => getStoredChats());
   const [selectedChat, setSelectedChat] = useState(null);
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef(null);
   
+  const refreshChats = useCallback(() => {
+    setChats(getStoredChats());
+  }, []);
+
+  useEffect(() => {
+    refreshChats();
+    window.addEventListener("joyzone-chat-update", refreshChats);
+    window.addEventListener("storage", refreshChats);
+    return () => {
+      window.removeEventListener("joyzone-chat-update", refreshChats);
+      window.removeEventListener("storage", refreshChats);
+    };
+  }, [refreshChats]);
+
   const activeChat = chats.find((chat) => chat.id === selectedChat);
 
   useEffect(() => {
@@ -456,17 +471,10 @@ function MessagesPage() {
   }, [activeChat?.messages]);
 
   const handleSend = () => {
-    if (!draft.trim() || !activeChat) return;
-    setChats(prev => prev.map(chat => {
-      if (chat.id === activeChat.id) {
-        return {
-          ...chat,
-          messages: [...chat.messages, { from: "host", text: draft, isNew: true }]
-        };
-      }
-      return chat;
-    }));
+    if (!draft.trim() || !selectedChat) return;
+    sendMessageToChat(selectedChat, { from: "host", text: draft });
     setDraft("");
+    refreshChats();
   };
 
   const handleKeyDown = (e) => {
