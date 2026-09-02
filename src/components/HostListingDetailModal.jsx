@@ -117,6 +117,45 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
             </div>
           </div>
 
+          {/* Booking Financial & Duration Receipt Breakdown */}
+          <div className="host-detail-financial-receipt">
+            <div className="host-receipt-header">
+              <span className="host-receipt-icon">💳</span>
+              <div>
+                <h4>To'lov va bandlik tafsilotlari</h4>
+                <small>Tranzaksiya va kunlar hisobi</small>
+              </div>
+              <span className="host-receipt-badge">To'langan</span>
+            </div>
+
+            <div className="host-receipt-body">
+              <div className="host-receipt-row highlight">
+                <span>To'langan summa:</span>
+                <strong>{item.paidAmount || item.totalPrice || item.price || "450,000 UZS"}</strong>
+              </div>
+              <div className="host-receipt-row">
+                <span>Band qilingan muddat (Kun / Soat):</span>
+                <strong>{item.duration || "3 kun (24 soat)"}</strong>
+              </div>
+              <div className="host-receipt-row">
+                <span>Bandlik sanasi va vaqti:</span>
+                <strong>{item.bookingDate || "2026-09-10 — 2026-09-13 (10:00 - 18:00)"}</strong>
+              </div>
+              <div className="host-receipt-row">
+                <span>To'lov usuli:</span>
+                <strong>{item.paymentMethod || "Karta (Uzcard / Humo)"}</strong>
+              </div>
+              <div className="host-receipt-row">
+                <span>Mehmonlar soni:</span>
+                <strong>{item.guestsCount || item.capacity || "4 kishi"}</strong>
+              </div>
+              <div className="host-receipt-row">
+                <span>Buyurtma chek kodi:</span>
+                <code className="host-receipt-code">{item.bookingCode || "#JZ-92841"}</code>
+              </div>
+            </div>
+          </div>
+
           {/* Description */}
           <div className="host-detail-desc-block">
             <h3>Joy haqida ma'lumot</h3>

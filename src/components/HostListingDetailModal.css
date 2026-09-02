@@ -193,6 +193,94 @@
   font-weight: 800;
 }
 
+/* Receipt breakdown block */
+.host-detail-financial-receipt {
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 18px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.host-receipt-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
+}
+
+.host-receipt-icon {
+  font-size: 22px;
+}
+
+.host-receipt-header h4 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.host-receipt-header small {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.host-receipt-badge {
+  margin-left: auto;
+  padding: 4px 10px;
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.host-receipt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.host-receipt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #475569;
+}
+
+.host-receipt-row.highlight {
+  background: rgba(37, 99, 235, 0.08);
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #1e3a8a;
+}
+
+.host-receipt-row.highlight strong {
+  font-size: 16px;
+  color: #2563eb;
+  font-weight: 900;
+}
+
+.host-receipt-row strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.host-receipt-code {
+  font-family: monospace;
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .host-detail-desc-block h3,
 .host-detail-amenities-block h3 {
   font-size: 14px;
