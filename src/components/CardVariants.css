@@ -874,6 +874,15 @@
   z-index: 20;
 }
 
+/* Desktop offsets for save button (only on non-mobile screens) */
+@media (min-width: 769px) {
+  .variant-save-button,
+  .variant-card:not(.is-list-view) > .variant-save-button {
+    top: 18px !important;
+    right: 18px !important;
+  }
+}
+
 .variant-card.is-list-view .variant-spec-row {
   margin-top: 12px;
   gap: 8px;
