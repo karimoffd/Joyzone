@@ -547,11 +547,14 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                 </div>
               </section>
             ) : (
-              <>
-                <div className="menu-mobile-hero">
+              <>                <div className="menu-mobile-hero">
                   <div className="menu-mobile-profile">
                     <div className="menu-mobile-avatar">
-                      {userState.isAuthed && userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"}
+                      {userState.avatar ? (
+                        <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        userState.isAuthed && userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
+                      )}
                     </div>
                     <div>
                       <span>{userState.isAuthed ? "Akkaunt" : "Mehmon rejimi"}</span>
@@ -574,6 +577,9 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </a>
                   ))}
                 </div>
+              </>
+            )}
+          </div>
 
                 <nav className="menu-nav">
                   <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
@@ -632,11 +638,15 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                   {isDashboard ? (
                     <div className="menu-widget-user">
                       <div className="menu-user-avatar">
-                        {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
+                        {userState.avatar ? (
+                          <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                        )}
                       </div>
                       <div className="menu-user-details">
                         <strong>{userState.name || "Aziz Karimov"}</strong>
-                        <span>{userState.email || "aziz@gmail.com"}</span>
+                        <span>{userState.phone || userState.email || "+998992775455"}</span>
                       </div>
                       <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                         <IconUser /> Profile ochish
@@ -646,11 +656,15 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     userState.isAuthed ? (
                       <div className="menu-widget-user">
                         <div className="menu-user-avatar">
-                          {userState.name ? userState.name.split(" ").map(n => n[0]).join("").toUpperCase() : "AK"}
+                          {userState.avatar ? (
+                            <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                          )}
                         </div>
                         <div className="menu-user-details">
                           <strong>{userState.name || "Aziz Karimov"}</strong>
-                          <span>{userState.email || "Mehmon"}</span>
+                          <span>{userState.phone || userState.email || "+998992775455"}</span>
                         </div>
                         <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                           <IconUser /> Kabinetga o'tish
@@ -683,7 +697,6 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </div>
                   )}
                 </div>
-              </>
             )}
           </div>
         </div>
