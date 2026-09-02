@@ -445,35 +445,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                 <a href="https://facebook.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Facebook</a>
               </div>
 
-              {/* Premium Language Card Block in Sidebar */}
-              <div className="menu-sidebar-lang-block">
-                <div className="menu-sidebar-lang-title">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  <span>Interfeys tili</span>
-                </div>
-                <div className="menu-sidebar-lang-options">
-                  <button 
-                    type="button" 
-                    className={`menu-sidebar-lang-opt ${lang === 'uz' ? 'is-active' : ''}`}
-                    onClick={() => setLang('uz')}
-                  >
-                    <span>🇺🇿 O'zbek</span>
-                  </button>
-                  <button 
-                    type="button" 
-                    className={`menu-sidebar-lang-opt ${lang === 'ru' ? 'is-active' : ''}`}
-                    onClick={() => setLang('ru')}
-                  >
-                    <span>🇷🇺 Русский</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="menu-sidebar-copyright" style={{ marginTop: "16px" }}>
+              <div className="menu-sidebar-copyright">
                 <span>© {new Date().getFullYear()} Joyzone.</span>
                 <span>Powered by IT Comfort.</span>
               </div>
@@ -487,15 +459,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
             <img src={logoImage} alt="Joyzone" className="premium-menu-logo mobile-only-logo" />
             
             <div className="d-flex align-items-center gap-3 ms-auto">
-              {/* Premium Glass Pill Language Switcher */}
+              {/* White & Orange Pill Language Switcher (Exact match to screenshot) */}
               <div className="drawer-lang-pill">
-                <div className="drawer-lang-globe">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                </div>
                 <button 
                   type="button" 
                   className={`drawer-lang-btn ${lang === 'uz' ? 'is-active' : ''}`}
