@@ -10,7 +10,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
   const [showDetails, setShowDetails] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Entrance animation when activeBooking appears
+  // Initial entrance animation when activeBooking first appears
   useEffect(() => {
     if (activeBooking && widgetRef.current) {
       gsap.fromTo(
@@ -21,7 +21,15 @@ export default function FloatingBookingWidget({ activeBooking }) {
     }
   }, [activeBooking]);
 
-  // Click outside to close
+  // Ensure widget is always fully visible when collapsed
+  useEffect(() => {
+    if (!showDetails && widgetRef.current) {
+      gsap.killTweensOf(widgetRef.current);
+      gsap.set(widgetRef.current, { opacity: 1, scale: 1, y: 0 });
+    }
+  }, [showDetails]);
+
+  // Click outside listener to close widget details
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -34,7 +42,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
       }
     }
 
-    if (showDetails) {
+    if (showDetails && !isClosing) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("touchstart", handleClickOutside);
     }
@@ -45,40 +53,50 @@ export default function FloatingBookingWidget({ activeBooking }) {
     };
   }, [showDetails, isClosing]);
 
-  // Animate opening of expanded panel
+  // Handle opening details
   const handleOpen = () => {
-    setShowDetails(true);
+    if (panelRef.current) gsap.killTweensOf(panelRef.current);
+    if (widgetRef.current) gsap.killTweensOf(widgetRef.current);
     setIsClosing(false);
+    setShowDetails(true);
   };
 
+  // Animate opening of panel elements
   useEffect(() => {
-    if (showDetails && panelRef.current && !isClosing) {
+    if (showDetails && panelRef.current) {
+      gsap.killTweensOf(panelRef.current);
+      gsap.killTweensOf(panelRef.current.children);
+
+      // Force full opacity & position on panel container
+      gsap.set(panelRef.current, { opacity: 1, y: 0, scale: 1 });
+
       gsap.fromTo(
         widgetRef.current,
-        { scale: 0.94, opacity: 0.8 },
-        { scale: 1, opacity: 1, duration: 0.35, ease: "power3.out" }
+        { scale: 0.95, opacity: 0.9 },
+        { scale: 1, opacity: 1, duration: 0.3, ease: "power3.out" }
       );
 
       gsap.fromTo(
         panelRef.current.children,
-        { y: 16, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, stagger: 0.05, ease: "power2.out", delay: 0.05 }
+        { y: 14, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, stagger: 0.04, ease: "power2.out" }
       );
     }
   }, [showDetails]);
 
-  // Animate closing of expanded panel
+  // Handle closing details safely without leaving opacity: 0 stuck
   const handleClose = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (isClosing) return;
+    if (!showDetails || isClosing) return;
     setIsClosing(true);
 
     if (panelRef.current) {
+      gsap.killTweensOf(panelRef.current);
       gsap.to(panelRef.current, {
         opacity: 0,
-        y: 12,
+        y: 10,
         scale: 0.96,
-        duration: 0.25,
+        duration: 0.2,
         ease: "power2.inOut",
         onComplete: () => {
           setShowDetails(false);
@@ -93,7 +111,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
 
   if (!activeBooking) return null;
 
-  // Clean, cross-browser manual date format
+  // Clean date format
   const formattedDate = (() => {
     try {
       const d = new Date(activeBooking.timestamp || Date.now());
