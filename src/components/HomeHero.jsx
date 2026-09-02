@@ -643,8 +643,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         )}
                       </div>
                       <div className="menu-user-details">
-                        <strong>{userState.name || "Abdulboriy Nosirov"}</strong>
-                        <span>{userState.phone || userState.email || "+998992775455"}</span>
+                        <strong>{userState.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov"}</strong>
+                        <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || "+998 99 277 54 55"}</span>
                       </div>
                       <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                         <IconUser /> Profile ochish
@@ -661,8 +661,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                           )}
                         </div>
                         <div className="menu-user-details">
-                          <strong>{userState.name || "Abdulboriy Nosirov"}</strong>
-                          <span>{userState.phone || userState.email || "+998992775455"}</span>
+                          <strong>{userState.name || localStorage.getItem("joyzone-name") || "Abdulboriy Nosirov"}</strong>
+                          <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || "+998 99 277 54 55"}</span>
                         </div>
                         <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                           <IconUser /> Kabinetga o'tish

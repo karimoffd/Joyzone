@@ -222,13 +222,35 @@ function AppContent() {
     }
   }, [displayedRoute, bootLoading]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("joyzone-access");
+    if (token) {
+      fetch("/api/auth/profile/", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((profile) => {
+          if (profile) {
+            handleAuthSuccess(profile);
+          }
+        })
+        .catch((err) => console.warn("Failed to sync profile:", err));
+    }
+  }, []);
+
   const handleAuthSuccess = (profile) => {
     const fullName = profile?.first_name 
       ? `${profile.first_name} ${profile.last_name || ""}`.trim() 
       : (profile?.name || profile?.username || "Foydalanuvchi");
-    const phoneStr = profile?.phone_number || profile?.phone || "";
+    const phoneStr = profile?.phone_number || profile?.phone || profile?.username || "";
     const emailStr = profile?.email || "";
     const avatarStr = profile?.avatar || userState.avatar || null;
+
+    localStorage.setItem("joyzone-auth", "true");
+    localStorage.setItem("joyzone-name", fullName);
+    if (phoneStr) localStorage.setItem("joyzone-phone", phoneStr);
+    if (emailStr) localStorage.setItem("joyzone-email", emailStr);
+    if (avatarStr) localStorage.setItem("joyzone-avatar", avatarStr);
 
     setUserState({ 
       isAuthed: true, 
