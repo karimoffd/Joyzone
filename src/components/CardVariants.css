@@ -313,7 +313,7 @@
 
 .variant-dots button.is-active {
   width: 20px;
-  background: var(--variant-blue);
+  background: #ea580c;
 }
 
 .variant-pill,
