@@ -598,7 +598,7 @@ function UserProfile({ userState, setUserState }) {
                       </div>
                     </div>
                     <div className="host-listings-grid" style={{ display: "grid", gap: "24px" }}>
-                      <article className="host-listing-shell" style={{ overflow: "hidden" }}>
+                      <article className="host-listing-shell" style={{ overflow: "visible" }}>
                         <PropertyCard item={{
                           ...(propertyCards.find(item => item.title === userState?.activeBooking?.spaceTitle) || propertyCards[0]),
                           price: formattedTotal

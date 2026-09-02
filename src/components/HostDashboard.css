@@ -634,10 +634,14 @@
 .host-listing-shell {
   display: grid;
   gap: 14px;
+  padding: 6px;
+  margin: -6px;
+  overflow: visible;
 }
 
 .host-listing-shell .property-card {
   min-width: 0;
+  overflow: visible;
 }
 
 .host-listing-meta {
