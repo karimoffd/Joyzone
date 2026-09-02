@@ -210,7 +210,19 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 
               <div className="nav-right d-flex align-items-center">
                 <a className="login-button btn-shine" href={statusHref}>
-                  {statusLabel}
+                  <span className="nav-btn-avatar">
+                    {userState.avatar ? (
+                      <img src={userState.avatar} alt="User" />
+                    ) : userState.isAuthed && userState.name ? (
+                      <span>{userState.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    )}
+                  </span>
+                  <span>{statusLabel}</span>
                 </a>
                 <button className={`burger-menu ${isMenuOpen ? "open" : ""}`} type="button" onClick={() => setIsMenuOpen(true)} aria-label="Menyuni ochish">
                   <MenuIcon open={isMenuOpen} />
