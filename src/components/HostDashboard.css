@@ -764,6 +764,9 @@
   min-height: 590px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .host-chat-body {
@@ -774,19 +777,26 @@
   padding: 18px;
   border-radius: 22px;
   background: #f7f9fb;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .host-chat-body p {
-  max-width: min(74%, 560px);
+  max-width: min(75%, 580px) !important;
   margin: 0;
   padding: 13px 16px;
   border-radius: 18px 18px 18px 6px;
   background: #ffffff;
   color: rgba(17, 24, 32, 0.72);
   box-shadow: 0 10px 24px rgba(41, 74, 109, 0.08);
-  overflow-wrap: break-word;
-  word-break: break-word;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  word-wrap: break-word !important;
   white-space: pre-wrap;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .host-chat-body p.is-host {
@@ -794,6 +804,10 @@
   border-radius: 18px 18px 6px 18px;
   background: #294a6d;
   color: #ffffff;
+  max-width: min(75%, 580px) !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  word-wrap: break-word !important;
 }
 
 .host-chat-composer {
