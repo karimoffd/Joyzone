@@ -157,9 +157,68 @@ function getCompletion(data) {
 
 function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
+  const avatarInputRef = useRef(null);
   const profileData = initialProfile;
   const completion = 50;
   const likedSpaces = propertyCards;
+
+  // Handle avatar upload and change
+  const handleAvatarSelect = () => {
+    if (avatarInputRef.current) {
+      avatarInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+
+      if (setUserState) {
+        setUserState({
+          ...userState,
+          avatar: base64Data
+        });
+      }
+      localStorage.setItem("joyzone-avatar", base64Data);
+
+      const token = localStorage.getItem("joyzone-access");
+      if (token) {
+        try {
+          await axios.patch("/api/auth/profile/", { avatar: base64Data }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (err) {
+          console.warn("Backend avatar update deferred:", err);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAvatarRemove = async () => {
+    if (setUserState) {
+      setUserState({
+        ...userState,
+        avatar: null
+      });
+    }
+    localStorage.removeItem("joyzone-avatar");
+
+    const token = localStorage.getItem("joyzone-access");
+    if (token) {
+      try {
+        await axios.patch("/api/auth/profile/", { avatar: null }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.warn("Backend avatar deletion deferred:", err);
+      }
+    }
+  };
 
   // Property states
   const [myObjects, setMyObjects] = useState([]);
@@ -523,7 +582,14 @@ function UserProfile({ userState, setUserState }) {
                 <section className="profile-hero-panel profile-edit-hero">
                   <div className="profile-main-card">
                     {/* Avatar with Progress Circle wrapper */}
-                    <div className="profile-avatar-wrapper">
+                    <div className="profile-avatar-wrapper" onClick={handleAvatarSelect} style={{ cursor: "pointer" }} title="Rasm almashtirish uchun bosing">
+                      <input 
+                        type="file" 
+                        ref={avatarInputRef} 
+                        accept="image/*" 
+                        onChange={handleAvatarChange} 
+                        style={{ display: "none" }} 
+                      />
                       <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: "rotate(-90deg)", position: "absolute", top: 0, left: 0 }}>
                         <circle cx="40" cy="40" r="36" fill="transparent" stroke="#e2e8f0" strokeWidth="3.5" />
                         <circle cx="40" cy="40" r="36" fill="transparent" stroke="#ea580c" strokeWidth="4" 
@@ -537,7 +603,7 @@ function UserProfile({ userState, setUserState }) {
                         width: "66px",
                         height: "66px",
                         borderRadius: "50%",
-                        background: "linear-gradient(135deg, #12283f, #294a6d)",
+                        background: userState?.avatar ? `url(${userState.avatar}) center/cover no-repeat` : "linear-gradient(135deg, #12283f, #294a6d)",
                         color: "#fff",
                         display: "flex",
                         alignItems: "center",
@@ -547,20 +613,78 @@ function UserProfile({ userState, setUserState }) {
                         position: "absolute",
                         top: "7px",
                         left: "7px",
-                        boxShadow: "none"
+                        boxShadow: "none",
+                        overflow: "hidden"
                       }}>
-                        AK
+                        {!userState?.avatar && (
+                          userState?.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                        )}
                       </div>
 
-                      <a href="#profile-edit" className="profile-avatar-tooltip">
-                        Заполнить до конца
-                      </a>
+                      <div className="profile-avatar-tooltip">
+                        {userState?.avatar ? "Almashtirish" : "Rasm yuklash"}
+                      </div>
                     </div>
 
                     <div className="profile-heading">
                       <span>Joyzone profile</span>
                       <h1>{profileData.name}</h1>
                       <p>{profileData.role}</p>
+
+                      {/* Interactive Avatar Action Buttons */}
+                      <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
+                        <button 
+                          type="button" 
+                          onClick={handleAvatarSelect}
+                          style={{
+                            background: "rgba(234, 88, 12, 0.12)",
+                            color: "#ea580c",
+                            border: "none",
+                            borderRadius: "8px",
+                            padding: "6px 12px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            transition: "all 0.2s"
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                          </svg>
+                          <span>{userState?.avatar ? "Rasm almashtirish" : "Rasm yuklash"}</span>
+                        </button>
+
+                        {userState?.avatar && (
+                          <button 
+                            type="button" 
+                            onClick={handleAvatarRemove}
+                            style={{
+                              background: "rgba(239, 68, 68, 0.1)",
+                              color: "#ef4444",
+                              border: "none",
+                              borderRadius: "8px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            <span>O'chirish</span>
+                          </button>
+                        )}
+                      </div>
                       {completion < 100 && (
                         <div className="profile-warning-badge" style={{
                           background: "#fffbeb",

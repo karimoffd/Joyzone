@@ -13,6 +13,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='client')
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    avatar = models.TextField(blank=True, null=True)
 
     # Tariff info
     tariff = models.ForeignKey(

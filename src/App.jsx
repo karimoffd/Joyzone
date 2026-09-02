@@ -59,10 +59,11 @@ function useUserState() {
         name: localStorage.getItem("joyzone-name") || "Mehmon",
         email: localStorage.getItem("joyzone-email") || "",
         phone: localStorage.getItem("joyzone-phone") || "",
+        avatar: localStorage.getItem("joyzone-avatar") || null,
         activeBooking: JSON.parse(localStorage.getItem("joyzone-booking") || "null")
       };
     } catch (error) {
-      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", phone: "", activeBooking: null };
+      return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", phone: "", avatar: null, activeBooking: null };
     }
   };
 
@@ -77,10 +78,16 @@ function useUserState() {
         if (nextState.name) localStorage.setItem("joyzone-name", nextState.name);
         if (nextState.email) localStorage.setItem("joyzone-email", nextState.email);
         if (nextState.phone) localStorage.setItem("joyzone-phone", nextState.phone);
+        if (nextState.avatar) {
+          localStorage.setItem("joyzone-avatar", nextState.avatar);
+        } else if (nextState.avatar === null) {
+          localStorage.removeItem("joyzone-avatar");
+        }
       } else {
         localStorage.removeItem("joyzone-name");
         localStorage.removeItem("joyzone-email");
         localStorage.removeItem("joyzone-phone");
+        localStorage.removeItem("joyzone-avatar");
         localStorage.removeItem("joyzone-access");
         localStorage.removeItem("joyzone-refresh");
       }
