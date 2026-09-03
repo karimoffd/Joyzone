@@ -133,7 +133,7 @@ export function ChatNotificationToast({ onOpenChat }) {
           <span className="cnt-pulse-dot" />
         </div>
         <div className="cnt-title-group">
-          <strong>Yangi xabar! ✋ (Sudrab surish mumkin)</strong>
+          <strong>Yangi xabar</strong>
           <small>{notification.senderName}</small>
         </div>
       </div>
@@ -150,7 +150,7 @@ export function ChatNotificationToast({ onOpenChat }) {
             if (onOpenChat) onOpenChat(targetId);
           }}
         >
-          💬 Javob berish
+          Javob berish
         </button>
       </div>
     </div>,

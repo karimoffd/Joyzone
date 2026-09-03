@@ -78,7 +78,7 @@ export function FloatingNotificationBell({ onOpenChat }) {
       {isOpen && (
         <div className="fnb-dropdown" ref={dropdownRef}>
           <div className="fnb-dropdown-header">
-            <h3>🔔 Uvedomleniyalar</h3>
+            <h3>Uvedomleniyalar</h3>
             <span className="fnb-unread-tag">{unreadCount} yangi</span>
           </div>
 
