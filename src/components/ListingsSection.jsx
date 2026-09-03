@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
+import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
 import logoImage from "../assets/img/Logo.png";
 import "./ListingsSection.css";
 import "./CardVariants.css";
@@ -29,11 +30,19 @@ const DURATION_LABELS = {
 
 export function PropertyCard({ item, index, href, onClick, selectedDuration, viewMode = "grid" }) {
   const [activeImage, setActiveImage] = useState(0);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(isPlaceFavorited(item.id));
   const cardHref = onClick ? "#" : (href || getSpaceHref(item.title));
   const mediaRef = useRef(null);
   const saveRef = useRef(null);
   const manualSlideAt = useRef(0);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSaved(isPlaceFavorited(item.id));
+    };
+    window.addEventListener("joyzone-favorites-update", handleUpdate);
+    return () => window.removeEventListener("joyzone-favorites-update", handleUpdate);
+  }, [item.id]);
 
   // Resolve displayed price and label
   const { displayPrice, priceLabel, priceUnavailable } = (() => {
@@ -67,7 +76,8 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
   const toggleSave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setSaved((value) => !value);
+    toggleFavoritePlace(item);
+    setSaved(!saved);
     gsap.fromTo(saveRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
   };
 

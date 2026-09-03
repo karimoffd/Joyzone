@@ -187,3 +187,16 @@ class Discount(models.Model):
 
     def __str__(self):
         return f"{self.name_ru} ({self.percent}%)"
+
+
+class Favorite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_favorites', null=True, blank=True)
+    user_token = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    place = models.ForeignKey(Place, on_delete=models.CASCADE, related_name='favorited_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Favorite: {self.place.title}"

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from places.views import PlaceViewSet, CategoryViewSet, SubCategoryViewSet, ReviewViewSet, ParameterGroupViewSet, ParameterViewSet, DiscountViewSet
+from places.views import PlaceViewSet, CategoryViewSet, SubCategoryViewSet, ReviewViewSet, ParameterGroupViewSet, ParameterViewSet, DiscountViewSet, favorite_list, favorite_toggle
 from bookings.views import BookingViewSet
 
 router = DefaultRouter()
@@ -20,6 +20,8 @@ urlpatterns = [
     path('api/content/', include('content.urls')),
     path('api/tariffs/', include('tariffs.urls')),
     path('api/notifications/', include('notifications.urls')),
+    path('api/favorites/', favorite_list, name='favorite-list'),
+    path('api/favorites/toggle/', favorite_toggle, name='favorite-toggle'),
     path('api/', include(router.urls)),
 ]
 

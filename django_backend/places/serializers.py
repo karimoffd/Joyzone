@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount
+from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -137,3 +137,11 @@ class DiscountSerializer(serializers.ModelSerializer):
             'percent', 'discount_type', 'applicable_to', 'category_ids',
             'is_active', 'min_nights', 'max_bookings', 'days_before', 'created_at'
         )
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    place = PlaceSerializer(read_only=True)
+
+    class Meta:
+        model = Favorite
+        fields = ('id', 'user_token', 'place', 'created_at')

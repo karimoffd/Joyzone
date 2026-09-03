@@ -5,6 +5,7 @@ import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
 import { propertyCards } from "../data/content.js";
+import { fetchFavoritesFromBackend, getLocalFavorites } from "../utils/favoritesManager.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
 
@@ -159,7 +160,19 @@ function getCompletion(data) {
 function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
   const [selectedListing, setSelectedListing] = useState(null);
+  const [likedSpaces, setLikedSpaces] = useState(getLocalFavorites());
   const avatarInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchFavoritesFromBackend().then(favs => setLikedSpaces(favs));
+    
+    const handleUpdate = () => {
+      setLikedSpaces(getLocalFavorites());
+    };
+    window.addEventListener("joyzone-favorites-update", handleUpdate);
+    return () => window.removeEventListener("joyzone-favorites-update", handleUpdate);
+  }, []);
+
   const profileData = useMemo(() => {
     const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi";
     const activeEmail = userState?.email || localStorage.getItem("joyzone-email") || "";
@@ -172,7 +185,6 @@ function UserProfile({ userState, setUserState }) {
     };
   }, [userState]);
   const completion = 50;
-  const likedSpaces = propertyCards;
 
   // Handle avatar upload and change
   const handleAvatarSelect = () => {

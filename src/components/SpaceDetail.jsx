@@ -10,6 +10,7 @@ import { HeartIcon } from "./ui/Shared.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import { DirectChatDrawer } from "./DirectChatDrawer.jsx";
 import { startOrGetChatForSpace } from "../utils/chatManager.js";
+import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
 import { propertyCards } from "../data/content.js";
 import "./ListingsSection.css";
 import "./SpaceDetail.css";
@@ -310,12 +311,22 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   const [activeImage, setActiveImage] = useState(0);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [liked, setLiked] = useState(() => isPlaceFavorited(space.id));
   const likeBtnRef = useRef(null);
   const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
 
+  useEffect(() => {
+    setLiked(isPlaceFavorited(space.id));
+    const handleUpdate = () => {
+      setLiked(isPlaceFavorited(space.id));
+    };
+    window.addEventListener("joyzone-favorites-update", handleUpdate);
+    return () => window.removeEventListener("joyzone-favorites-update", handleUpdate);
+  }, [space.id]);
+
   const handleLikeToggle = () => {
+    toggleFavoritePlace(space);
     setLiked(!liked);
     gsap.fromTo(
       likeBtnRef.current,

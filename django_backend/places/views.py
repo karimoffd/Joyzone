@@ -1,10 +1,10 @@
 from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount
-from .serializers import PlaceSerializer, CategoryWithSubsSerializer, SubCategorySerializer, ReviewSerializer, ParameterGroupSerializer, ParameterSerializer, DiscountSerializer
+from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite
+from .serializers import PlaceSerializer, CategoryWithSubsSerializer, SubCategorySerializer, ReviewSerializer, ParameterGroupSerializer, ParameterSerializer, DiscountSerializer, FavoriteSerializer
 from notifications.models import Notification
 
 
@@ -325,3 +325,38 @@ class DiscountViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
         return [IsAdminOrModerator()]
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def favorite_list(request):
+    token = request.query_params.get('token') or 'default-user'
+    favs = Favorite.objects.filter(user_token=token).select_related('place')
+    serializer = FavoriteSerializer(favs, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def favorite_toggle(request):
+    place_id = request.data.get('place_id')
+    token = request.data.get('token') or 'default-user'
+
+    if not place_id:
+        return Response({'error': 'place_id is required'}, status=400)
+
+    try:
+        place = Place.objects.get(pk=place_id)
+    except Place.DoesNotExist:
+        return Response({'error': 'Place not found'}, status=404)
+
+    fav, created = Favorite.objects.get_or_create(user_token=token, place=place)
+    if not created:
+        fav.delete()
+        is_fav = False
+    else:
+        is_fav = True
+
+    favs = Favorite.objects.filter(user_token=token).select_related('place')
+    serializer = FavoriteSerializer(favs, many=True)
+    return Response({'favorited': is_fav, 'favorites': serializer.data})
