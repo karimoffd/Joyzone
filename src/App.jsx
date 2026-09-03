@@ -28,6 +28,7 @@ import JoyLoader from "./components/JoyLoader.jsx";
 import BookingCheckout from "./components/BookingCheckout.jsx";
 import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
+import { FloatingNotificationBell } from "./components/FloatingNotificationBell.jsx";
 import { DirectChatDrawer } from "./components/DirectChatDrawer.jsx";
 import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
@@ -596,6 +597,7 @@ export default function App() {
   return (
     <LanguageContext.Provider value={{ lang, setLang, content, isEditMode }}>
       <AppContent />
+      <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />
       <ChatNotificationToast onOpenChat={(id) => setActiveChatId(id)} />
       {activeChatId && (
         <DirectChatDrawer

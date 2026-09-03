@@ -51,8 +51,32 @@ export function ChatNotificationToast({ onOpenChat }) {
     };
   }, []);
 
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = (e) => {
+    if (e.target.closest('.cnt-close-btn') || e.target.closest('.cnt-action-btn')) return;
+    isDraggingRef.current = true;
+    startPosRef.current = { x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDraggingRef.current) return;
+    setDragOffset({
+      x: e.clientX - startPosRef.current.x,
+      y: e.clientY - startPosRef.current.y
+    });
+  };
+
+  const handlePointerUp = (e) => {
+    isDraggingRef.current = false;
+  };
+
   useEffect(() => {
     if (!notification) return;
+    setDragOffset({ x: 0, y: 0 });
     const el = toastRef.current;
     if (el) {
       gsap.fromTo(
@@ -63,7 +87,7 @@ export function ChatNotificationToast({ onOpenChat }) {
     }
     const timer = setTimeout(() => {
       dismissToast();
-    }, 8000);
+    }, 35000);
 
     return () => clearTimeout(timer);
   }, [notification]);
@@ -88,7 +112,17 @@ export function ChatNotificationToast({ onOpenChat }) {
   if (!notification) return null;
 
   return createPortal(
-    <div className="chat-notification-toast" ref={toastRef}>
+    <div 
+      className="chat-notification-toast" 
+      ref={toastRef}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      style={{
+        transform: `translate(${dragOffset.x}px, calc(-50% + ${dragOffset.y}px))`,
+        cursor: 'grab'
+      }}
+    >
       <button type="button" className="cnt-close-btn" onClick={dismissToast} aria-label="Yopish">
         ✕
       </button>
@@ -99,7 +133,7 @@ export function ChatNotificationToast({ onOpenChat }) {
           <span className="cnt-pulse-dot" />
         </div>
         <div className="cnt-title-group">
-          <strong>Yangi xabar!</strong>
+          <strong>Yangi xabar! ✋ (Sudrab surish mumkin)</strong>
           <small>{notification.senderName}</small>
         </div>
       </div>
