@@ -30,6 +30,7 @@ import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
 import { FloatingNotificationBell } from "./components/FloatingNotificationBell.jsx";
 import { DirectChatDrawer } from "./components/DirectChatDrawer.jsx";
+import { syncChatsWithBackend } from "./utils/chatManager.js";
 import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
 
@@ -504,6 +505,7 @@ export default function App() {
     if (window.self !== window.top) {
       setIsEditMode(true);
     }
+    syncChatsWithBackend();
   }, []);
 
   useEffect(() => {
