@@ -1,5 +1,6 @@
 // Central Shared Chat Manager for Joyzone
 // Syncs live chats across Client Space Details, Host Dashboard, and Admin Panel
+import axios from 'axios';
 
 const CHAT_STORAGE_KEY = "joyzone-shared-chats";
 
@@ -83,8 +84,6 @@ export function saveStoredChats(chats) {
     console.error("Failed to save chats to storage", error);
   }
 }
-
-import axios from 'axios';
 
 const BACKEND_CHAT_URL = 'http://localhost:8000/api/notifications/chats/';
 const BACKEND_MSG_URL = 'http://localhost:8000/api/notifications/chats/message/';
