@@ -271,17 +271,69 @@
   transform: rotate(90deg);
 }
 
-.floating-booking-widget:hover .fbw-link-btn {
-  color: #fff;
+.fbw-mobile-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #38ef7d;
+  border: 2px solid #0e151e;
+  animation: fbwDotPulse 1.8s infinite;
 }
 
-@media (max-width: 576px) {
-  .floating-booking-widget {
-    bottom: 16px;
-    right: 16px;
-    left: 16px;
-    width: auto;
-    border-radius: 14px;
+@keyframes fbwDotPulse {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.8); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(56, 239, 125, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(56, 239, 125, 0); }
+}
+
+@media (max-width: 980px) {
+  .floating-booking-widget:not(.expanded) {
+    left: auto !important;
+    right: 18px !important;
+    bottom: 85px !important;
+    width: 56px !important;
+    height: 56px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 10px 28px rgba(14, 21, 30, 0.5), 0 0 0 2px rgba(56, 239, 125, 0.4) !important;
+    cursor: pointer;
+  }
+
+  .floating-booking-widget:not(.expanded) .fbw-text,
+  .floating-booking-widget:not(.expanded) .fbw-link-btn {
+    display: none !important;
+  }
+
+  .floating-booking-widget:not(.expanded) .fbw-content {
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .floating-booking-widget:not(.expanded) .fbw-icon {
+    width: 32px !important;
+    height: 32px !important;
+    background: transparent !important;
+  }
+
+  .floating-booking-widget.expanded {
+    position: fixed !important;
+    inset: auto 16px 85px 16px !important;
+    width: auto !important;
+    max-width: 100% !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    border-radius: 24px !important;
+    padding: 20px !important;
+    background: rgba(8, 25, 41, 0.98) !important;
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.6) !important;
   }
 }
 
