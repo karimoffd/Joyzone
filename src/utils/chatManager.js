@@ -3,10 +3,22 @@
 
 const CHAT_STORAGE_KEY = "joyzone-shared-chats";
 
+export function getActiveClientName() {
+  try {
+    return (
+      localStorage.getItem("joyzone-name") ||
+      localStorage.getItem("joyzone-username") ||
+      "Nosirov Abdulboriy"
+    );
+  } catch (e) {
+    return "Nosirov Abdulboriy";
+  }
+}
+
 const INITIAL_CHATS = [
   {
-    id: "bekzod-tursunov",
-    name: "Bekzod Tursunov",
+    id: "nosirov-abdulboriy",
+    name: "Nosirov Abdulboriy",
     space: "Atlas Meeting Room",
     spaceTitle: "Atlas Meeting Room",
     time: "12 мин",
@@ -77,18 +89,24 @@ export function getChatById(chatId) {
   return chats.find((c) => String(c.id) === String(chatId)) || null;
 }
 
-export function startOrGetChatForSpace({ spaceTitle, hostName }) {
+export function startOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
   const chats = getStoredChats();
+  const activeClient = clientName || getActiveClientName();
   const slug = (spaceTitle || "space").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const existingChat = chats.find((c) => c.spaceTitle === spaceTitle || c.id === slug);
+  let existingChat = chats.find((c) => c.spaceTitle === spaceTitle || c.id === slug);
 
   if (existingChat) {
+    if (activeClient && existingChat.name !== activeClient) {
+      existingChat.name = activeClient;
+      saveStoredChats(chats);
+    }
     return existingChat;
   }
 
   const newChat = {
     id: slug,
-    name: hostName || "Bekzod Tursunov",
+    name: activeClient,
+    hostName: hostName || "Ega / Host",
     space: spaceTitle || "Joyzone Space",
     spaceTitle: spaceTitle || "Joyzone Space",
     time: "Только что",
