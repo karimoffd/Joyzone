@@ -84,6 +84,26 @@ export function saveStoredChats(chats) {
   }
 }
 
+import axios from 'axios';
+
+const BACKEND_CHAT_URL = 'http://localhost:8000/api/notifications/chats/';
+const BACKEND_MSG_URL = 'http://localhost:8000/api/notifications/chats/message/';
+
+// Sync with Django REST API in background
+export async function syncChatsWithBackend() {
+  try {
+    const res = await axios.get(BACKEND_CHAT_URL);
+    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(res.data));
+      window.dispatchEvent(new Event("joyzone-chat-update"));
+      return res.data;
+    }
+  } catch (err) {
+    console.warn("Backend chat sync error (using local storage fallback):", err.message);
+  }
+  return getStoredChats();
+}
+
 export function getChatById(chatId) {
   const chats = getStoredChats();
   return chats.find((c) => String(c.id) === String(chatId)) || null;
@@ -120,6 +140,15 @@ export function startOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
 
   const updatedChats = [newChat, ...chats];
   saveStoredChats(updatedChats);
+
+  // Sync to Django Backend
+  axios.post(BACKEND_CHAT_URL, {
+    id: slug,
+    name: activeClient,
+    space_title: spaceTitle,
+    host_name: hostName || 'Ega / Host'
+  }).catch(e => console.warn("Failed to sync new chat to backend", e));
+
   return newChat;
 }
 
@@ -147,5 +176,18 @@ export function sendMessageToChat(chatId, { from, text }) {
   });
 
   saveStoredChats(updatedChats);
+
+  // Send message to Django Backend
+  axios.post(BACKEND_MSG_URL, {
+    chat_id: chatId,
+    from: from || 'guest',
+    text: text.trim()
+  }).then(res => {
+    if (res.data && res.data.messages) {
+      // Background update local cache with backend response
+      syncChatsWithBackend();
+    }
+  }).catch(e => console.warn("Failed to post message to Django backend:", e.message));
+
   return targetChat;
 }

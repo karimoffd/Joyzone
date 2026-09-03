@@ -40,3 +40,35 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"[{self.notification_type}] → {self.user.username}: {self.title_ru}"
+
+
+class ChatThread(models.Model):
+    thread_id = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=255)
+    host_name = models.CharField(max_length=255, default='Ega / Host')
+    space_title = models.CharField(max_length=255)
+    color = models.CharField(max_length=50, default='#e46630')
+    unread = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'notifications'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.name} - {self.space_title}"
+
+
+class ChatMessage(models.Model):
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name='messages')
+    sender = models.CharField(max_length=20, choices=(('guest', 'Guest'), ('host', 'Host')))
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'notifications'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"[{self.sender}] {self.text[:30]}"
