@@ -102,13 +102,13 @@
 .nav-center::before {
   background-image: url("/src/assets/img/fornav.png");
   left: -30px;
-  top: 12px;
+  top: 0;
 }
 
 .nav-center::after {
   background-image: url("/src/assets/img/fornav.png");
   right: -30px;
-  top: 12px;
+  top: 0;
   transform: rotate(270deg);
 }
 
