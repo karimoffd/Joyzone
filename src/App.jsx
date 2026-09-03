@@ -27,6 +27,8 @@ import { propertyCards } from "./data/content.js";
 import JoyLoader from "./components/JoyLoader.jsx";
 import BookingCheckout from "./components/BookingCheckout.jsx";
 import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
+import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
+import { DirectChatDrawer } from "./components/DirectChatDrawer.jsx";
 import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
 
@@ -494,6 +496,7 @@ export default function App() {
   const [content, setContent] = useState(defaultContent);
   const [isEditMode, setIsEditMode] = useState(false);
   const [placesLoaded, setPlacesLoaded] = useState(false);
+  const [activeChatId, setActiveChatId] = useState(null);
 
   useEffect(() => {
     // Determine if we are inside an iframe
@@ -593,6 +596,13 @@ export default function App() {
   return (
     <LanguageContext.Provider value={{ lang, setLang, content, isEditMode }}>
       <AppContent />
+      <ChatNotificationToast onOpenChat={(id) => setActiveChatId(id)} />
+      {activeChatId && (
+        <DirectChatDrawer
+          chatId={activeChatId}
+          onClose={() => setActiveChatId(null)}
+        />
+      )}
     </LanguageContext.Provider>
   );
 }
