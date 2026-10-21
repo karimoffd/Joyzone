@@ -15,6 +15,7 @@ cd django_backend
 py -m venv venv
 .\venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+copy .env.example .env   # local settings, loaded automatically
 python manage.py migrate
 python manage.py createsuperuser
 python seed_categories.py
@@ -22,6 +23,24 @@ python seed_tariffs.py
 python seed_places.py
 python manage.py runserver 0.0.0.0:8000
 ```
+
+Important behaviour (see `django_backend/.env.example` for every variable):
+
+- Booking prices are calculated on the server (`bookings/pricing.py`); the
+  client never sends the amount. `POST /api/bookings/quote/` returns the same
+  breakdown for the checkout screen.
+- `POST /api/payments/test-pay/` works only when `TEST_PAYMENTS_ENABLED=True`
+  (default: same as `DEBUG`). Real Payme/Click/Uzum are not integrated yet.
+- With `DEBUG=False`, sending an OTP returns 503 until `SMS_PROVIDER` is set
+  (SMS delivery is not integrated yet). Local dev uses `DEV_OTP_ENABLED=True`
+  and the code `111111`.
+- The refresh token is an httpOnly cookie (`joyzone_refresh`, path
+  `/api/auth/`); the frontend keeps only the short-lived access token. The
+  frontend and API must be same-site (e.g. `joyzone.uz` + `api.joyzone.uz`, or
+  one domain behind nginx as in Docker).
+- Business dates use `TIME_ZONE=Asia/Tashkent`.
+- `GET /sitemap.xml` lists public pages and approved places
+  (`FRONTEND_BASE_URL`).
 
 ## Frontend
 
@@ -51,7 +70,31 @@ Backend URL:
 http://localhost:8000
 ```
 
+Routes are real paths (`/filter`, `/space-12`, `/host-calendar`), not `#hash`
+links; old `/#space-12` links are redirected on load. Any web server in front
+of the built app must fall back to `index.html` for unknown paths (see
+`deploy/nginx.conf`).
+
+## Docker
+
+`docker-compose.yml` runs PostgreSQL, Redis, Django (gunicorn) and nginx with
+the built frontend on one origin. nginx proxies `/api/`, `/django-admin/`,
+`/sitemap.xml`, `/static/` and `/media/` to Django.
+
+```powershell
+copy .env.docker.example .env.docker   # then fill in real secrets
+docker compose --env-file .env.docker up -d --build
+```
+
+The site is then on `http://localhost:8080`. Put HTTPS in front of it in
+production. CI (`.github/workflows/ci.yml`) runs Django checks/tests on
+PostgreSQL plus frontend lint and smoke on every push and PR.
+
 ## Checks
+
+```powershell
+npm run lint
+```
 
 ```powershell
 cd django_backend

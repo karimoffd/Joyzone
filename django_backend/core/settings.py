@@ -226,6 +226,13 @@ SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
 SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', False)
 CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', False)
 SECURE_HSTS_SECONDS = env_int('SECURE_HSTS_SECONDS', 0)
+# Behind nginx/a load balancer that terminates HTTPS.
+if env_bool('USE_X_FORWARDED_PROTO', False):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Django admin path. Default keeps local dev unchanged; Docker uses
+# django-admin/ because /admin belongs to the React admin panel.
+DJANGO_ADMIN_URL = os.environ.get('DJANGO_ADMIN_URL', 'admin/').strip('/') + '/'
 CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 
 

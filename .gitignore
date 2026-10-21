@@ -31,6 +31,7 @@ django_backend/check_db.json
 django_backend/out.json
 django_backend/.e2e/
 django_backend/.test-runtime/
+.claude/launch.json
 *.sqlite3
 audit-artifacts/
 
@@ -42,6 +43,7 @@ test-results/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # Editor / OS files
 .DS_Store

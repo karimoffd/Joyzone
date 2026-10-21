@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -19,7 +20,7 @@ router.register(r'parameters', ParameterViewSet, basename='parameter')
 router.register(r'discounts', DiscountViewSet, basename='discount')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(settings.DJANGO_ADMIN_URL, admin.site.urls),
     path('sitemap.xml', sitemap_xml, name='sitemap'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
@@ -39,7 +40,6 @@ urlpatterns = [
 ]
 
 
-from django.conf import settings
 from django.conf.urls.static import static
 
 if settings.DEBUG:

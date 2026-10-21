@@ -9,7 +9,8 @@ import {
   STORAGE_KEYS,
 } from "../utils/storageKeys.js";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+// An empty VITE_API_BASE_URL means "same origin" (nginx proxies /api in Docker).
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 function positiveEnvNumber(value, fallback) {
   const parsed = Number(value);

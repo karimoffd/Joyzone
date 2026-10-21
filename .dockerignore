@@ -1,0 +1,9 @@
+node_modules/
+dist/
+django_backend/
+e2e/
+test-results/
+playwright-report/
+.git/
+.claude/
+*.log
