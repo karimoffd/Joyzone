@@ -186,6 +186,14 @@ class JWTSessionLifecycleTests(TestCase):
         self.assertEqual(second.data['detail'], 'Session already logged out.')
         self.assertEqual(BlacklistedToken.objects.count(), 1)
 
+    def test_logout_without_refresh_cookie_succeeds(self):
+        access, _ = self.issue_session()
+
+        logout = self.authenticated_client(access).post('/api/auth/logout/', {}, format='json')
+
+        self.assertEqual(logout.status_code, 200)
+        self.assertEqual(BlacklistedToken.objects.count(), 0)
+
     def test_logout_reads_refresh_cookie_and_clears_it(self):
         access, refresh = self.issue_session()
         client = self.authenticated_client(access)

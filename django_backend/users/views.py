@@ -467,7 +467,12 @@ class LogoutView(APIView):
         tags=['auth'],
     )
     def post(self, request):
-        serializer = LogoutSerializer(data={'refresh': get_refresh_from_request(request)})
+        raw_refresh = get_refresh_from_request(request)
+        if not raw_refresh:
+            # No refresh cookie (cleared by the browser or a session from an
+            # older build): there is nothing to revoke, so logout still succeeds.
+            return clear_refresh_cookie(Response({'detail': 'No active refresh session.'}))
+        serializer = LogoutSerializer(data={'refresh': raw_refresh})
         serializer.is_valid(raise_exception=True)
         raw_refresh = serializer.validated_data['refresh']
 

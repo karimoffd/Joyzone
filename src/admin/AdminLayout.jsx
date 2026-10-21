@@ -58,6 +58,7 @@ function NavGroup({ item, page, setPage, collapsed }) {
   return (
     <div className={`adm-nav-group ${isOpen ? 'open' : ''}`}>
       <button
+        data-testid={`admin-nav-${item.id}`}
         className={`adm-nav-item${isActive ? " active-parent" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
         style={{ marginBottom: isOpen ? '4px' : '0' }}
@@ -74,6 +75,7 @@ function NavGroup({ item, page, setPage, collapsed }) {
         {item.subItems.map(sub => (
           <button
             key={sub.id}
+            data-testid={`admin-nav-${sub.id}`}
             className={`adm-nav-subitem${page === sub.id ? " active" : ""}`}
             onClick={() => setPage(sub.id)}
             title={sub.label}

@@ -539,7 +539,7 @@ export default function PartnerOnboarding() {
              <div style={{textAlign: 'left', paddingRight: 40}}>
                <h1 style={{fontSize: 54, marginBottom: 24, lineHeight: 1.1, fontWeight: 800, color: '#0f172a'}}>Начните зарабатывать на своих пространствах</h1>
                <p style={{fontSize: 20, color: '#475569', marginBottom: 40, lineHeight: 1.6}}>Разместите свой офис, коворкинг или конференц-зал и находите резидентов без усилий.</p>
-               <button data-testid="onboarding-start" className="sd-primary-btn" onClick={() => setStep(1)} style={{padding: '16px 48px', fontSize: 20, borderRadius: 12}}>Начать</button>
+               <button data-testid="onboarding-start" className="onboarding-start-btn" onClick={() => setStep(1)} style={{padding: '16px 48px', fontSize: 20, borderRadius: 12}}>Начать</button>
              </div>
              <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                 <style>

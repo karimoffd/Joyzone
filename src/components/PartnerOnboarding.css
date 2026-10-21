@@ -2941,3 +2941,22 @@
     flex-direction: column-reverse;
   }
 }
+
+/* Start button on the intro screen (it used SpaceDetail.css styles that are not loaded here). */
+.onboarding-start-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: #e46630;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 18px 38px rgba(228, 102, 48, 0.24);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.onboarding-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 44px rgba(228, 102, 48, 0.3);
+}
