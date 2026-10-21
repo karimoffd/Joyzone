@@ -178,7 +178,7 @@ function VariantCard({ item, index, variant }) {
           <p>{item.location}</p>
           <div className="variant-shop-bottom">
             <strong>{item.price}</strong>
-            <a href="#login">Bron <Icon type="arrow" /></a>
+            <a href="/login">Bron <Icon type="arrow" /></a>
           </div>
         </div>
       </article>
@@ -290,7 +290,7 @@ function VariantCard({ item, index, variant }) {
         <p>{item.location}</p>
         <div className="variant-ticket-bottom">
           <strong>{item.price}</strong>
-          <a href="#login">Bron</a>
+          <a href="/login">Bron</a>
         </div>
       </div>
     </article>
@@ -300,7 +300,7 @@ function VariantCard({ item, index, variant }) {
 function WrappedPropertyCard({ item, index }) {
   return (
     <div className="variant-card-frame" style={{ "--delay": `${index * 0.045}s` }}>
-      <PropertyCard item={item} index={index} href="#card-variants" />
+      <PropertyCard item={item} index={index} href="/card-variants" />
     </div>
   );
 }
@@ -328,7 +328,7 @@ function CardVariants() {
   return (
     <main className="card-variants-page">
       <nav className="card-variants-topbar" aria-label="Card variants">
-        <a className="card-variants-back" href="#home">Home</a>
+        <a className="card-variants-back" href="/">Home</a>
         <div className="card-variants-switcher">
           {variants.map((variant, index) => (
             <button
@@ -349,7 +349,7 @@ function CardVariants() {
         <div className="card-variants-row">
           {activeVariant.id === "site"
             ? showcaseCards.map((item, index) => (
-                <PropertyCard key={`site-${item.title}`} item={item} index={index} href="#card-variants" />
+                <PropertyCard key={`site-${item.title}`} item={item} index={index} href="/card-variants" />
               ))
             : activeVariant.id === "wrapped"
             ? showcaseCards.map((item, index) => (

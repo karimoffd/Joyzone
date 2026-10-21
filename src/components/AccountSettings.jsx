@@ -207,10 +207,10 @@ function AccountSettings({ userState, setUserState }) {
   return (
     <main className="account-settings-page">
       <header className="settings-topbar">
-        <a href="#home" aria-label="Joyzone home">
+        <a href="/" aria-label="Joyzone home">
           <img src={logoImage} alt="Joyzone" />
         </a>
-        <a className="settings-done" href="#profile">Готово</a>
+        <a className="settings-done" href="/profile">Готово</a>
       </header>
 
       <section className="settings-shell">

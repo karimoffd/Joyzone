@@ -174,7 +174,7 @@ function buildProfileBookingView(rawBooking = {}, index = 0) {
     time: rawBooking.time || booking.time || booking.durationLabel,
     location: rawBooking.location || booking.place_details?.location || "Toshkent",
     status: rawBooking.status || booking.status,
-    href: rawBooking.href || `#space-${booking.place_id || booking.place_title}`,
+    href: rawBooking.href || `/space-${booking.place_id || booking.place_title}`,
   };
 }
 
@@ -1031,7 +1031,7 @@ function UserProfile({ userState, setUserState }) {
                         </div>
                       )}
                     </div>
-                    <a className="profile-edit-button" href="#profile-edit">
+                    <a className="profile-edit-button" href="/profile-edit">
                       <ProfileIcon type="edit" />
                       Anketa tahrirlash
                     </a>
@@ -1100,7 +1100,7 @@ function UserProfile({ userState, setUserState }) {
                     <span>Tarix</span>
                     <h2>Bronlar tarixi</h2>
                   </div>
-                  <a href="#filter">Joy bron qilish</a>
+                  <a href="/filter">Joy bron qilish</a>
                 </div>
 
                 {bookingsSuccess ? (
@@ -1122,7 +1122,7 @@ function UserProfile({ userState, setUserState }) {
                     title="Hozircha bronlar yo'q"
                     text="Birinchi joyingizni tanlaganingizdan keyin bron shu yerda backend ma'lumotlari bilan ko'rinadi."
                     action="Joy tanlash"
-                    href="#filter"
+                    href="/filter"
                   />
                 ) : (
                   <div className="profile-bookings-grid">
@@ -1445,7 +1445,7 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={-1} variant="dashboard" />
       <section className="profile-unified-panel profile-editor-panel">
         <div className="profile-editor-top">
-          <a href="#profile" className="profile-cancel-action">
+          <a href="/profile" className="profile-cancel-action">
             <ProfileIcon type="arrow" />
             Orqaga
           </a>
@@ -1487,7 +1487,7 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
         </div>
 
         <div className="profile-editor-footer">
-          <a href="#profile" className="profile-cancel-action">Bekor qilish</a>
+          <a href="/profile" className="profile-cancel-action">Bekor qilish</a>
           <button type="button" className="profile-save-action" onClick={saveProfile} disabled={loading || saving}>
             {saving ? "Saqlanmoqda..." : success || "Saqlash"}
           </button>

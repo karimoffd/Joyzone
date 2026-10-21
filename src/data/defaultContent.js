@@ -1,9 +1,9 @@
 export const defaultContent = {
   uz: {
     nav_links_arr: [
-      { label: "Bosh sahifa", href: "#home" },
-      { label: "Biz haqimizda", href: "#about-us" },
-      { label: "Ijaraga joylar", href: "#filter" },
+      { label: "Bosh sahifa", href: "/" },
+      { label: "Biz haqimizda", href: "/about-us" },
+      { label: "Ijaraga joylar", href: "/filter" },
       { label: "FAQ", href: "#faq" },
       { label: "Kontaktlar", href: "#contact" }
     ],
@@ -106,9 +106,9 @@ export const defaultContent = {
   },
   ru: {
     nav_links_arr: [
-      { label: "Главная", href: "#home" },
-      { label: "О нас", href: "#about-us" },
-      { label: "Аренда", href: "#filter" },
+      { label: "Главная", href: "/" },
+      { label: "О нас", href: "/about-us" },
+      { label: "Аренда", href: "/filter" },
       { label: "FAQ", href: "#faq" },
       { label: "Контакты", href: "#contact" }
     ],
@@ -211,9 +211,9 @@ export const defaultContent = {
   },
   en: {
     nav_links_arr: [
-      { label: "Home", href: "#home" },
-      { label: "About Us", href: "#about-us" },
-      { label: "Rentals", href: "#filter" },
+      { label: "Home", href: "/" },
+      { label: "About Us", href: "/about-us" },
+      { label: "Rentals", href: "/filter" },
       { label: "FAQ", href: "#faq" },
       { label: "Contacts", href: "#contact" }
     ],

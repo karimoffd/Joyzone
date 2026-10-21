@@ -1,5 +1,6 @@
 import api, { getAccessToken } from "../api/client.js";
 import { getStorageItem, setStorageItem, STORAGE_KEYS } from "./storageKeys.js";
+import { navigate } from "./router.js";
 
 const NOTIFICATIONS_URL = "/api/notifications/";
 
@@ -60,27 +61,27 @@ export function getNotificationTarget(notification = {}, role = "client") {
   const isAdmin = role === "admin" || role === "moderator";
 
   if (type.startsWith("booking_")) {
-    if (isAdmin) return { hash: "#admin", adminPage: "bookings" };
-    return { hash: role === "partner" ? "#host-today" : "#profile" };
+    if (isAdmin) return { hash: "/admin", adminPage: "bookings" };
+    return { hash: role === "partner" ? "/host-today" : "/profile" };
   }
 
   if (type === "tariff_activated") {
-    return { hash: "#host-tariffs" };
+    return { hash: "/host-tariffs" };
   }
 
   if (type === "place_submitted" && isAdmin) {
-    return { hash: "#admin", adminPage: "moderation" };
+    return { hash: "/admin", adminPage: "moderation" };
   }
 
   if (role === "partner" && type === "place_rejected") {
-    return { hash: "#partner", editPlaceId: placeId };
+    return { hash: "/partner", editPlaceId: placeId };
   }
 
   if (placeId && role === "partner") {
-    return { hash: "#host-listings", highlightPlaceId: placeId };
+    return { hash: "/host-listings", highlightPlaceId: placeId };
   }
 
-  if (placeId) return { hash: `#space-${placeId}` };
+  if (placeId) return { hash: `/space-${placeId}` };
   return null;
 }
 
@@ -98,5 +99,5 @@ export function openNotificationTarget(notification = {}) {
   if (target.highlightPlaceId) {
     setStorageItem(STORAGE_KEYS.workflow.highlightPlaceId, String(target.highlightPlaceId));
   }
-  window.location.hash = target.hash;
+  navigate(target.hash);
 }

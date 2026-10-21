@@ -137,7 +137,7 @@ export default function AdminLayout({ page, setPage, title, eyebrow, allowedPage
         </button>
 
         {/* Logo */}
-        <a className="adm-sidebar-logo" href="#home">
+        <a className="adm-sidebar-logo" href="/">
           <div className="adm-sidebar-logo-mark">J</div>
           <div className="adm-sidebar-logo-text">
             <strong>Joyzone</strong>

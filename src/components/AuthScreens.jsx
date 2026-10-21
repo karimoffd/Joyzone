@@ -4,6 +4,7 @@ import api, { getApiErrorMessage } from "../api/client.js";
 import { beginAuthSession } from "../utils/storageKeys.js";
 import { Logo, GoogleIcon, ChevronIcon, CheckIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
+import { navigate } from "../utils/router.js";
 
 function AuthTitle({ title, accent = "", centered = false, compact = false }) {
   return (
@@ -431,12 +432,12 @@ export function ForgotPasswordForm() {
       </div>
       <form className="space-y-3 xl:space-y-4">
         <TextInput placeholder="Email | Telefon raqami" autoComplete="email" />
-        <PrimaryButton type="button" onClick={() => { window.location.hash = "verify"; }}>
+        <PrimaryButton type="button" onClick={() => { navigate("verify"); }}>
           {btnText}
         </PrimaryButton>
       </form>
       <p className="mt-5 text-center text-[10px] font-bold text-joyDeep xl:mt-5 xl:text-[12px] min-[1400px]:text-[14px]">
-        {loginLink.split('?')[0]}? <a href="#login" className="auth-link">{loginLink.split('?')[1] || "Kirish"}</a>
+        {loginLink.split('?')[0]}? <a href="/login" className="auth-link">{loginLink.split('?')[1] || "Kirish"}</a>
       </p>
     </AuthColumn>
   );
@@ -527,7 +528,7 @@ export function VerifyCodeForm() {
           <PrimaryButton type="submit">{btnText}</PrimaryButton>
         </div>
         <p className="mt-5 text-center text-[10px] font-bold text-joyDeep xl:mt-5 xl:text-[12px] min-[1400px]:text-[14px]">
-          {resendLink.split('?')[0]}? <a href="#forgot" className="auth-link">{resendLink.split('?')[1] || "Qayta yuborish"}</a>
+          {resendLink.split('?')[0]}? <a href="/forgot" className="auth-link">{resendLink.split('?')[1] || "Qayta yuborish"}</a>
         </p>
       </main>
     </div>

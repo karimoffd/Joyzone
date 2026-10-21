@@ -32,7 +32,7 @@ function AdminAccessState({ status, message }) {
               : "У этого аккаунта нет доступа к панели управления.")}
         </p>
         {!isLoading && (
-          <a className="adm-access-state__action" href={isUnauthenticated ? "#login" : "#home"}>
+          <a className="adm-access-state__action" href={isUnauthenticated ? "/login" : "/"}>
             {isUnauthenticated ? "Войти" : "На главную"}
           </a>
         )}

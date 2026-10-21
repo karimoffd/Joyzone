@@ -5,6 +5,7 @@ import { cacheProfile } from "../utils/profileMapper.js";
 import PaymentModal from "./PaymentModal.jsx";
 import logoImage from "../assets/img/Logo.png";
 import "./StaticInfoPages.css";
+import { navigate } from "../utils/router.js";
 
 function PageIcon({ type }) {
   const paths = {
@@ -35,7 +36,7 @@ function PageIcon({ type }) {
 
 function BackButton() {
   return (
-    <a className="static-back-button" href="#home">
+    <a className="static-back-button" href="/">
       <PageIcon type="back" />
       Ortga qaytish
     </a>
@@ -364,7 +365,7 @@ function TariffPlansSection() {
 
   const handleSelect = async (tariff) => {
     const token = getAccessToken();
-    if (!token) { window.location.hash = '#login'; return; }
+    if (!token) { navigate('/login'); return; }
     setSubmitting(tariff.id);
     try {
       const res = await api.post(
@@ -549,7 +550,7 @@ function FooterVariantPage() {
         <footer className="footer-concept">
           <div className="footer-concept-main">
             <div className="footer-brand-block">
-              <a className="footer-concept-logo" href="#home" aria-label="Joyzone bosh sahifa">
+              <a className="footer-concept-logo" href="/" aria-label="Joyzone bosh sahifa">
                 <img src={logoImage} alt="Joyzone" />
               </a>
               <h2>Joy topish va bron qilishni tartibli qilamiz.</h2>
@@ -558,11 +559,11 @@ function FooterVariantPage() {
                 tez aloqa va ishonchli bron oqimi.
               </p>
               <div className="footer-concept-actions">
-                <a href="#filter">
+                <a href="/filter">
                   Joy qidirish
                   <PageIcon type="arrow" />
                 </a>
-                <a href="#partner-guide">Hamkor bo'lish</a>
+                <a href="/partner-guide">Hamkor bo'lish</a>
               </div>
             </div>
 
@@ -571,7 +572,7 @@ function FooterVariantPage() {
                 <nav key={column.title} aria-label={column.title}>
                   <strong>{column.title}</strong>
                   {column.links.map((link) => (
-                    <a key={link} href="#home">{link}</a>
+                    <a key={link} href="/">{link}</a>
                   ))}
                 </nav>
               ))}

@@ -92,7 +92,7 @@ export function normalizePlace(place = {}, options = {}) {
     title,
     name: place.name || title,
     slug: place.slug || slugifyPlaceTitle(title),
-    href: place.href || `#space-${id ?? slugifyPlaceTitle(title)}`,
+    href: place.href || `/space-${id ?? slugifyPlaceTitle(title)}`,
 
     category: categoryName,
     category_name: categoryName,

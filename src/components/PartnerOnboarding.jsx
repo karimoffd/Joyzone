@@ -12,6 +12,7 @@ import {
 import logoImage from "../assets/img/logoLight.png";
 import "./PartnerOnboarding.css";
 import "./CardVariants.css";
+import { navigate } from "../utils/router.js";
 
 const iconAliases = {
   OF: "building",
@@ -73,13 +74,13 @@ function Icon({ name }) {
 function Header({ profile }) {
   return (
     <header className="partner-onboarding-header">
-      <a href="#home" className="partner-onboarding-logo" aria-label="Joyzone bosh sahifa">
+      <a href="/" className="partner-onboarding-logo" aria-label="Joyzone bosh sahifa">
         <img src={logoImage} alt="Joyzone" />
       </a>
       
       {profile && (
         <div 
-          onClick={() => { window.location.hash = "#host-tariffs"; }}
+          onClick={() => { navigate("/host-tariffs"); }}
           className="header-tariff-badge-clickable"
           title="Смотреть список тарифов"
         >
@@ -94,8 +95,8 @@ function Header({ profile }) {
       )}
 
       <div className="partner-onboarding-actions">
-        <a href="#home">Есть вопросы?</a>
-        <a href="#home">Выйти</a>
+        <a href="/">Есть вопросы?</a>
+        <a href="/">Выйти</a>
       </div>
     </header>
   );
@@ -416,7 +417,7 @@ export default function PartnerOnboarding() {
         removeStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
         setEditPlaceId(null);
         if (returnHash) {
-          window.setTimeout(() => { window.location.hash = returnHash; }, 1200);
+          window.setTimeout(() => { navigate(returnHash); }, 1200);
         }
       });
     }
@@ -604,7 +605,7 @@ export default function PartnerOnboarding() {
       const returnHash = getStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
       removeStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
       setTimeout(() => {
-        window.location.hash = returnHash || "#host-listings";
+        navigate(returnHash || "/host-listings");
         window.setTimeout(() => {
           window.dispatchEvent(new CustomEvent("joyzone-place-saved", {
             detail: { id: response.data?.id, status: response.data?.status },

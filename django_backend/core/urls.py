@@ -6,6 +6,7 @@ from places.views import PlaceViewSet, CategoryViewSet, SubCategoryViewSet, Revi
 from bookings.views import BookingViewSet
 from payments.views import FinanceSummaryView, FinanceTransactionsView
 from core.views import AdminOverviewView, AuditLogListView
+from core.seo import sitemap_xml
 
 router = DefaultRouter()
 router.register(r'places', PlaceViewSet, basename='place')
@@ -19,6 +20,7 @@ router.register(r'discounts', DiscountViewSet, basename='discount')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('sitemap.xml', sitemap_xml, name='sitemap'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/auth/', include('users.urls')),

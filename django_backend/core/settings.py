@@ -182,6 +182,9 @@ PUBLIC_DEMO_LOGIN_RATE = (
     os.environ.get('PUBLIC_DEMO_LOGIN_RATE', '5/minute').strip() or '5/minute'
 )
 
+# Public frontend origin, used for absolute links such as sitemap.xml.
+FRONTEND_BASE_URL = os.environ.get('FRONTEND_BASE_URL', 'http://localhost:5173').strip()
+
 # SMS delivery for OTP codes is not integrated yet. Until SMS_PROVIDER is set,
 # a DEBUG=False server refuses to issue codes instead of silently dropping them.
 SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '').strip()

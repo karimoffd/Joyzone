@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+Disallow: /profile-edit
+Disallow: /settings
+Disallow: /host-
+Disallow: /book-
+
+Sitemap: https://joyzone.uz/sitemap.xml

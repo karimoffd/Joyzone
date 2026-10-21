@@ -200,15 +200,4 @@ export function useUserState() {
   return [state, updateState];
 }
 
-export function useAuthRoute() {
-  const readRoute = () => (window.location.hash || "#home").replace("#", "") || "home";
-  const [route, setRoute] = useState(readRoute);
-
-  useEffect(() => {
-    const onHashChange = () => setRoute(readRoute());
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  return route;
-}
+export { useRoute as useAuthRoute } from "../../utils/router.js";

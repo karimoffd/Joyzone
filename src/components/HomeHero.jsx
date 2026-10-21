@@ -22,21 +22,22 @@ import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.j
 import logoImage from "../assets/img/Logo.png";
 import kvIcon from "../assets/img/kv.svg";
 import "./HomeHero.css";
+import { navigate } from "../utils/router.js";
 
 const navLinks = [
-  { href: "#home", label: "Bosh sahifa" },
-  { href: "#about-us", label: "Biz haqimizda" },
-  { href: "#filter", label: "Ijaraga joylar" },
+  { href: "/", label: "Bosh sahifa" },
+  { href: "/about-us", label: "Biz haqimizda" },
+  { href: "/filter", label: "Ijaraga joylar" },
   { href: "#faq", label: "FAQ" },
   { href: "#contact", label: "Kontaktlar" }
 ];
 
 const dashboardNavLinks = [
-  { href: "#host-today", label: "Bugun" },
-  { href: "#host-calendar", label: "Grafik" },
-  { href: "#host-listings", label: "Mening joylarim" },
-  { href: "#host-messages", label: "Xabarlar" },
-  { href: "#host-tariffs", label: "Tariflar" }
+  { href: "/host-today", label: "Bugun" },
+  { href: "/host-calendar", label: "Grafik" },
+  { href: "/host-listings", label: "Mening joylarim" },
+  { href: "/host-messages", label: "Xabarlar" },
+  { href: "/host-tariffs", label: "Tariflar" }
 ];
 
 
@@ -52,25 +53,25 @@ function MenuIcon({ open = false }) {
 
 function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen, variant }) {
   const isDashboard = variant === "dashboard";
-  const statusHref = userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login";
+  const statusHref = userState.isAuthed ? (userState.isPartner ? "/partner" : "/profile") : "/login";
 
   return createPortal(
     <div className="mobile-bottom-menu">
       {isDashboard ? (
         <>
-          <a href="#home" className="mobile-menu-item">
+          <a href="/" className="mobile-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span>Asosiy</span>
           </a>
-          <a href="#host-today" className="mobile-menu-item">
+          <a href="/host-today" className="mobile-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Bugun</span>
           </a>
-          <a href="#host-calendar" className="mobile-menu-item">
+          <a href="/host-calendar" className="mobile-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
             <span>Grafik</span>
           </a>
-          <a href="#host-messages" className="mobile-menu-item">
+          <a href="/host-messages" className="mobile-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Xabarlar</span>
           </a>
@@ -81,11 +82,11 @@ function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen, variant }) {
         </>
       ) : (
         <>
-          <a href="#home" className="mobile-menu-item active">
+          <a href="/" className="mobile-menu-item active">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span>Asosiy</span>
           </a>
-          <a href="#filter" className="mobile-menu-item">
+          <a href="/filter" className="mobile-menu-item">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <span>Izlash</span>
           </a>
@@ -182,7 +183,7 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
     : userState.isAuthed
       ? (userState.isPartner ? "Partner" : (db.nav_profile || "Profil"))
       : (db.nav_login || "Kirish");
-  const statusHref = isDashboard ? "#home" : userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login";
+  const statusHref = isDashboard ? "/" : userState.isAuthed ? (userState.isPartner ? "/partner" : "/profile") : "/login";
 
   return (
     <>
@@ -190,7 +191,7 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
         <div className="container-fluid">
           <div className="nav-hover-zone">
             <nav className="navbar d-flex justify-content-between align-items-center">
-              <a href="#home" className="logo">
+              <a href="/" className="logo">
                 <img src={logoImage} alt="Joyzone" />
               </a>
 
@@ -236,37 +237,37 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 const menuNavLinks = [
   {
     id: "about",
-    href: "#about-us",
+    href: "/about-us",
     label: "Biz haqimizda",
     num: "01",
     desc: "Kompaniya haqida",
     icon: "info",
     subLinks: [
-      { href: "#mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
-      { href: "#partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
+      { href: "/mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
+      { href: "/partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
     ]
   },
   {
     id: "spaces",
-    href: "#filter",
+    href: "/filter",
     label: "Ijaraga joylar",
     num: "02",
     desc: "Katalog",
     icon: "search",
     subLinks: [
-      { href: "#filter", label: "Ofis va kovorkinglar", desc: "Katalogni ochish" },
-      { href: "#partner", label: "Joy qo'shish", desc: "Mulkdor bo'lish" }
+      { href: "/filter", label: "Ofis va kovorkinglar", desc: "Katalogni ochish" },
+      { href: "/partner", label: "Joy qo'shish", desc: "Mulkdor bo'lish" }
     ]
   },
-  { id: "saved", href: "#profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart", requiresAuth: true },
+  { id: "saved", href: "/profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart", requiresAuth: true },
   { id: "contact", href: "#contact", label: "Kontaktlar", num: "04", desc: "Bog'lanish", icon: "contact" }
 ];
 
 const profileMenuLinks = [
-  { id: "profile", href: "#profile", label: "Profilim", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
-  { id: "listings", href: "#host-listings", label: "Mening joylarim", num: "02", desc: "Mulklar va ofislar", icon: "partner" },
-  { id: "saved", href: "#profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart" },
-  { id: "search", href: "#filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar katalogi", icon: "search" }
+  { id: "profile", href: "/profile", label: "Profilim", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
+  { id: "listings", href: "/host-listings", label: "Mening joylarim", num: "02", desc: "Mulklar va ofislar", icon: "partner" },
+  { id: "saved", href: "/profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart" },
+  { id: "search", href: "/filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar katalogi", icon: "search" }
 ];
 
 /* SVG icons for profile actions */
@@ -340,8 +341,8 @@ const menuIconMap = {
 };
 
 const mobileQuickActions = [
-  { href: "#filter", label: "Joy topish", desc: "Katalog", icon: <IconSearch /> },
-  { href: "#partner", label: "Joy qo'shish", desc: "Hamkorlik", icon: <IconBriefcase /> }
+  { href: "/filter", label: "Joy topish", desc: "Katalog", icon: <IconSearch /> },
+  { href: "/partner", label: "Joy qo'shish", desc: "Hamkorlik", icon: <IconBriefcase /> }
 ];
 
 function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
@@ -355,14 +356,14 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
   const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks;
   const activeSubmenu = currentMenuLinks.find((link) => link.id === activeSubmenuId);
 
-  const resolveLinkHref = (link) => (link.requiresAuth && !userState.isAuthed ? "#login" : link.href);
+  const resolveLinkHref = (link) => (link.requiresAuth && !userState.isAuthed ? "/login" : link.href);
   const closeDrawer = () => {
     setActiveSubmenuId(null);
     onClose();
   };
   const handleLogout = async () => {
     closeDrawer();
-    window.location.hash = "login";
+    navigate("login");
     try {
       await logoutSession();
     } catch (error) {
@@ -560,7 +561,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                       <strong>{userState.isAuthed ? (userState.name || "Foydalanuvchi") : "Joyzone"}</strong>
                     </div>
                   </div>
-                  <a href={userState.isAuthed ? "#profile" : "#login"} className="menu-mobile-profile-link" onClick={closeDrawer}>
+                  <a href={userState.isAuthed ? "/profile" : "/login"} className="menu-mobile-profile-link" onClick={closeDrawer}>
                     {userState.isAuthed ? (cms.nav_profile || "Kabinet") : (cms.nav_login || "Kirish")}
                   </a>
                 </div>
@@ -644,7 +645,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
                         <span>{userState.phone || userState.email || getStorageItem(STORAGE_KEYS.profile.phone) || getStorageItem(STORAGE_KEYS.profile.email) || ""}</span>
                       </div>
-                      <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
+                      <a href="/profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                         <IconUser /> Profile ochish
                       </a>
                     </div>
@@ -662,7 +663,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                           <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
                           <span>{userState.phone || userState.email || getStorageItem(STORAGE_KEYS.profile.phone) || getStorageItem(STORAGE_KEYS.profile.email) || ""}</span>
                         </div>
-                        <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
+                        <a href="/profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                           <IconUser /> Kabinetga o'tish
                         </a>
                       </div>
@@ -670,8 +671,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                       <div className="menu-widget-auth">
                         <p>Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring</p>
                         <div className="menu-auth-buttons-row">
-                          <a href="#login" className="menu-btn-auth-primary" onClick={closeDrawer}>Kirish</a>
-                          <a href="#register" className="menu-btn-auth-secondary" onClick={closeDrawer}>Ro'yxatdan o'tish</a>
+                          <a href="/login" className="menu-btn-auth-primary" onClick={closeDrawer}>Kirish</a>
+                          <a href="/register" className="menu-btn-auth-secondary" onClick={closeDrawer}>Ro'yxatdan o'tish</a>
                         </div>
                       </div>
                     )
@@ -684,7 +685,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         <h4>Joyingiz bormi?</h4>
                         <p>Uni Joyzone-da e'lon qiling va daromad olishni boshlang</p>
                       </div>
-                      <a href="#partner" className="partner-widget-cta" onClick={closeDrawer}>
+                      <a href="/partner" className="partner-widget-cta" onClick={closeDrawer}>
                         Boshlash
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
                           <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
@@ -1415,7 +1416,7 @@ function Banner({
                     <p>{content?.[lang]?.home_partner_text || "Bu joyda siz o'zingizning joyingizni joylashtirishingiz mumkin."}</p>
                   </div>
                 </div>
-                <a href="#partner-guide" className="btn info-btn btn-shine">{content?.[lang]?.home_partner_cta || "Batafsil"}</a>
+                <a href="/partner-guide" className="btn info-btn btn-shine">{content?.[lang]?.home_partner_cta || "Batafsil"}</a>
               </div>
             </div>
           </div>

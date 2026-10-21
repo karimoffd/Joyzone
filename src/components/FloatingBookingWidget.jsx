@@ -170,7 +170,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
 
         <div className="fbw-footer">
           <p>Sizning so'rovingiz qabul qilindi. Operator tasdiqlashini kuting.</p>
-          <a href="#profile" className="fbw-profile-action-btn" onClick={() => setShowDetails(false)}>
+          <a href="/profile" className="fbw-profile-action-btn" onClick={() => setShowDetails(false)}>
             Mening profilimga o'tish
           </a>
         </div>

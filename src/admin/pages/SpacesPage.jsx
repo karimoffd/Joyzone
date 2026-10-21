@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api, { getApiErrorMessage } from '../../api/client.js';
 import { normalizePlace } from '../../utils/placeMapper.js';
 import { removeStorageItem, setStorageItem, STORAGE_KEYS } from '../../utils/storageKeys.js';
+import { navigate } from "../../utils/router.js";
 
 const STATUS_COLORS = {
   approved: { bg: 'rgba(34,197,94,0.12)', color: '#16a34a', label: 'Опубликовано' },
@@ -120,20 +121,20 @@ export default function SpacesPage() {
 
   const handleEdit = (space) => {
     setStorageItem(STORAGE_KEYS.workflow.editPlaceId, space.id);
-    setStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash, '#admin');
+    setStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash, '/admin');
     setStorageItem(STORAGE_KEYS.workflow.adminPage, 'spaces');
-    window.location.hash = '#partner';
+    navigate('/partner');
   };
 
   const handleView = (space) => {
-    window.location.hash = `#space-${space.id}`;
+    navigate(`/space-${space.id}`);
   };
 
   const handleAdd = () => {
     removeStorageItem(STORAGE_KEYS.workflow.editPlaceId);
-    setStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash, '#admin');
+    setStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash, '/admin');
     setStorageItem(STORAGE_KEYS.workflow.adminPage, 'spaces');
-    window.location.hash = '#partner';
+    navigate('/partner');
   };
 
   const openModerationDialog = (space, action) => {

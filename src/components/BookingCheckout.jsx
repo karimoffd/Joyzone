@@ -6,6 +6,7 @@ import { clearBookingDraft, draftToBookingPayload, draftToQuotePayload, loadBook
 import { normalizePlace } from "../utils/placeMapper.js";
 import { normalizeBooking } from "../utils/bookingMapper.js";
 import "./BookingCheckout.css";
+import { navigate } from "../utils/router.js";
 
 function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -171,7 +172,7 @@ export default function BookingCheckout({ route, userState, setUserState }) {
           duration: 0.4,
           ease: "power2.inOut",
           onComplete: () => {
-            window.location.hash = "#profile";
+            navigate("/profile");
           }
         });
       }, 1500);
@@ -263,7 +264,7 @@ export default function BookingCheckout({ route, userState, setUserState }) {
           <div className="bc-card wide pm-checkout-grid">
             {/* Left Column: Form Fields */}
             <form onSubmit={(e) => { e.preventDefault(); handleConfirm(); }} className="pm-left-col">
-              <a href={`#space-${space.id || slugify(space.title)}`} className="bc-back-btn" style={{ marginBottom: 20, display: "inline-flex", alignItems: "center", textDecoration: "none", fontSize: "14px", fontWeight: "600", color: "#64748b", gap: "6px" }}>
+              <a href={`/space-${space.id || slugify(space.title)}`} className="bc-back-btn" style={{ marginBottom: 20, display: "inline-flex", alignItems: "center", textDecoration: "none", fontSize: "14px", fontWeight: "600", color: "#64748b", gap: "6px" }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
                   <path d="M19 12H5M12 5l-7 7 7 7"/>
                 </svg>

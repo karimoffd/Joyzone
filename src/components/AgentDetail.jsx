@@ -280,8 +280,8 @@ function AgentDetail({ route, userState, setUserState }) {
             <h1>{agent.name}</h1>
             <p>{agent.service}</p>
             <div className="agent-hero-actions">
-              <a href="#login">Bog'lanish</a>
-              <a href="#filter">Bo'sh joylarni ko'rish</a>
+              <a href="/login">Bog'lanish</a>
+              <a href="/filter">Bo'sh joylarni ko'rish</a>
             </div>
           </div>
         </div>
@@ -323,7 +323,7 @@ function AgentDetail({ route, userState, setUserState }) {
               <h2>Bu agent joylari</h2>
               {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
             </div>
-            <a className="agent-section-link" href="#filter">Barchasini ko'rish</a>
+            <a className="agent-section-link" href="/filter">Barchasini ko'rish</a>
           </div>
           <div className="agent-listings-grid">
             {agentSpaces.length > 0 ? (

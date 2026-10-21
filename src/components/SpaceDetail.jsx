@@ -26,6 +26,8 @@ import { propertyCards } from "../data/content.js";
 import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import "./ListingsSection.css";
 import "./SpaceDetail.css";
+import { navigate } from "../utils/router.js";
+import { setPageMeta } from "../utils/seo.js";
 
 const amenityList = [
   { name: "Tez Wi-Fi", icon: "wifi" },
@@ -349,6 +351,17 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   );
   const [space, setSpace] = useState(() => normalizePlace(EMPTY_PLACE));
   const [placeLoading, setPlaceLoading] = useState(true);
+
+  useEffect(() => {
+    if (placeLoading || !space?.title) return;
+    const description = space[`description_${lang}`] || space.description_uz || space.description_ru || space.description;
+    setPageMeta({
+      title: `${space.title} — ${space.location}`,
+      description: description || `${space.title}: ${space.location}. ${space.people} kishi, ${space.area} m². ${space.price}`,
+      image: space.images?.[0],
+      robots: space.status === "approved" ? "index, follow" : "noindex",
+    });
+  }, [space, placeLoading, lang]);
   const [placeEmpty, setPlaceEmpty] = useState(false);
   const [placeError, setPlaceError] = useState("");
   const [relatedSpaces, setRelatedSpaces] = useState([]);
@@ -1140,7 +1153,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     event.preventDefault();
 
     if (!userState?.isAuthed || !getAccessToken()) {
-      window.location.hash = "#login";
+      navigate("/login");
       return;
     }
 
@@ -1852,7 +1865,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </div>
 
             <a
-              href={`#book-space-${space.id || slugify(space.title)}`}
+              href={`/book-space-${space.id || slugify(space.title)}`}
               className={`sd-primary-btn ${checkoutAvailabilityError || hasBlockedDay ? "is-disabled" : ""}`}
               onClick={(event) => {
                 const latestAvailabilityError = getCheckoutAvailabilityError();

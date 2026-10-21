@@ -24,6 +24,7 @@ import { removeStorageItem, setStorageItem, STORAGE_KEYS } from "../utils/storag
 import { cacheProfile } from "../utils/profileMapper.js";
 import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
+import { navigate } from "../utils/router.js";
 
 const pageMeta = {
   today: {
@@ -279,7 +280,7 @@ function TodayPage({ todayBookings = [], upcomingBookings = [], stats, usingFall
             <span>{usingFallback ? "Сегодня · DEV fallback" : "Сегодня"}</span>
             <h2>{hasBookings ? `У вас ${todayBookings.length} бронирования` : "Сегодня бронирований нет"}</h2>
           </div>
-          <a href="#host-calendar">Предстоящие<DashboardIcon type="arrow" /></a>
+          <a href="/host-calendar">Предстоящие<DashboardIcon type="arrow" /></a>
         </div>
 
         {hasBookings ? (
@@ -300,7 +301,7 @@ function TodayPage({ todayBookings = [], upcomingBookings = [], stats, usingFall
             ))}
           </div>
         ) : (
-          <EmptyPanel title="Броней на сегодня нет" text="Можно проверить календарь или открыть свободные слоты для быстрых заявок." action="Открыть график" href="#host-calendar" />
+          <EmptyPanel title="Броней на сегодня нет" text="Можно проверить календарь или открыть свободные слоты для быстрых заявок." action="Открыть график" href="/host-calendar" />
         )}
       </section>
 
@@ -522,7 +523,7 @@ function CalendarPage({ listings = [], usingFallback = false, onBookingCreated }
               </button>
             );
           }) : (
-            <EmptyPanel title="Нет мест для календаря" text="Добавьте или дождитесь модерации места, чтобы управлять доступностью." action="Добавить место" href="#partner" />
+            <EmptyPanel title="Нет мест для календаря" text="Добавьте или дождитесь модерации места, чтобы управлять доступностью." action="Добавить место" href="/partner" />
           )}
         </div>
       </div>
@@ -695,7 +696,7 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
           <span>Объявления</span>
           <h2>Мои места</h2>
         </div>
-        <a href="#partner" onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>
+        <a href="/partner" onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Добавить место
         </a>
@@ -706,7 +707,7 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
           <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", color: "#64748b", background: "#f8fafc", borderRadius: 20, border: "1.5px dashed #e2e8f0" }}>
             <h3 style={{ margin: "0 0 8px 0", color: "#111820", fontSize: 18 }}>У вас пока нет объявлений</h3>
             <p style={{ margin: "0 0 20px 0", fontSize: 14 }}>Добавьте ваше первое пространство, чтобы начать принимать бронирования.</p>
-            <a href="#partner" className="host-alert-btn confirm" style={{ display: "inline-block", textDecoration: "none", width: "auto", background: "var(--orange)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700 }} onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>Добавить место</a>
+            <a href="/partner" className="host-alert-btn confirm" style={{ display: "inline-block", textDecoration: "none", width: "auto", background: "var(--orange)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700 }} onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>Добавить место</a>
           </div>
         ) : (
           listings.map((item, index) => (
@@ -884,7 +885,7 @@ function MessagesPage({ listings = [], partnerId = null }) {
                 <span>{activeChat.space}</span>
                 <h2>{activeChat.name}</h2>
               </div>
-              <a href="#host-calendar" className="desktop-only-link">Открыть бронь</a>
+              <a href="/host-calendar" className="desktop-only-link">Открыть бронь</a>
             </div>
             <div className="host-chat-body">
               {activeChat.messages.map((message, index) => (
@@ -1310,7 +1311,7 @@ function HostDashboard({ page = "today", userState, setUserState }) {
 
   const handleEdit = (item) => {
     setStorageItem(STORAGE_KEYS.workflow.editPlaceId, item.id);
-    window.location.hash = "#partner";
+    navigate("/partner");
   };
 
   const askDelete = (item) => {

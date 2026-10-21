@@ -14,13 +14,13 @@ import "./ListingsSection.css";
 import "./CardVariants.css";
 
 function getSpaceHref(place = {}) {
-  if (String(place.href || "").startsWith("#space-")) return place.href;
+  if (String(place.href || "").startsWith("/space-")) return place.href;
   const routeKey = place.id ?? place._id ?? slugifyPlaceTitle(place.title || place.name || "joyzone");
-  return `#space-${routeKey}`;
+  return `/space-${routeKey}`;
 }
 
 function getAgentHref(name) {
-  return `#agent-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+  return `/agent-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
 const DURATION_LABELS = {
@@ -510,7 +510,7 @@ function PartnerStartSection({ cms = {} }) {
             </div>
           </div>
           
-          <a className="soul-cta" href="#filter">
+          <a className="soul-cta" href="/filter">
             <span>{cms.partner_cta || "Hozir boshlash"}</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -722,7 +722,7 @@ export function SimpleFooter() {
       borderRadius: "28px 28px 0 0",
       marginTop: "auto"
     }}>
-      <a href="#home" style={{ display: "inline-flex", opacity: 0.9, transition: "opacity 0.2s" }} onMouseOver={(e) => e.currentTarget.style.opacity = "1"} onMouseOut={(e) => e.currentTarget.style.opacity = "0.9"}>
+      <a href="/" style={{ display: "inline-flex", opacity: 0.9, transition: "opacity 0.2s" }} onMouseOver={(e) => e.currentTarget.style.opacity = "1"} onMouseOut={(e) => e.currentTarget.style.opacity = "0.9"}>
         <img src={logoImage} alt="Joyzone" style={{ height: "26px" }} />
       </a>
       <p style={{ margin: 0, fontSize: "14px", color: "#61707e", fontWeight: "700" }}>
@@ -764,7 +764,7 @@ export function JoyFooter({ cms = {} }) {
       </div>
       <div className="joy-footer-card">
         <div className="joy-footer-top">
-          <a href="#home" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
+          <a href="/" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
             <img src={logoImage} alt="Joyzone" />
           </a>
           <a href="tel:+998770444000" className="joy-footer-contact">
@@ -775,7 +775,7 @@ export function JoyFooter({ cms = {} }) {
             <FooterIcon type="mail" />
             {cms.footer_email || "info@joyzone.uz"}
           </a>
-          <a href="#partner" className="joy-footer-cta">Ariza qoldirish</a>
+          <a href="/partner" className="joy-footer-cta">Ariza qoldirish</a>
         </div>
 
         <div className="joy-footer-grid hide-on-mobile">
@@ -784,16 +784,16 @@ export function JoyFooter({ cms = {} }) {
           </div>
           <nav aria-label="Ma'lumotlar">
             <strong>{cms.footer_nav1 || "Ma'lumotlar"}</strong>
-            <a href="#about-us">{cms.footer_link_about || "Biz haqimizda"}</a>
-            <a href="#filter">{cms.footer_link_dirs || "Yo'nalishlar"}</a>
+            <a href="/about-us">{cms.footer_link_about || "Biz haqimizda"}</a>
+            <a href="/filter">{cms.footer_link_dirs || "Yo'nalishlar"}</a>
             <a href="#contact">{cms.footer_link_contact || "Kontaktlar"}</a>
             <a href="#policy">{cms.footer_link_privacy || "Maxfiylik siyosati"}</a>
           </nav>
           <nav aria-label="Xizmatlar">
             <strong>Xizmatlar</strong>
-            <a href="#filter">Ijaraga ofislar</a>
-            <a href="#filter">Konferensiyalar zali</a>
-            <a href="#partner-guide">Hamkor bo'lish</a>
+            <a href="/filter">Ijaraga ofislar</a>
+            <a href="/filter">Konferensiyalar zali</a>
+            <a href="/partner-guide">Hamkor bo'lish</a>
           </nav>
           <div>
             <strong>Ijtimoiy tarmoqlarimiz</strong>

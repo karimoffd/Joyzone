@@ -176,7 +176,7 @@ export function HostListingDetailModal({ item, onClose, onEdit }) {
         {/* Footer Actions */}
         <div className="host-detail-modal-footer">
           <a
-            href={`#space-${(item.title || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
+            href={`/space-${(item.title || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
             className="host-detail-act-btn space-detail"
             onClick={handleClose}
           >

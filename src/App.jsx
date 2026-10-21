@@ -1,24 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import api from "./api/client.js";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
 import { LanguageContext } from "./context/LanguageContext.jsx";
 import { mergeSiteContent } from "./utils/content.js";
-import FilterPage from "./components/FilterPage.jsx";
-import PartnerOnboarding from "./components/PartnerOnboarding.jsx";
 import JoySlider from "./components/JoySlider.jsx";
-import SpaceDetail from "./components/SpaceDetail.jsx";
-import AgentDetail from "./components/AgentDetail.jsx";
-import UserProfile, { ProfileQuestionnaireEdit } from "./components/UserProfile.jsx";
-import AccountSettings from "./components/AccountSettings.jsx";
-import HostDashboard from "./components/HostDashboard.jsx";
-import CardVariants from "./components/CardVariants.jsx";
-import AdminRouteGuard from "./admin/AdminRouteGuard.jsx";
-import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
-import MobileInfoPage from "./components/MobileInfoPage.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
 import JoyLoader from "./components/JoyLoader.jsx";
-import BookingCheckout from "./components/BookingCheckout.jsx";
 import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
 import { FloatingNotificationBell } from "./components/FloatingNotificationBell.jsx";
@@ -39,26 +27,27 @@ import {
 } from "./utils/storageKeys.js";
 import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
+import { currentRoute, navigate, useRoute } from "./utils/router.js";
+import { setRouteMeta } from "./utils/seo.js";
 
-function useAuthRoute() {
-  const knownRoutes = new Set(["home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants", "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today", "host-calendar", "host-listings", "host-messages", "host-tariffs", "register", "login", "forgot", "verify", "admin"]);
-  const readRoute = () => {
-    const hash = (window.location.hash || "#home").replace("#", "") || "home";
-    if (hash.startsWith("space-")) return hash;
-    if (hash.startsWith("agent-")) return hash;
-    if (hash.startsWith("book-")) return hash;
-    return knownRoutes.has(hash) ? hash : "home";
-  };
-  const [route, setRoute] = useState(readRoute);
-
-  useEffect(() => {
-    const onHashChange = () => setRoute(readRoute());
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
-
-  return route;
-}
+// Screens other than home/auth load on demand, so visitors do not download the
+// admin panel, partner dashboard and checkout up front.
+const named = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })));
+const FilterPage = lazy(() => import("./components/FilterPage.jsx"));
+const PartnerOnboarding = lazy(() => import("./components/PartnerOnboarding.jsx"));
+const SpaceDetail = lazy(() => import("./components/SpaceDetail.jsx"));
+const AgentDetail = lazy(() => import("./components/AgentDetail.jsx"));
+const UserProfile = lazy(() => import("./components/UserProfile.jsx"));
+const ProfileQuestionnaireEdit = named(() => import("./components/UserProfile.jsx"), "ProfileQuestionnaireEdit");
+const AccountSettings = lazy(() => import("./components/AccountSettings.jsx"));
+const HostDashboard = lazy(() => import("./components/HostDashboard.jsx"));
+const CardVariants = lazy(() => import("./components/CardVariants.jsx"));
+const AdminRouteGuard = lazy(() => import("./admin/AdminRouteGuard.jsx"));
+const AboutUsPage = named(() => import("./components/StaticInfoPages.jsx"), "AboutUsPage");
+const PartnerGuidePage = named(() => import("./components/StaticInfoPages.jsx"), "PartnerGuidePage");
+const FooterVariantPage = named(() => import("./components/StaticInfoPages.jsx"), "FooterVariantPage");
+const MobileInfoPage = lazy(() => import("./components/MobileInfoPage.jsx"));
+const BookingCheckout = lazy(() => import("./components/BookingCheckout.jsx"));
 
 function useUserState() {
   const readState = () => {
@@ -109,10 +98,8 @@ function useUserState() {
         window.dispatchEvent(new CustomEvent("joyzone-session-expired", {
           detail: { reason: "remote_logout" },
         }));
-        const protectedRoute = /^(#(?:profile|profile-edit|settings|book-|host-|admin))/.test(
-          window.location.hash || ""
-        );
-        if (protectedRoute) window.location.hash = "#login";
+        const protectedRoute = /^(?:profile|profile-edit|settings|book-|host-|admin)/.test(currentRoute());
+        if (protectedRoute) navigate("/login");
       }
     };
     window.addEventListener("joyzone-session-expired", handleSessionExpired);
@@ -204,7 +191,7 @@ function SessionExpiredNotice({ message, onClose }) {
 }
 
 function AppContent() {
-  const route = useAuthRoute();
+  const route = useRoute();
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
   const [userState, setUserState] = useUserState();
@@ -237,6 +224,10 @@ function AppContent() {
       }
     }
   }, [route, displayedRoute]);
+
+  useEffect(() => {
+    setRouteMeta(displayedRoute);
+  }, [displayedRoute]);
 
   useEffect(() => {
     if (bootLoading) return undefined;
@@ -340,7 +331,7 @@ function AppContent() {
     const normalized = cacheProfile(profile);
     setUserState(profileToUserState(normalized, userState));
     mergeAnonymousFavorites().catch((err) => console.warn("Failed to merge favorites after login:", err));
-    window.location.hash = "#home";
+    navigate("/");
   };
 
   if (displayedRoute === "admin") {
@@ -564,7 +555,6 @@ export default function App() {
   const [contentLoading, setContentLoading] = useState(true);
   const [contentError, setContentError] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
-  const [placesLoaded, setPlacesLoaded] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
   const [sessionMessage, setSessionMessage] = useState("");
 
@@ -579,21 +569,6 @@ export default function App() {
   useEffect(() => {
     setStoredLanguage(lang);
   }, [lang]);
-
-  useEffect(() => {
-    const safetyTimer = setTimeout(() => {
-      setPlacesLoaded(true);
-    }, 1200);
-
-    api.get("/api/places/", { skipAuth: true })
-      .catch(() => undefined)
-      .finally(() => {
-        clearTimeout(safetyTimer);
-        setPlacesLoaded(true);
-      });
-
-    return () => clearTimeout(safetyTimer);
-  }, []);
 
   const loadSiteContent = useCallback(async () => {
     setContentLoading(true);
@@ -649,14 +624,12 @@ export default function App() {
     };
   }, []);
 
-  if (!placesLoaded) {
-    return <JoyLoader active={true} />;
-  }
-
   return (
     <LanguageContext.Provider value={{ lang, setLang, content, contentLoading, contentError, isEditMode }}>
       <SessionExpiredNotice message={sessionMessage} onClose={() => setSessionMessage("")} />
-      <AppContent />
+      <Suspense fallback={<JoyLoader active={true} />}>
+        <AppContent />
+      </Suspense>
       <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />
       <ChatNotificationToast onOpenChat={(id) => setActiveChatId(id)} />
       {activeChatId && (

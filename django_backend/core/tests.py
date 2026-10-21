@@ -8,7 +8,7 @@ import sys
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -326,3 +326,21 @@ class SeedDemoCommandTests(TestCase):
         self.assertEqual(Place.objects.filter(title__in=(
             'C-Space Yunusobod', 'GroundZero KitobOlam', 'Impact Technology Hub',
         )).count(), 3)
+
+
+class SitemapTests(TestCase):
+    @override_settings(FRONTEND_BASE_URL='https://joyzone.uz')
+    def test_sitemap_lists_only_approved_places(self):
+        from places.models import Place
+
+        approved = Place.objects.create(title='Open', location='Tashkent', area=10, people=2, status='approved')
+        hidden = Place.objects.create(title='Hidden', location='Tashkent', area=10, people=2, status='pending')
+
+        response = self.client.get('/sitemap.xml')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/xml; charset=utf-8')
+        body = response.content.decode()
+        self.assertIn('<loc>https://joyzone.uz/</loc>', body)
+        self.assertIn(f'<loc>https://joyzone.uz/space-{approved.id}</loc>', body)
+        self.assertNotIn(f'/space-{hidden.id}<', body)
