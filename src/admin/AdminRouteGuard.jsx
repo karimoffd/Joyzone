@@ -61,7 +61,7 @@ export default function AdminRouteGuard() {
             sessionGuard: true,
             signal: controller.signal,
           });
-          beginAuthSession(response.data.access, response.data.refresh);
+          beginAuthSession(response.data.access);
         } catch (error) {
           if (isRequestCanceled(error)) return;
           clearAdminRouteCache();

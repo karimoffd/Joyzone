@@ -69,6 +69,33 @@ class BookingListQuerySerializer(serializers.Serializer):
         return attrs
 
 
+class BookingQuoteSerializer(serializers.Serializer):
+    place = serializers.PrimaryKeyRelatedField(queryset=Place.objects.all())
+    duration_type = serializers.CharField()
+    start_time = ExplicitTimezoneDateTimeField()
+    end_time = ExplicitTimezoneDateTimeField()
+
+    def to_internal_value(self, data):
+        if hasattr(data, 'copy'):
+            data = data.copy()
+            if not data.get('place'):
+                data['place'] = data.get('space_id') or data.get('place_id')
+        return super().to_internal_value(data)
+
+    def validate_duration_type(self, value):
+        return BookingSerializer._normalize_choice(
+            value,
+            Booking.DURATION_TYPE_CHOICES,
+            BookingSerializer.DURATION_ALIASES,
+            'duration_type',
+        )
+
+    def validate(self, attrs):
+        if attrs['end_time'] <= attrs['start_time']:
+            raise serializers.ValidationError({'end_time': 'End time must be after start time.'})
+        return attrs
+
+
 class BookingSerializer(serializers.ModelSerializer):
     CONTROLLED_FIELD_ERRORS = {
         'status': 'Booking status is server-controlled. Use the confirm, cancel, or block action.',
@@ -132,13 +159,14 @@ class BookingSerializer(serializers.ModelSerializer):
             'amount',
             'total_price',
             'currency',
+            'pricing',
             'note',
             'status',
             'payment_status',
             'created_at',
             'updated_at',
         )
-        read_only_fields = ('id', 'client', 'place_id', 'space_id', 'place_details', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'client', 'place_id', 'space_id', 'place_details', 'pricing', 'created_at', 'updated_at')
 
     def to_internal_value(self, data):
         if isinstance(data, dict):
@@ -154,8 +182,14 @@ class BookingSerializer(serializers.ModelSerializer):
                 data['place'] = data.get('space_id')
             if data.get('place_id') and not data.get('place'):
                 data['place'] = data.get('place_id')
-            if data.get('total_price') is not None and data.get('amount') in (None, ''):
-                data['amount'] = data.get('total_price')
+            if self.context.get('allow_admin_booking_assignment'):
+                if data.get('total_price') is not None and data.get('amount') in (None, ''):
+                    data['amount'] = data.get('total_price')
+            else:
+                # Price and currency are calculated on the server from the
+                # place tariff; client-sent values are ignored.
+                for field_name in ('amount', 'total_price', 'currency'):
+                    data.pop(field_name, None)
             self._validate_assignment_input(data)
         return super().to_internal_value(data)
 

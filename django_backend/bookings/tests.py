@@ -1362,8 +1362,8 @@ class BookingAvailabilityTests(TestCase):
         Booking.objects.create(
             client=self.partner,
             place=self.place,
-            start_time=aware_dt(2026, 9, 26, 9),
-            end_time=aware_dt(2026, 9, 26, 18),
+            start_time=aware_dt(2027, 9, 26, 9),
+            end_time=aware_dt(2027, 9, 26, 18),
             duration_type='daily',
             status='blocked',
             payment_status='unpaid',
@@ -1373,8 +1373,8 @@ class BookingAvailabilityTests(TestCase):
 
         response = self.client_api.post('/api/bookings/', {
             'place': self.place.id,
-            'start_time': aware_dt(2026, 9, 26, 12).isoformat(),
-            'end_time': aware_dt(2026, 9, 26, 14).isoformat(),
+            'start_time': aware_dt(2027, 9, 26, 12).isoformat(),
+            'end_time': aware_dt(2027, 9, 26, 14).isoformat(),
             'duration_type': 'hourly',
         }, format='json')
 
@@ -1476,3 +1476,143 @@ class BookingAvailabilityTests(TestCase):
         place_search = self.client_api.get('/api/bookings/', {'search': 'Availability room'})
         place_items = place_search.data.get('results', []) if isinstance(place_search.data, dict) else place_search.data
         self.assertIn(matching.id, [item['id'] for item in place_items])
+
+
+class BookingServerPricingTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client_api = APIClient()
+        self.client_user = User.objects.create_user(username='pricing-client', password='pass', role='client')
+        self.partner = User.objects.create_user(username='pricing-partner', password='pass', role='partner')
+        self.place = Place.objects.create(
+            owner=self.partner,
+            title='Pricing room',
+            location='Tashkent',
+            price='50000',
+            price_hourly='50000',
+            price_daily='400000',
+            area=30,
+            people=6,
+            status='approved',
+        )
+        self.client_api.force_authenticate(self.client_user)
+
+    def test_hourly_amount_is_calculated_on_server(self):
+        response = self.client_api.post('/api/bookings/', {
+            'place': self.place.id,
+            'start_time': aware_dt(2027, 10, 5, 10).isoformat(),
+            'end_time': aware_dt(2027, 10, 5, 12).isoformat(),
+            'duration_type': 'hourly',
+            'amount': '1',
+            'total_price': '1',
+            'currency': 'USD',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        booking = Booking.objects.get(pk=response.data['id'])
+        # 2h * 50 000 = 100 000; service fee min 25 000; tax 12% of 125 000.
+        self.assertEqual(str(booking.amount), '140000.00')
+        self.assertEqual(booking.currency, 'UZS')
+        self.assertEqual(booking.pricing['units'], 2)
+        self.assertEqual(booking.pricing['subtotal'], '100000')
+        self.assertEqual(booking.pricing['service_fee'], '25000')
+        self.assertEqual(booking.pricing['tax'], '15000')
+
+    def test_daily_amount_applies_best_discount(self):
+        from places.models import Discount
+
+        Discount.objects.create(name_uz='Chegirma', name_ru='Скидка', percent=10, discount_type='custom')
+        Discount.objects.create(name_uz='Off', name_ru='Выкл', percent=50, discount_type='custom', is_active=False)
+
+        response = self.client_api.post('/api/bookings/', {
+            'place': self.place.id,
+            'start_time': aware_dt(2027, 10, 5, 9).isoformat(),
+            'end_time': aware_dt(2027, 10, 7, 18).isoformat(),
+            'duration_type': 'daily',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        booking = Booking.objects.get(pk=response.data['id'])
+        # 3 days * 400 000 = 1 200 000; -10% = 1 080 000; fee 8% = 86 400; tax 12% of 1 166 400.
+        self.assertEqual(booking.pricing['units'], 3)
+        self.assertEqual(booking.pricing['discount_percent'], 10)
+        self.assertEqual(booking.pricing['discount_amount'], '120000')
+        self.assertEqual(booking.pricing['service_fee'], '86400')
+        self.assertEqual(str(booking.amount), '1306368.00')
+
+    def test_quote_matches_created_booking(self):
+        payload = {
+            'place': self.place.id,
+            'start_time': aware_dt(2027, 10, 9, 14).isoformat(),
+            'end_time': aware_dt(2027, 10, 9, 17).isoformat(),
+            'duration_type': 'soatlik',
+        }
+        self.client_api.force_authenticate(None)
+        quote = self.client_api.post('/api/bookings/quote/', payload, format='json')
+        self.client_api.force_authenticate(self.client_user)
+        created = self.client_api.post('/api/bookings/', payload, format='json')
+
+        self.assertEqual(quote.status_code, 200)
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(quote.data['units'], 3)
+        self.assertEqual(quote.data['amount'], created.data['pricing']['amount'])
+
+    def test_place_without_price_cannot_be_booked(self):
+        place = Place.objects.create(
+            owner=self.partner,
+            title='No price room',
+            location='Tashkent',
+            price='',
+            area=10,
+            people=2,
+            status='approved',
+        )
+
+        response = self.client_api.post('/api/bookings/', {
+            'place': place.id,
+            'start_time': aware_dt(2027, 10, 5, 10).isoformat(),
+            'end_time': aware_dt(2027, 10, 5, 11).isoformat(),
+            'duration_type': 'hourly',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Booking.objects.filter(place=place).exists())
+
+    def test_paid_booking_cannot_be_rescheduled_by_client(self):
+        booking = Booking.objects.create(
+            client=self.client_user,
+            place=self.place,
+            start_time=aware_dt(2027, 11, 1, 10),
+            end_time=aware_dt(2027, 11, 1, 12),
+            duration_type='hourly',
+            amount='140000',
+            status='pending',
+            payment_status='test_paid',
+        )
+
+        response = self.client_api.patch(f'/api/bookings/{booking.id}/', {
+            'start_time': aware_dt(2027, 11, 2, 10).isoformat(),
+            'end_time': aware_dt(2027, 11, 2, 20).isoformat(),
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        booking.refresh_from_db()
+        self.assertEqual(booking.start_time, aware_dt(2027, 11, 1, 10))
+
+    def test_client_cannot_patch_amount(self):
+        booking = Booking.objects.create(
+            client=self.client_user,
+            place=self.place,
+            start_time=aware_dt(2027, 11, 1, 10),
+            end_time=aware_dt(2027, 11, 1, 12),
+            duration_type='hourly',
+            amount='140000',
+            status='pending',
+            payment_status='unpaid',
+        )
+
+        response = self.client_api.patch(f'/api/bookings/{booking.id}/', {'amount': '1'}, format='json')
+
+        self.assertIn(response.status_code, (200, 400))
+        booking.refresh_from_db()
+        self.assertEqual(str(booking.amount), '140000.00')

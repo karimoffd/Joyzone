@@ -92,8 +92,6 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
       const subscriptionId = productDetails?.subscription_id || productDetails?.subscriptionId || productDetails?.tariff_subscription_id;
       const bookingId = productDetails?.booking_id || productDetails?.bookingId;
       const payload = {
-        amount: rawPrice,
-        currency: "UZS",
         metadata: {
           method,
           title,

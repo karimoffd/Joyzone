@@ -19,6 +19,7 @@ from .views import (
     OTPSendThrottle,
     OTPVerifyAccountThrottle,
     OTPVerifyThrottle,
+    hash_otp_code,
 )
 
 
@@ -63,7 +64,8 @@ class AuthApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
+        self.assertNotIn('refresh', response.data)
+        self.assertIn(settings.JWT_REFRESH_COOKIE_NAME, response.cookies)
         self.assertEqual(response.data['profile']['phone_number'], '+998901234567')
 
     def test_jwt_profile_access_requires_and_accepts_bearer_token(self):
@@ -89,14 +91,21 @@ class AuthApiTests(TestCase):
             format='json',
         )
 
-        response = self.client.post(
-            '/api/auth/token/refresh/',
-            {'refresh': login.data['refresh']},
-            format='json',
-        )
+        self.assertNotIn('refresh', login.data)
+        refresh_cookie = login.cookies[settings.JWT_REFRESH_COOKIE_NAME]
+        self.assertTrue(refresh_cookie['httponly'])
+        self.assertEqual(refresh_cookie['path'], settings.JWT_REFRESH_COOKIE_PATH)
+
+        # The test client resends the cookie, just like a browser.
+        response = self.client.post('/api/auth/token/refresh/', {}, format='json')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('access', response.data)
+        self.assertNotIn('refresh', response.data)
+        self.assertNotEqual(
+            response.cookies[settings.JWT_REFRESH_COOKIE_NAME].value,
+            refresh_cookie.value,
+        )
 
     def test_profile_patch_persists_supported_fields(self):
         login = self.client.post(
@@ -177,6 +186,17 @@ class JWTSessionLifecycleTests(TestCase):
         self.assertEqual(second.data['detail'], 'Session already logged out.')
         self.assertEqual(BlacklistedToken.objects.count(), 1)
 
+    def test_logout_reads_refresh_cookie_and_clears_it(self):
+        access, refresh = self.issue_session()
+        client = self.authenticated_client(access)
+        client.cookies[settings.JWT_REFRESH_COOKIE_NAME] = refresh
+
+        logout = client.post('/api/auth/logout/', {}, format='json')
+
+        self.assertEqual(logout.status_code, 200)
+        self.assertEqual(logout.cookies[settings.JWT_REFRESH_COOKIE_NAME].value, '')
+        self.assertEqual(BlacklistedToken.objects.count(), 1)
+
     def test_logout_rejects_anonymous_and_another_users_refresh(self):
         access, _ = self.issue_session()
         other = get_user_model().objects.create_user(username='+998901110002')
@@ -204,18 +224,18 @@ class JWTSessionLifecycleTests(TestCase):
         replay = self.client.post(
             '/api/auth/token/refresh/', {'refresh': refresh}, format='json'
         )
-        next_refresh = first.data['refresh']
+        next_refresh = first.cookies[settings.JWT_REFRESH_COOKIE_NAME].value
         second_rotation = self.client.post(
             '/api/auth/token/refresh/', {'refresh': next_refresh}, format='json'
         )
 
         self.assertEqual(first.status_code, 200)
         self.assertIn('access', first.data)
-        self.assertIn('refresh', first.data)
+        self.assertNotIn('refresh', first.data)
         self.assertNotEqual(next_refresh, refresh)
         self.assertEqual(replay.status_code, 401)
         self.assertEqual(second_rotation.status_code, 200)
-        self.assertIn('refresh', second_rotation.data)
+        self.assertIn(settings.JWT_REFRESH_COOKIE_NAME, second_rotation.cookies)
 
     def test_two_refresh_attempts_can_consume_old_token_only_once(self):
         _, refresh = self.issue_session()
@@ -228,7 +248,10 @@ class JWTSessionLifecycleTests(TestCase):
         ]
 
         self.assertEqual([response.status_code for response in responses], [200, 401])
-        self.assertEqual(sum('refresh' in response.data for response in responses), 1)
+        self.assertEqual(
+            sum(settings.JWT_REFRESH_COOKIE_NAME in response.cookies for response in responses),
+            1,
+        )
 
     def test_expired_access_is_rejected_and_default_lifetime_is_short(self):
         expired = AccessToken.for_user(self.user)
@@ -301,7 +324,7 @@ class UniversalDevOTPGuardTests(TestCase):
     @override_settings(DEBUG=False, DEV_OTP_ENABLED=True)
     def test_fixed_dev_code_is_rejected_even_if_stored_as_an_otp(self):
         phone = self.accounts[0][1]
-        otp = OTPVerification.objects.create(phone_number=phone, otp_code='111111')
+        otp = OTPVerification.objects.create(phone_number=phone, otp_code=hash_otp_code(phone, '111111'))
 
         response = self.client.post(
             '/api/auth/verify-otp/',
@@ -332,7 +355,7 @@ class UniversalDevOTPGuardTests(TestCase):
     @override_settings(DEBUG=False, DEV_OTP_ENABLED=False)
     def test_regular_stored_otp_still_works_in_production(self):
         phone = self.accounts[-1][1]
-        otp = OTPVerification.objects.create(phone_number=phone, otp_code='654321')
+        otp = OTPVerification.objects.create(phone_number=phone, otp_code=hash_otp_code(phone, '654321'))
 
         response = self.client.post(
             '/api/auth/verify-otp/',
@@ -343,12 +366,13 @@ class UniversalDevOTPGuardTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
+        self.assertNotIn('refresh', response.data)
+        self.assertIn(settings.JWT_REFRESH_COOKIE_NAME, response.cookies)
         otp.refresh_from_db()
         self.assertTrue(otp.is_used)
 
 
-@override_settings(OTP_TTL_SECONDS=300, DEBUG=False, DEV_OTP_ENABLED=False)
+@override_settings(OTP_TTL_SECONDS=300, DEBUG=False, DEV_OTP_ENABLED=False, SMS_PROVIDER='test')
 class OTPExpirationAndConsumptionTests(TestCase):
     phone = '+998900002001'
     fixed_now = timezone.now().replace(microsecond=500000)
@@ -361,7 +385,7 @@ class OTPExpirationAndConsumptionTests(TestCase):
         cache.clear()
 
     def create_otp(self, code, age):
-        otp = OTPVerification.objects.create(phone_number=self.phone, otp_code=code)
+        otp = OTPVerification.objects.create(phone_number=self.phone, otp_code=hash_otp_code(self.phone, code))
         OTPVerification.objects.filter(pk=otp.pk).update(
             created_at=self.fixed_now - age,
         )
@@ -427,7 +451,7 @@ class OTPExpirationAndConsumptionTests(TestCase):
         self.assertEqual(get_user_model().objects.filter(username=self.phone).count(), 1)
 
     def test_resend_invalidates_previous_code_and_only_new_code_works(self):
-        with patch('users.views.random.randint', side_effect=(210005, 210006)):
+        with patch('users.views.secrets.randbelow', side_effect=(210005, 210006)):
             first_send = self.client.post(
                 '/api/auth/send-otp/',
                 {'phone_number': self.phone},
@@ -443,8 +467,9 @@ class OTPExpirationAndConsumptionTests(TestCase):
 
         self.assertEqual(first_send.status_code, 200)
         self.assertEqual(second_send.status_code, 200)
-        first_otp = OTPVerification.objects.get(otp_code='210005')
-        second_otp = OTPVerification.objects.get(otp_code='210006')
+        first_otp = OTPVerification.objects.get(otp_code=hash_otp_code(self.phone, '210005'))
+        second_otp = OTPVerification.objects.get(otp_code=hash_otp_code(self.phone, '210006'))
+        self.assertFalse(OTPVerification.objects.filter(otp_code__in=('210005', '210006')).exists())
         self.assertTrue(first_otp.is_used)
         self.assertFalse(second_otp.is_used)
 
@@ -460,6 +485,28 @@ class OTPExpirationAndConsumptionTests(TestCase):
         self.assertEqual(get_user_model().objects.filter(username=self.phone).count(), 1)
 
 
+class OTPDeliveryConfigTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def tearDown(self):
+        cache.clear()
+
+    @override_settings(DEBUG=False, SMS_PROVIDER='')
+    def test_production_refuses_otp_without_sms_provider(self):
+        response = self.client.post(
+            '/api/auth/send-otp/',
+            {'phone_number': '+998901230000'},
+            format='json',
+            REMOTE_ADDR='127.0.40.1',
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertFalse(OTPVerification.objects.exists())
+
+
+@override_settings(SMS_PROVIDER='test')
 class OTPThrottleSecurityTests(TestCase):
     def setUp(self):
         cache.clear()
@@ -554,7 +601,7 @@ class OTPThrottleSecurityTests(TestCase):
             '+998 (90) 720-00-01',
             '+998-90-720-00-01',
         )
-        with patch('users.views.random.randint', side_effect=(310001, 310002, 310003)):
+        with patch('users.views.secrets.randbelow', side_effect=(310001, 310002, 310003)):
             responses = [
                 self.client.post(
                     '/api/auth/send-otp/',
@@ -610,7 +657,7 @@ class OTPThrottleSecurityTests(TestCase):
     @override_settings(DEBUG=False, DEV_OTP_CONSOLE_LOG_ENABLED=True)
     def test_production_otp_log_contains_no_code_token_or_full_phone(self):
         phone = '+998 90 740 00 01'
-        with patch('users.views.random.randint', return_value=417263):
+        with patch('users.views.secrets.randbelow', return_value=417263):
             with self.assertLogs('joyzone.auth', level='INFO') as captured:
                 response = self.client.post(
                     '/api/auth/send-otp/',
@@ -631,7 +678,7 @@ class OTPThrottleSecurityTests(TestCase):
     @override_settings(DEBUG=True, DEV_OTP_CONSOLE_LOG_ENABLED=True)
     def test_explicit_dev_log_may_show_code_but_masks_phone(self):
         phone = '+998 90 750 00 01'
-        with patch('users.views.random.randint', return_value=527364):
+        with patch('users.views.secrets.randbelow', return_value=527364):
             with self.assertLogs('joyzone.auth', level='WARNING') as captured:
                 response = self.client.post(
                     '/api/auth/send-otp/',
@@ -722,7 +769,8 @@ class PublicDemoLoginTests(TestCase):
                     self.assertEqual(response.data['profile']['id'], user.id)
 
                     access = AccessToken(response.data['access'])
-                    refresh = RefreshToken(response.data['refresh'])
+                    raw_refresh = response.cookies[settings.JWT_REFRESH_COOKIE_NAME].value
+                    refresh = RefreshToken(raw_refresh)
                     self.assertTrue(access['demo_session'])
                     self.assertTrue(refresh['demo_session'])
                     self.assertLessEqual(access['exp'] - access['iat'], 30 * 60 + 1)
@@ -730,7 +778,7 @@ class PublicDemoLoginTests(TestCase):
 
                     refreshed_response = self.client.post(
                         '/api/auth/token/refresh/',
-                        {'refresh': response.data['refresh']},
+                        {'refresh': raw_refresh},
                         format='json',
                     )
                     self.assertEqual(refreshed_response.status_code, 200)

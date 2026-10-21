@@ -1,5 +1,6 @@
 from datetime import datetime, time, timedelta
 
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -11,7 +12,8 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serial
 from core.audit import create_audit_log
 from core.permissions import is_admin_or_moderator, is_partner
 from .models import Booking
-from .serializers import BookingListQuerySerializer, BookingSerializer
+from .pricing import quote_booking
+from .serializers import BookingListQuerySerializer, BookingQuoteSerializer, BookingSerializer
 from .services import (
     can_manage_place_availability,
     transition_booking_status,
@@ -182,6 +184,34 @@ class BookingViewSet(viewsets.ModelViewSet):
                 'non_field_errors': ['Place is unavailable for the selected time range.']
             })
 
+    def _lock_place(self, serializer):
+        """Serialize writes per place so two requests cannot book one slot."""
+        place = serializer.validated_data.get('place') or getattr(serializer.instance, 'place', None)
+        if place is not None:
+            Place.objects.select_for_update().only('id').get(pk=place.pk)
+
+    def _apply_server_pricing(self, serializer, save_kwargs, *, is_manager):
+        booking_status = serializer.validated_data.get(
+            'status',
+            getattr(serializer.instance, 'status', 'pending'),
+        )
+        if booking_status == 'blocked':
+            save_kwargs.update(amount=0, pricing={})
+            return
+        if is_manager and 'amount' in serializer.validated_data:
+            save_kwargs['pricing'] = {'manual': True}
+            return
+
+        place = serializer.validated_data.get('place') or serializer.instance.place
+        quote = quote_booking(
+            place,
+            duration_type=serializer.validated_data.get('duration_type') or serializer.instance.duration_type,
+            start_time=serializer.validated_data.get('start_time') or serializer.instance.start_time,
+            end_time=serializer.validated_data.get('end_time') or serializer.instance.end_time,
+        )
+        save_kwargs.update(amount=quote.amount, currency=quote.currency, pricing=quote.as_dict())
+
+    @transaction.atomic
     def perform_create(self, serializer):
         is_manager = is_admin_or_moderator(self.request.user)
         client = serializer.validated_data.pop('client', None) if is_manager else None
@@ -198,12 +228,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                 payment_status=serializer.validated_data.get('payment_status', 'unpaid'),
             )
             client = block_client
+        self._lock_place(serializer)
         self._validate_booking_access_and_overlap(serializer)
         save_kwargs = {'client': client or self.request.user}
         if not is_manager:
             save_kwargs['payment_status'] = 'unpaid'
             if serializer.validated_data.get('status') != 'blocked':
                 save_kwargs['status'] = 'pending'
+        self._apply_server_pricing(serializer, save_kwargs, is_manager=is_manager)
         booking = serializer.save(**save_kwargs)
         if is_manager and client:
             create_audit_log(
@@ -220,12 +252,27 @@ class BookingViewSet(viewsets.ModelViewSet):
         notification_type = 'booking_blocked' if booking.status == 'blocked' else 'booking_created'
         notify_booking_event(booking, notification_type, actor=self.request.user, include_actor=True)
 
+    @transaction.atomic
     def perform_update(self, serializer):
         previous_client_id = serializer.instance.client_id
         previous_place_id = serializer.instance.place_id
         previous_place_owner_id = serializer.instance.place.owner_id
+        is_manager = is_admin_or_moderator(self.request.user)
+        self._lock_place(serializer)
         self._validate_booking_access_and_overlap(serializer)
-        booking = serializer.save()
+        save_kwargs = {}
+        price_inputs_changed = any(
+            field_name in serializer.validated_data
+            and serializer.validated_data[field_name] != getattr(serializer.instance, field_name)
+            for field_name in ('place', 'start_time', 'end_time', 'duration_type')
+        )
+        if price_inputs_changed or (is_manager and 'amount' in serializer.validated_data):
+            if not is_manager and serializer.instance.payment_status != 'unpaid':
+                raise ValidationError({
+                    'non_field_errors': ['A paid booking cannot be rescheduled. Cancel it and create a new one.']
+                })
+            self._apply_server_pricing(serializer, save_kwargs, is_manager=is_manager)
+        booking = serializer.save(**save_kwargs)
         assignment_changed = (
             previous_client_id != booking.client_id
             or previous_place_id != booking.place_id
@@ -253,6 +300,43 @@ class BookingViewSet(viewsets.ModelViewSet):
             next_status=next_status,
         )
         return Response(self.get_serializer(result.booking).data)
+
+    @extend_schema(
+        request=BookingQuoteSerializer,
+        responses=inline_serializer(
+            name='BookingQuoteResponse',
+            fields={
+                'duration_type': serializers.CharField(),
+                'units': serializers.IntegerField(),
+                'unit_price': serializers.CharField(),
+                'subtotal': serializers.CharField(),
+                'discount_id': serializers.IntegerField(allow_null=True),
+                'discount_name': serializers.CharField(),
+                'discount_percent': serializers.IntegerField(),
+                'discount_amount': serializers.CharField(),
+                'service_fee': serializers.CharField(),
+                'tax': serializers.CharField(),
+                'amount': serializers.CharField(),
+                'currency': serializers.CharField(),
+            },
+        ),
+        tags=['bookings'],
+    )
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def quote(self, request):
+        """Price preview calculated with the same rules as booking creation."""
+        serializer = BookingQuoteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        place = serializer.validated_data['place']
+        if not is_place_publicly_visible(place) and not can_manage_place_availability(request.user, place):
+            raise ValidationError({'place': ['This place is not available for booking.']})
+        quote = quote_booking(
+            place,
+            duration_type=serializer.validated_data['duration_type'],
+            start_time=serializer.validated_data['start_time'],
+            end_time=serializer.validated_data['end_time'],
+        )
+        return Response(quote.as_dict())
 
     @extend_schema(request=None, responses=BookingSerializer, tags=['bookings'])
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])

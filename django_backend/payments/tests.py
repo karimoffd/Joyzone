@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -324,3 +324,86 @@ class MyPaymentsApiTests(TestCase):
         self.assertEqual(ids, {self.other_payment.id})
         self.assertNotIn(self.booking_payment.id, ids)
         self.assertNotIn(self.tariff_payment.id, ids)
+
+
+class TestPaymentSecurityTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='secure-pay-client', password='pass', role='client')
+        self.partner = User.objects.create_user(username='secure-pay-host', password='pass', role='partner')
+        self.place = Place.objects.create(
+            owner=self.partner,
+            title='Secure Payment Place',
+            location='Tashkent',
+            price='100000',
+            area=20,
+            people=4,
+            status='approved',
+        )
+        self.booking = Booking.objects.create(
+            client=self.user,
+            place=self.place,
+            start_time=timezone.now() + timedelta(days=2),
+            end_time=timezone.now() + timedelta(days=2, hours=2),
+            amount='250000',
+            currency='UZS',
+            status='pending',
+            payment_status='unpaid',
+        )
+        self.premium = TariffPlan.objects.create(
+            slug='premium',
+            name='Premium',
+            price='990000',
+            duration_days=30,
+            max_places=10,
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_client_amount_is_ignored_for_booking_payment(self):
+        response = self.client.post(
+            '/api/payments/test-pay/',
+            {'booking_id': self.booking.id, 'amount': '1', 'currency': 'USD'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payment = Payment.objects.get(pk=response.data['payment']['id'])
+        self.assertEqual(str(payment.amount), '250000.00')
+        self.assertEqual(payment.currency, 'UZS')
+
+    def test_client_amount_is_ignored_for_tariff_payment(self):
+        response = self.client.post(
+            '/api/payments/test-pay/',
+            {'tariff_id': self.premium.id, 'amount': '0'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payment = Payment.objects.get(pk=response.data['payment']['id'])
+        self.assertEqual(str(payment.amount), '990000.00')
+
+    def test_booking_cannot_be_paid_twice(self):
+        first = self.client.post('/api/payments/test-pay/', {'booking_id': self.booking.id}, format='json')
+        second = self.client.post('/api/payments/test-pay/', {'booking_id': self.booking.id}, format='json')
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(Payment.objects.filter(booking=self.booking).count(), 1)
+
+    def test_cancelled_booking_cannot_be_paid(self):
+        Booking.objects.filter(pk=self.booking.pk).update(status='cancelled')
+
+        response = self.client.post('/api/payments/test-pay/', {'booking_id': self.booking.id}, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Payment.objects.filter(booking=self.booking).exists())
+
+    @override_settings(TEST_PAYMENTS_ENABLED=False)
+    def test_test_payments_are_disabled_when_flag_is_off(self):
+        response = self.client.post('/api/payments/test-pay/', {'tariff_id': self.premium.id}, format='json')
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Payment.objects.exists())
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, 'client')

@@ -49,9 +49,10 @@ class User(AbstractUser):
 
 class OTPVerification(models.Model):
     phone_number = models.CharField(max_length=20)
-    otp_code = models.CharField(max_length=6)
+    # HMAC-SHA256 of the code (see users.views.hash_otp_code), never plaintext.
+    otp_code = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
     is_used = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.phone_number} - {self.otp_code}"
+        return f"{self.phone_number} ({self.created_at:%Y-%m-%d %H:%M})"

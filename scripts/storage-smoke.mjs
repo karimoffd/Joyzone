@@ -28,19 +28,22 @@ setStorageItem(keys.booking.active, "old-booking");
 setStorageItem(keys.booking.draft, "old-draft");
 setStorageItem(keys.offline.favorites, "old-favorites");
 setStorageItem(keys.offline.chats, "old-chats");
+setStorageItem(keys.auth.refresh, "legacy-refresh");
 
 const initialGeneration = getSessionGeneration();
-const loginGeneration = beginAuthSession("new-access", "new-refresh");
+const loginGeneration = beginAuthSession("new-access");
 
 const expectedAfterLogin = [
   [keys.auth.access, "new-access"],
-  [keys.auth.refresh, "new-refresh"],
+  [keys.auth.authenticated, "true"],
   [keys.ui.language, "ru"],
   [keys.ui.currency, "USD"],
   [keys.offline.guestFavoritesToken, "guest-token"],
   [keys.offline.guestFavorites, "guest-favorites"],
 ];
 const clearedAfterLogin = [
+  // Refresh tokens live in an httpOnly cookie; a legacy stored value is wiped.
+  keys.auth.refresh,
   keys.profile.name,
   keys.booking.active,
   keys.booking.draft,

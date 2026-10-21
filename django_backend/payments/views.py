@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.db.models import Q, Sum
 from django.utils import timezone
@@ -60,8 +61,21 @@ def _payment_to_transaction(payment):
     }
 
 
+class TestPaymentsEnabled(permissions.BasePermission):
+    """Test payments mark bookings/tariffs paid without real money.
+
+    They are available only when TEST_PAYMENTS_ENABLED is on (default: DEBUG),
+    so a production deployment cannot hand out paid tariffs for free.
+    """
+
+    message = 'Test payments are disabled on this server.'
+
+    def has_permission(self, request, view):
+        return bool(getattr(settings, 'TEST_PAYMENTS_ENABLED', False))
+
+
 class TestPayView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, TestPaymentsEnabled]
 
     @extend_schema(
         request=inline_serializer(
@@ -71,8 +85,6 @@ class TestPayView(APIView):
                 'tariff_id': serializers.IntegerField(required=False),
                 'subscription_id': serializers.IntegerField(required=False),
                 'tariff_subscription_id': serializers.IntegerField(required=False),
-                'amount': serializers.DecimalField(max_digits=12, decimal_places=2, required=False),
-                'currency': serializers.CharField(required=False, default='UZS'),
                 'metadata': serializers.DictField(required=False),
             },
         ),
@@ -101,15 +113,11 @@ class TestPayView(APIView):
 
         provider = TestPaymentProvider(request.user)
         metadata = request.data.get('metadata') if isinstance(request.data.get('metadata'), dict) else {}
-        amount = request.data.get('amount')
-        currency = request.data.get('currency') or 'UZS'
 
         try:
             if booking_id:
                 payment = provider.pay_booking(
                     booking_id=booking_id,
-                    amount=amount,
-                    currency=currency,
                     metadata=metadata,
                 )
                 return Response(
@@ -123,15 +131,11 @@ class TestPayView(APIView):
             if subscription_id:
                 payment = provider.pay_tariff_subscription(
                     subscription_id=subscription_id,
-                    amount=amount,
-                    currency=currency,
                     metadata=metadata,
                 )
             else:
                 payment = provider.pay_tariff(
                     tariff_id=tariff_id,
-                    amount=amount,
-                    currency=currency,
                     metadata=metadata,
                 )
             subscription = payment.tariff_subscription

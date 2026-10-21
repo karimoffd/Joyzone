@@ -3,6 +3,7 @@ import {
   clearAccountStorage,
   getSessionGeneration,
   getStorageItem,
+  hasServerSession,
   isSessionGenerationCurrent,
   setStorageItem,
   STORAGE_KEYS,
@@ -26,14 +27,6 @@ export function getAccessToken() {
   }
 }
 
-export function getRefreshToken() {
-  try {
-    return getStorageItem(STORAGE_KEYS.auth.refresh);
-  } catch (error) {
-    return null;
-  }
-}
-
 export function setAccessToken(token, expectedGeneration = null) {
   if (!token) return false;
   if (expectedGeneration && !isSessionGenerationCurrent(expectedGeneration)) return false;
@@ -44,12 +37,6 @@ export function setAccessToken(token, expectedGeneration = null) {
   } catch (error) {
     return false;
   }
-}
-
-export function setRefreshToken(token, expectedGeneration = null) {
-  if (!token) return false;
-  if (expectedGeneration && !isSessionGenerationCurrent(expectedGeneration)) return false;
-  return setStorageItem(STORAGE_KEYS.auth.refresh, token);
 }
 
 export function clearAuthStorage(reason = "session_expired") {
@@ -154,7 +141,8 @@ export function withUploadTimeout(config = {}) {
   return { ...config, timeout: API_UPLOAD_TIMEOUT_MS };
 }
 
-const api = axios.create({ baseURL: API_BASE_URL, timeout: API_TIMEOUT_MS });
+// withCredentials lets the browser keep and send the httpOnly refresh cookie.
+const api = axios.create({ baseURL: API_BASE_URL, timeout: API_TIMEOUT_MS, withCredentials: true });
 const REFRESH_TIMEOUT_MS = positiveEnvNumber(import.meta.env.VITE_API_REFRESH_TIMEOUT_MS, 10000);
 const TERMINAL_REFRESH_STATUSES = new Set([400, 401]);
 let refreshRequest = null;
@@ -188,8 +176,7 @@ function dispatchRetryableSessionError(error) {
 }
 
 async function refreshAccessToken() {
-  const refresh = getRefreshToken();
-  if (!refresh) return null;
+  if (!hasServerSession()) return null;
   const generation = getSessionGeneration();
 
   if (refreshRequest?.generation === generation) return refreshRequest.promise;
@@ -197,14 +184,13 @@ async function refreshAccessToken() {
   const requestState = { generation, promise: null };
   requestState.promise = axios.post(
     apiUrl("/api/auth/token/refresh/"),
-    { refresh },
-    { timeout: REFRESH_TIMEOUT_MS }
+    {},
+    { timeout: REFRESH_TIMEOUT_MS, withCredentials: true }
   )
     .then((res) => {
       if (!isSessionGenerationCurrent(generation)) throw createStaleSessionError();
       const nextAccess = res.data?.access;
       if (!nextAccess) throw new Error("Refresh response did not include access token.");
-      if (res.data?.refresh) setRefreshToken(res.data.refresh, generation);
       setAccessToken(nextAccess, generation);
       return nextAccess;
     })
@@ -280,8 +266,7 @@ api.interceptors.response.use(
     }
 
     const access = getAccessToken();
-    const refresh = getRefreshToken();
-    if (!refresh) {
+    if (!hasServerSession()) {
       if (access) clearAuthStorage("missing_refresh");
       return Promise.reject(error);
     }
@@ -306,7 +291,7 @@ api.interceptors.response.use(
 
 export async function logoutSession() {
   const access = getAccessToken();
-  const refresh = getRefreshToken();
+  const hadSession = hasServerSession();
   let revoked = false;
 
   clearAccountStorage({ reason: "logout" });
@@ -316,13 +301,14 @@ export async function logoutSession() {
   window.dispatchEvent(new Event("joyzone-auth-update"));
 
   try {
-    if (refresh) {
+    if (hadSession && access) {
       await axios.post(
         apiUrl("/api/auth/logout/"),
-        { refresh },
+        {},
         {
-          headers: access ? { Authorization: `Bearer ${access}` } : {},
+          headers: { Authorization: `Bearer ${access}` },
           timeout: REFRESH_TIMEOUT_MS,
+          withCredentials: true,
         }
       );
       revoked = true;

@@ -212,10 +212,10 @@ export function AuthForm({ onSuccess }) {
       });
       const data = res.data;
       
-      beginAuthSession(data.access, data.refresh);
+      beginAuthSession(data.access);
       
       if (data.is_new_user) {
-        setTokens({ access: data.access, refresh: data.refresh });
+        setTokens({ access: data.access });
         setStep("profile");
       } else {
         onSuccess(data.profile);
@@ -249,7 +249,7 @@ export function AuthForm({ onSuccess }) {
         account: demoAccount.trim(),
         password: demoPassword,
       }, { skipAuth: true, sessionGuard: true });
-      beginAuthSession(response.data.access, response.data.refresh);
+      beginAuthSession(response.data.access);
       onSuccess(response.data.profile);
     } catch (error) {
       setDemoError(getApiErrorMessage(

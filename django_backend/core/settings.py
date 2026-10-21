@@ -13,12 +13,23 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+import sys
 from urllib.parse import parse_qsl, unquote, urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Optional local env file. Real environment variables always win.
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - dotenv is in requirements.txt
+    load_dotenv = None
+if load_dotenv is not None:
+    load_dotenv(BASE_DIR / '.env', override=False)
+
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 
 def env_bool(name, default=False):
@@ -171,6 +182,15 @@ PUBLIC_DEMO_LOGIN_RATE = (
     os.environ.get('PUBLIC_DEMO_LOGIN_RATE', '5/minute').strip() or '5/minute'
 )
 
+# SMS delivery for OTP codes is not integrated yet. Until SMS_PROVIDER is set,
+# a DEBUG=False server refuses to issue codes instead of silently dropping them.
+SMS_PROVIDER = os.environ.get('SMS_PROVIDER', '').strip()
+
+# Test payments mark bookings and tariffs as paid without real money. They are
+# on by default only in development; a production server must opt in
+# explicitly (for example an isolated staging/demo stand).
+TEST_PAYMENTS_ENABLED = env_bool('TEST_PAYMENTS_ENABLED', DEBUG)
+
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', ['*'] if DEBUG else [])
 if not DEBUG:
     if not os.environ.get('ALLOWED_HOSTS', '').strip() or not ALLOWED_HOSTS:
@@ -309,7 +329,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Business dates (daily bookings, availability slots, discounts) are counted in
+# local Tashkent time. Datetimes are still stored in UTC because USE_TZ=True.
+TIME_ZONE = os.environ.get('TIME_ZONE', 'Asia/Tashkent')
 
 USE_I18N = True
 
@@ -345,6 +367,8 @@ CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', [
     'http://127.0.0.1:5173',
 ] if DEBUG else [])
 CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG and not os.environ.get('CORS_ALLOWED_ORIGINS'))
+# Needed so the browser stores and sends the httpOnly refresh cookie.
+CORS_ALLOW_CREDENTIALS = True
 validate_origin_list('CORS_ALLOWED_ORIGINS', CORS_ALLOWED_ORIGINS)
 validate_origin_list('CSRF_TRUSTED_ORIGINS', CSRF_TRUSTED_ORIGINS)
 if not DEBUG and CORS_ALLOW_ALL_ORIGINS:
@@ -359,10 +383,15 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_THROTTLE_CLASSES': [], # Disabled globally for local development to prevent 429 errors
+    # Global limits protect the API from scraping and brute force. The test
+    # runner turns them off so long suites do not hit 429 on 127.0.0.1.
+    'DEFAULT_THROTTLE_CLASSES': [] if TESTING else [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '10000/minute',
-        'user': '50000/minute',
+        'anon': os.environ.get('API_ANON_RATE', '300/minute'),
+        'user': os.environ.get('API_USER_RATE', '1200/minute'),
         # View classes also pin these rates directly; keep the scoped fallback
         # equally strict so a future refactor cannot silently soften OTP limits.
         'otp_send': '3/minute',
@@ -396,6 +425,17 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+# Browsers receive the refresh token only as an httpOnly cookie scoped to the
+# auth endpoints, so JavaScript/XSS cannot read it. The frontend and API must
+# be same-site (e.g. joyzone.uz + api.joyzone.uz) for SameSite=Lax to work.
+JWT_REFRESH_COOKIE_NAME = os.environ.get('JWT_REFRESH_COOKIE_NAME', 'joyzone_refresh')
+JWT_REFRESH_COOKIE_PATH = os.environ.get('JWT_REFRESH_COOKIE_PATH', '/api/auth/')
+JWT_REFRESH_COOKIE_DOMAIN = os.environ.get('JWT_REFRESH_COOKIE_DOMAIN', '').strip()
+JWT_REFRESH_COOKIE_SAMESITE = os.environ.get('JWT_REFRESH_COOKIE_SAMESITE', 'Lax')
+JWT_REFRESH_COOKIE_SECURE = env_bool('JWT_REFRESH_COOKIE_SECURE', not DEBUG)
+# Opt-in only for non-browser API clients that cannot keep cookies.
+JWT_REFRESH_IN_BODY = env_bool('JWT_REFRESH_IN_BODY', False)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field

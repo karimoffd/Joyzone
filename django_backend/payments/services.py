@@ -14,6 +14,9 @@ from tariffs.models import TariffPlan, TariffSubscription
 from .models import Payment
 
 
+PAYABLE_BOOKING_STATUSES = ('pending', 'confirmed')
+
+
 class TestPaymentProvider:
     provider = 'test'
 
@@ -21,16 +24,20 @@ class TestPaymentProvider:
         self.user = user
 
     @transaction.atomic
-    def pay_booking(self, booking_id, amount=None, currency='UZS', metadata=None):
+    def pay_booking(self, booking_id, metadata=None):
         booking = Booking.objects.select_for_update().select_related('client').get(pk=booking_id)
         self._ensure_booking_access(booking)
+        if booking.status not in PAYABLE_BOOKING_STATUSES:
+            raise ValidationError(f'A {booking.status} booking cannot be paid.')
+        if booking.payment_status != 'unpaid':
+            raise ValidationError('This booking is already paid.')
 
         payment = Payment.objects.create(
             user=self.user,
             booking=booking,
             provider=self.provider,
-            amount=self._resolve_amount(amount, booking.amount),
-            currency=currency or booking.currency or 'UZS',
+            amount=self._validated_amount(booking.amount),
+            currency=booking.currency or 'UZS',
             status='created',
             metadata=metadata or {},
         )
@@ -55,17 +62,17 @@ class TestPaymentProvider:
         return payment
 
     @transaction.atomic
-    def pay_tariff(self, tariff_id, amount=None, currency='UZS', metadata=None):
+    def pay_tariff(self, tariff_id, metadata=None):
         tariff = TariffPlan.objects.select_for_update().get(pk=tariff_id, is_active=True)
         subscription = TariffSubscription.objects.create(
             partner=self.user,
             tariff=tariff,
             status='pending_payment',
         )
-        return self.pay_tariff_subscription(subscription.id, amount=amount, currency=currency, metadata=metadata)
+        return self.pay_tariff_subscription(subscription.id, metadata=metadata)
 
     @transaction.atomic
-    def pay_tariff_subscription(self, subscription_id, amount=None, currency='UZS', metadata=None):
+    def pay_tariff_subscription(self, subscription_id, metadata=None):
         subscription = TariffSubscription.objects.select_for_update().select_related('partner', 'tariff').get(pk=subscription_id)
         self._ensure_subscription_access(subscription)
 
@@ -78,8 +85,8 @@ class TestPaymentProvider:
             user=self.user,
             tariff_subscription=subscription,
             provider=self.provider,
-            amount=self._resolve_amount(amount, subscription.tariff.price),
-            currency=currency or 'UZS',
+            amount=self._validated_amount(subscription.tariff.price),
+            currency='UZS',
             status='created',
             metadata=metadata or {},
         )
@@ -171,8 +178,8 @@ class TestPaymentProvider:
         payment.save(update_fields=['status', 'external_id', 'updated_at'])
 
     @staticmethod
-    def _resolve_amount(requested_amount, fallback_amount):
-        value = fallback_amount if requested_amount in (None, '') else requested_amount
+    def _validated_amount(value):
+        """The amount always comes from the booking or tariff, never the client."""
         try:
             amount = Decimal(str(value))
         except (InvalidOperation, TypeError, ValueError) as exc:

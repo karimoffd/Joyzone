@@ -2,7 +2,7 @@ from datetime import timedelta
 import hashlib
 import hmac
 import logging
-import random
+import secrets
 
 from rest_framework import generics, permissions, serializers, status
 from rest_framework.exceptions import Throttled
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.settings import api_settings as jwt_api_settings
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -23,6 +23,12 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from core.audit import create_audit_log
 from core.permissions import IsAdminUserRole
+from .auth_cookies import (
+    clear_refresh_cookie,
+    get_refresh_from_request,
+    set_refresh_cookie,
+    token_payload,
+)
 from .models import OTPVerification
 from .serializers import (
     AdminUserSerializer,
@@ -50,6 +56,15 @@ def login_cache_identifier(value):
     return hmac.new(
         settings.SECRET_KEY.encode('utf-8'),
         normalized.encode('utf-8'),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def hash_otp_code(phone, code):
+    """OTP codes are stored as keyed hashes so a DB leak does not reveal them."""
+    return hmac.new(
+        settings.SECRET_KEY.encode('utf-8'),
+        f'{normalize_login_identifier(phone)}:{code}'.encode('utf-8'),
         hashlib.sha256,
     ).hexdigest()
 
@@ -154,8 +169,14 @@ class SendOTPView(OTPThrottleResponseMixin, APIView):
     def post(self, request):
         serializer = SendOTPSerializer(data=request.data)
         if serializer.is_valid():
+            if not settings.DEBUG and not settings.SMS_PROVIDER:
+                logger.error('OTP requested but SMS_PROVIDER is not configured.')
+                return Response(
+                    {"detail": "SMS delivery is not configured yet."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
             phone = serializer.validated_data['phone_number']
-            otp_code = str(random.randint(100000, 999999))
+            otp_code = f'{secrets.randbelow(1_000_000):06d}'
 
             # A successful resend invalidates every earlier unused code for the
             # same phone. Exactly one newly-created code remains usable.
@@ -164,7 +185,10 @@ class SendOTPView(OTPThrottleResponseMixin, APIView):
                     phone_number=phone,
                     is_used=False,
                 ).update(is_used=True)
-                OTPVerification.objects.create(phone_number=phone, otp_code=otp_code)
+                OTPVerification.objects.create(
+                    phone_number=phone,
+                    otp_code=hash_otp_code(phone, otp_code),
+                )
             
             if settings.DEBUG and settings.DEV_OTP_CONSOLE_LOG_ENABLED:
                 logger.warning(
@@ -190,7 +214,6 @@ class VerifyOTPView(OTPThrottleResponseMixin, APIView):
         responses=inline_serializer(
             name='VerifyOTPResponse',
             fields={
-                'refresh': serializers.CharField(),
                 'access': serializers.CharField(),
                 'is_new_user': serializers.BooleanField(),
                 'profile': UserSerializer(),
@@ -222,7 +245,7 @@ class VerifyOTPView(OTPThrottleResponseMixin, APIView):
                 with transaction.atomic():
                     otp_obj = OTPVerification.objects.select_for_update().filter(
                         phone_number=phone,
-                        otp_code=otp_code,
+                        otp_code=hash_otp_code(phone, otp_code),
                         is_used=False,
                         created_at__gt=cutoff,
                     ).order_by('-created_at').first()
@@ -256,17 +279,14 @@ class VerifyOTPView(OTPThrottleResponseMixin, APIView):
                         defaults={'phone_number': phone},
                     )
             
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
-            
-            profile_serializer = UserSerializer(user)
-            
-            return Response({
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "is_new_user": created,
-                "profile": profile_serializer.data
-            })
+            response = Response(token_payload(
+                refresh,
+                refresh.access_token,
+                is_new_user=created,
+                profile=UserSerializer(user).data,
+            ))
+            return set_refresh_cookie(response, refresh)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -286,7 +306,6 @@ class DevAdminLoginView(APIView):
         responses=inline_serializer(
             name='DevAdminLoginResponse',
             fields={
-                'refresh': serializers.CharField(),
                 'access': serializers.CharField(),
                 'profile': UserSerializer(),
             },
@@ -304,13 +323,12 @@ class DevAdminLoginView(APIView):
             return Response({"detail": "Admin user not found in database."}, status=404)
         
         refresh = RefreshToken.for_user(admin_user)
-        profile_serializer = UserSerializer(admin_user)
-        
-        return Response({
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "profile": profile_serializer.data
-        })
+        response = Response(token_payload(
+            refresh,
+            refresh.access_token,
+            profile=UserSerializer(admin_user).data,
+        ))
+        return set_refresh_cookie(response, refresh)
 
 
 class PublicDemoLoginStatusView(APIView):
@@ -346,7 +364,6 @@ class PublicDemoLoginView(APIView):
         responses=inline_serializer(
             name='PublicDemoLoginResponse',
             fields={
-                'refresh': serializers.CharField(),
                 'access': serializers.CharField(),
                 'is_new_user': serializers.BooleanField(),
                 'profile': UserSerializer(),
@@ -408,17 +425,34 @@ class PublicDemoLoginView(APIView):
         access = refresh.access_token
         access.set_exp(lifetime=min(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'], session_lifetime))
 
-        return Response({
-            'refresh': str(refresh),
-            'access': str(access),
-            'is_new_user': False,
-            'profile': UserSerializer(user).data,
-            'demo_session_expires_at': config['expires_at'],
-        })
+        response = Response(token_payload(
+            refresh,
+            access,
+            is_new_user=False,
+            profile=UserSerializer(user).data,
+            demo_session_expires_at=config['expires_at'],
+        ))
+        return set_refresh_cookie(response, refresh)
 
 
 class JoyzoneTokenRefreshView(TokenRefreshView):
     serializer_class = JoyzoneTokenRefreshSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data={'refresh': get_refresh_from_request(request)})
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0]) from exc
+
+        data = dict(serializer.validated_data)
+        rotated_refresh = data.pop('refresh', None)
+        if rotated_refresh and settings.JWT_REFRESH_IN_BODY:
+            data['refresh'] = rotated_refresh
+        response = Response(data, status=status.HTTP_200_OK)
+        if rotated_refresh:
+            set_refresh_cookie(response, rotated_refresh)
+        return response
 
 
 class LogoutView(APIView):
@@ -433,7 +467,7 @@ class LogoutView(APIView):
         tags=['auth'],
     )
     def post(self, request):
-        serializer = LogoutSerializer(data=request.data)
+        serializer = LogoutSerializer(data={'refresh': get_refresh_from_request(request)})
         serializer.is_valid(raise_exception=True)
         raw_refresh = serializer.validated_data['refresh']
 
@@ -455,7 +489,7 @@ class LogoutView(APIView):
             ).exists()
             if not already_revoked:
                 raise serializers.ValidationError({'refresh': 'Invalid refresh token.'})
-            return Response({'detail': 'Session already logged out.'})
+            return clear_refresh_cookie(Response({'detail': 'Session already logged out.'}))
 
         token_user_id = refresh.get(jwt_api_settings.USER_ID_CLAIM)
         request_user_id = getattr(request.user, jwt_api_settings.USER_ID_FIELD)
@@ -463,7 +497,7 @@ class LogoutView(APIView):
             raise serializers.ValidationError({'refresh': 'Invalid refresh token.'})
 
         refresh.blacklist()
-        return Response({'detail': 'Logged out.'})
+        return clear_refresh_cookie(Response({'detail': 'Logged out.'}))
 
 
 class UserListView(generics.ListAPIView):

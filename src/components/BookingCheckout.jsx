@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
-import { clearBookingDraft, draftToBookingPayload, loadBookingDraft } from "../utils/bookingDraft.js";
+import { clearBookingDraft, draftToBookingPayload, draftToQuotePayload, loadBookingDraft } from "../utils/bookingDraft.js";
 import { normalizePlace } from "../utils/placeMapper.js";
 import { normalizeBooking } from "../utils/bookingMapper.js";
 import "./BookingCheckout.css";
@@ -27,6 +27,7 @@ function resolveSpace(route) {
 export default function BookingCheckout({ route, userState, setUserState }) {
   const [space, setSpace] = useState(() => resolveSpace(route));
   const [pendingBooking, setPendingBooking] = useState(null);
+  const [serverQuote, setServerQuote] = useState(null);
   
   // Payment states
   const [method, setMethod] = useState("card"); // card, click, payme, uzum
@@ -52,6 +53,9 @@ export default function BookingCheckout({ route, userState, setUserState }) {
     }
 
     setPendingBooking(draft);
+    api.post("/api/bookings/quote/", draftToQuotePayload(draft), { skipAuth: true })
+      .then((res) => setServerQuote(res.data))
+      .catch((err) => setError(getApiErrorMessage(err, "Narxni hisoblab bo'lmadi. Joyni qayta tanlang.")));
     if (draft.place_snapshot) {
       setSpace(normalizePlace(draft.place_snapshot));
     }
@@ -106,8 +110,6 @@ export default function BookingCheckout({ route, userState, setUserState }) {
       }
       const paymentResponse = await api.post("/api/payments/test-pay/", {
         booking_id: booking.id,
-        amount: bookingPayload.amount,
-        currency: bookingPayload.currency,
         metadata: {
           method,
           phone: method === "card" ? "" : phone,
@@ -215,9 +217,15 @@ export default function BookingCheckout({ route, userState, setUserState }) {
     setPhone(val);
   };
 
-  const basePriceVal = Number(pendingBooking?.pricing?.subtotal) || 0;
-  const taxVal = Number(pendingBooking?.pricing?.tax) || 0;
-  const totalPayable = Number(pendingBooking?.amount) || (basePriceVal + taxVal);
+  // Totals come from the backend quote; the local draft is only a fallback
+  // while the quote is loading.
+  const basePriceVal = serverQuote
+    ? Number(serverQuote.amount) - Number(serverQuote.tax)
+    : Number(pendingBooking?.pricing?.subtotal) || 0;
+  const taxVal = serverQuote ? Number(serverQuote.tax) : Number(pendingBooking?.pricing?.tax) || 0;
+  const totalPayable = serverQuote
+    ? Number(serverQuote.amount)
+    : Number(pendingBooking?.amount) || (basePriceVal + taxVal);
 
   const formattedBase = new Intl.NumberFormat('ru-RU').format(basePriceVal) + " UZS";
   const formattedTax = new Intl.NumberFormat('ru-RU').format(taxVal) + " UZS";

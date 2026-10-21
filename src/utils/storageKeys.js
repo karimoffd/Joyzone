@@ -1,6 +1,8 @@
 export const STORAGE_KEYS = Object.freeze({
   auth: Object.freeze({
     access: "joyzone-access",
+    // Legacy key: refresh tokens now live in an httpOnly cookie. Kept only so
+    // logout/login wipes values left by older builds.
     refresh: "joyzone-refresh",
     authenticated: "joyzone-auth",
     generation: "joyzone-session-generation",
@@ -121,12 +123,17 @@ export function clearAccountStorage({ includeTokens = true, reason = "session_cl
   return advanceSessionGeneration(reason);
 }
 
-export function beginAuthSession(access, refresh) {
+export function beginAuthSession(access) {
   const generation = clearAccountStorage({ reason: "login" });
   setStorageItem(STORAGE_KEYS.auth.access, access);
-  setStorageItem(STORAGE_KEYS.auth.refresh, refresh);
   setStorageItem(STORAGE_KEYS.auth.authenticated, "true");
   return generation;
+}
+
+// True while the backend session cookie is expected to exist (set at login,
+// cleared on logout or a terminal refresh failure).
+export function hasServerSession() {
+  return getStorageItem(STORAGE_KEYS.auth.authenticated) === "true";
 }
 
 export function readJsonStorage(key, fallback = null) {

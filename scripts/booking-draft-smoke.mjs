@@ -37,11 +37,11 @@ const draft = bookingDraft.createBookingDraft({
 });
 
 const payload = bookingDraft.draftToBookingPayload(draft);
-const expectedKeys = ["place", "start_time", "end_time", "duration_type", "guests", "amount", "currency", "note"];
+const expectedKeys = ["place", "start_time", "end_time", "duration_type", "guests", "note"];
 if (JSON.stringify(Object.keys(payload)) !== JSON.stringify(expectedKeys)) {
   throw new Error(`Unexpected booking payload keys: ${Object.keys(payload).join(", ")}`);
 }
-if (payload.place !== 42 || payload.duration_type !== "hourly" || payload.amount !== 112000) {
+if (payload.place !== 42 || payload.duration_type !== "hourly" || draft.amount !== 112000) {
   throw new Error("Booking payload values were not normalized.");
 }
 if (new Date(payload.end_time) <= new Date(payload.start_time)) {

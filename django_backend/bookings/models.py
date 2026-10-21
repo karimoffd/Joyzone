@@ -32,6 +32,8 @@ class Booking(models.Model):
     guests = models.PositiveIntegerField(default=1)
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     currency = models.CharField(max_length=10, default='UZS')
+    # Server-calculated breakdown (subtotal, discount, service fee, tax).
+    pricing = models.JSONField(default=dict, blank=True)
     note = models.TextField(blank=True, default='')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='unpaid')

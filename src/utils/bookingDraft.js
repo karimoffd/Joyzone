@@ -169,10 +169,14 @@ export function draftToBookingPayload(draft) {
     end_time: draft.end_time,
     duration_type: normalizeDurationType(draft.duration_type),
     guests: positiveInteger(draft.guests),
-    amount: money(draft.amount),
-    currency: draft.currency || "UZS",
     note: String(draft.note || "").trim(),
   };
+}
+
+// The backend calculates the price; the draft amount is only a preview.
+export function draftToQuotePayload(draft) {
+  const { place, start_time, end_time, duration_type } = draftToBookingPayload(draft);
+  return { place, start_time, end_time, duration_type };
 }
 
 export function saveBookingDraft(draft) {
