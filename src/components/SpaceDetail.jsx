@@ -29,6 +29,8 @@ import "./ListingsSection.css";
 import "./SpaceDetail.css";
 import { navigate } from "../utils/router.js";
 import { setPageMeta } from "../utils/seo.js";
+import { phoneHref } from "../utils/cmsLinks.js";
+import { useSiteContent } from "../context/LanguageContext.jsx";
 
 const amenityList = [
   { name: "Tez Wi-Fi", icon: "wifi" },
@@ -143,6 +145,7 @@ async function fetchPlaceForRoute(route) {
 
 export default function SpaceDetail({ route, userState, setUserState }) {
   const { lang } = useContext(LanguageContext);
+  const { cms } = useSiteContent();
   const fallbackSpace = useMemo(
     () => normalizePlace(import.meta.env.DEV ? resolveDevSpace(route) : EMPTY_PLACE),
     [route],
@@ -1696,7 +1699,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               <Icon type="calendar" />
               Bron qilish
             </a>
-            <a href="tel:+998901234567" className="sd-secondary-btn">
+            <a href={phoneHref(space.owner_phone || cms.support_phone || cms.footer_phone)} className="sd-secondary-btn">
               <Icon type="phone" />
               Qo'ng'iroq qilish
             </a>

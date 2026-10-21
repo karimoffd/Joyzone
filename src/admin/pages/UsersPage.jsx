@@ -44,11 +44,20 @@ function UserEditModal({ user, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
   const [showWarningConfirm, setShowWarningConfirm] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [partnerProfile, setPartnerProfile] = useState({
+    company_name: user.company_name || '',
+    partner_bio: user.partner_bio || '',
+    is_featured_partner: Boolean(user.is_featured_partner),
+  });
+  const profileChanged = partnerProfile.company_name !== (user.company_name || '')
+    || partnerProfile.partner_bio !== (user.partner_bio || '')
+    || partnerProfile.is_featured_partner !== Boolean(user.is_featured_partner);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (role === user.role) {
-      onClose();
+      if (profileChanged) executeSave();
+      else onClose();
       return;
     }
     const privilegedChange = ['admin', 'moderator'].includes(user.role)
@@ -64,7 +73,7 @@ function UserEditModal({ user, onClose, onSave }) {
     setLoading(true);
     setSaveError('');
     try {
-      await onSave(user.id, { role });
+      await onSave(user.id, role === 'partner' && profileChanged ? { role, ...partnerProfile } : { role });
     } catch (error) {
       setShowWarningConfirm(false);
       setSaveError(getApiErrorMessage(error, 'Не удалось изменить роль пользователя.'));
@@ -178,6 +187,37 @@ function UserEditModal({ user, onClose, onSave }) {
                 })}
               </div>
             </div>
+
+            {role === 'partner' ? (
+              <div data-testid="partner-public-profile" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="adm-role-selector-head">
+                  <h4>Публичный профиль партнёра</h4>
+                  <p>Показывается в блоке «Joyzone hamkorlari» и на странице партнёра</p>
+                </div>
+                <input
+                  className="adm-input"
+                  style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}
+                  placeholder="Название компании"
+                  value={partnerProfile.company_name}
+                  onChange={(e) => setPartnerProfile((p) => ({ ...p, company_name: e.target.value }))}
+                />
+                <textarea
+                  rows={3}
+                  style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', fontFamily: 'inherit' }}
+                  placeholder="Короткое описание (чем занимается партнёр)"
+                  value={partnerProfile.partner_bio}
+                  onChange={(e) => setPartnerProfile((p) => ({ ...p, partner_bio: e.target.value }))}
+                />
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 14 }}>
+                  <input
+                    type="checkbox"
+                    checked={partnerProfile.is_featured_partner}
+                    onChange={(e) => setPartnerProfile((p) => ({ ...p, is_featured_partner: e.target.checked }))}
+                  />
+                  Показывать первым на главной
+                </label>
+              </div>
+            ) : null}
 
             {saveError ? (
               <div role="alert" style={{ padding: '10px 12px', borderRadius: 10, background: '#fef2f2', color: '#991b1b', fontSize: 13 }}>

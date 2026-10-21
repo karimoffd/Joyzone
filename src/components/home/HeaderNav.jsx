@@ -1,3 +1,4 @@
+import { mailHref, phoneHref, socialLinks } from "../../utils/cmsLinks.js";
 import React, { useEffect, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
@@ -439,26 +440,26 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
             
             <div className="menu-sidebar-footer">
               <div className="menu-sidebar-contacts">
-                <a href="tel:+998711234567" className="menu-sidebar-contact-item">
+                <a href={phoneHref(cms.support_phone || cms.footer_phone)} className="menu-sidebar-contact-item">
                   <span className="icon"><IconPhone /></span>
                   <div className="text">
                     <small>Ishonch telefoni</small>
-                    <strong>+998 71 123 45 67</strong>
+                    <strong>{cms.support_phone || cms.footer_phone}</strong>
                   </div>
                 </a>
-                <a href="mailto:info@joyzone.uz" className="menu-sidebar-contact-item">
+                <a href={mailHref(cms.footer_email)} className="menu-sidebar-contact-item">
                   <span className="icon"><IconMail /></span>
                   <div className="text">
                     <small>Elektron pochta</small>
-                    <strong>info@joyzone.uz</strong>
+                    <strong>{cms.footer_email}</strong>
                   </div>
                 </a>
               </div>
               
               <div className="menu-sidebar-socials">
-                <a href="https://t.me/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Telegram</a>
-                <a href="https://instagram.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Instagram</a>
-                <a href="https://facebook.com/joyzone" target="_blank" rel="noreferrer" className="menu-social-btn-link">Facebook</a>
+                {socialLinks(cms).map(([type, label, href]) => (
+                  <a key={type} href={href} target="_blank" rel="noreferrer" className="menu-social-btn-link">{label}</a>
+                ))}
               </div>
 
               <div className="menu-sidebar-copyright">

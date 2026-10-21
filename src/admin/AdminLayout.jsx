@@ -32,6 +32,7 @@ const NAV = [
       { id: "tariffs", label: "Тарифы", icon: "layers" },
       { id: "categories", label: "Категории", icon: "tag" },
       { id: "content", label: "Контент сайта", icon: "edit" },
+      { id: "banners", label: "Баннеры", icon: "layers" },
       { id: "settings", label: "Настройки", icon: "settings" },
       { 
         id: "features_group",

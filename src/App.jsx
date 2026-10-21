@@ -113,6 +113,12 @@ function useUserState() {
   }, []);
 
   const updateState = (nextState) => {
+    // A late profile response must not resurrect a session that was logged
+    // out meanwhile (for example from another tab).
+    if (nextState.isAuthed && !getStorageItem(STORAGE_KEYS.auth.access)) {
+      setState(readState());
+      return;
+    }
     setState(nextState);
     try {
       if (nextState.isAuthed) {
@@ -195,8 +201,27 @@ function AppContent() {
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
   const [userState, setUserState] = useUserState();
-  const [banners, setBanners] = useState(slides);
-  // Language state moved to App component
+  const { lang } = React.useContext(LanguageContext);
+  const [remoteBanners, setRemoteBanners] = useState(null);
+
+  // Slider banners are managed in the admin panel (Контент → Баннеры). The
+  // bundled slides are only a fallback when the API is unreachable.
+  useEffect(() => {
+    api.get("/api/content/banners/", { skipAuth: true })
+      .then((res) => setRemoteBanners(Array.isArray(res.data) ? res.data : res.data?.results || []))
+      .catch(() => setRemoteBanners(null));
+  }, []);
+
+  const banners = React.useMemo(() => {
+    if (!remoteBanners?.length) return slides;
+    return remoteBanners.map((banner) => ({
+      id: banner.id,
+      eyebrow: banner[`eyebrow_${lang}`] || banner.eyebrow_uz,
+      title: banner[`title_${lang}`] || banner.title_uz,
+      image: banner.image,
+      link: banner.link,
+    }));
+  }, [remoteBanners, lang]);
 
   useEffect(() => {
     // Hide boot loader after short delay

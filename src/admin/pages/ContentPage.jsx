@@ -437,6 +437,46 @@ const CATEGORIES = [
     ]
   },
   {
+    id: "home_blocks",
+    label: "Главная: преимущества и FAQ",
+    fields: [
+      { key: "benefits_arr", label: "Преимущества (карточки)", type: "objectList", itemFields: [
+        { name: "title", label: "Заголовок" },
+        { name: "text", label: "Текст", multiline: true },
+        { name: "icon", label: "иконка: interface, search, building, shield, crown, megaphone, map" },
+      ], newItem: { title: "Новое преимущество", text: "", icon: "interface" } },
+      { key: "faq_arr", label: "Вопросы и ответы (FAQ)", type: "objectList", itemFields: [
+        { name: "question", label: "Вопрос" },
+        { name: "answer", label: "Ответ", multiline: true },
+      ], newItem: { question: "Новый вопрос", answer: "" } },
+    ]
+  },
+  {
+    id: "about_lists",
+    label: "О нас и партнёрам: списки",
+    fields: [
+      { key: "about_stats_arr", label: "О нас: цифры", type: "objectList", itemFields: [
+        { name: "value", label: "Значение (напр. 120+)" },
+        { name: "label", label: "Подпись" },
+      ], newItem: { value: "0", label: "" } },
+      { key: "about_values_arr", label: "О нас: ценности", type: "objectList", itemFields: [
+        { name: "title", label: "Заголовок" },
+        { name: "text", label: "Текст", multiline: true },
+        { name: "icon", label: "иконка: interface, search, building, shield, crown, megaphone, map" },
+      ], newItem: { title: "", text: "", icon: "map" } },
+      { key: "guide_steps_arr", label: "Инструкция партнёра: шаги", type: "objectList", itemFields: [
+        { name: "step", label: "Номер (01, 02…)" },
+        { name: "title", label: "Заголовок" },
+        { name: "text", label: "Текст", multiline: true },
+        { name: "deliverable", label: "Результат шага" },
+      ], newItem: { step: "07", title: "", text: "", deliverable: "" } },
+      { key: "partner_terms_arr", label: "Условия партнёрства", type: "objectList", itemFields: [
+        { name: "title", label: "Заголовок" },
+        { name: "text", label: "Текст", multiline: true },
+      ], newItem: { title: "", text: "" } },
+    ]
+  },
+  {
     id: "footer",
     label: "Подвал (Footer)",
     fields: [
@@ -444,6 +484,11 @@ const CATEGORIES = [
       { key: "footer_address", label: "Адрес", type: "text" },
       { key: "footer_phone", label: "Телефон", type: "text" },
       { key: "footer_email", label: "Email", type: "text" },
+      { key: "support_phone", label: "Телефон поддержки (боковое меню)", type: "text" },
+      { key: "social_telegram", label: "Telegram (ссылка)", type: "text" },
+      { key: "social_instagram", label: "Instagram (ссылка)", type: "text" },
+      { key: "social_facebook", label: "Facebook (ссылка)", type: "text" },
+      { key: "social_linkedin", label: "LinkedIn (ссылка, можно пусто)", type: "text" },
       { key: "footer_nav1", label: "Колонка Инфо", type: "text" },
       { key: "footer_nav2", label: "Колонка Сервисы", type: "text" },
       { key: "footer_link_about", label: "О нас", type: "text" },
@@ -462,6 +507,46 @@ const CATEGORIES = [
     ]
   }
 ];
+
+// Editor for CMS lists such as FAQ or benefits: each item is a small card of
+// text fields that can be added, removed and reordered.
+function ObjectListEditor({ field, items, onChange }) {
+  const update = (index, name, value) => onChange(items.map((item, i) => (i === index ? { ...item, [name]: value } : item)));
+  const move = (index, delta) => {
+    const target = index + delta;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+  };
+  return (
+    <div data-testid={`cms-list-${field.key}`} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {items.map((item, index) => (
+        <div key={index} className="link-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 8, padding: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <strong style={{ fontSize: 13, color: "#64748b" }}>#{index + 1}</strong>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button type="button" className="link-btn" onClick={() => move(index, -1)} disabled={index === 0} title="Выше">↑</button>
+              <button type="button" className="link-btn" onClick={() => move(index, 1)} disabled={index === items.length - 1} title="Ниже">↓</button>
+              <button type="button" className="link-btn link-btn-delete" onClick={() => onChange(items.filter((_, i) => i !== index))} title="Удалить">✕</button>
+            </div>
+          </div>
+          {field.itemFields.map((sub) => (
+            <label key={sub.name} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+              {sub.label}
+              {sub.multiline ? (
+                <textarea className="rich-input" rows={2} style={{ padding: "8px 12px", fontSize: 14, minHeight: 60 }} value={item?.[sub.name] ?? ""} onChange={(e) => update(index, sub.name, e.target.value)} />
+              ) : (
+                <input className="rich-input" style={{ padding: "8px 12px", fontSize: 14 }} value={item?.[sub.name] ?? ""} onChange={(e) => update(index, sub.name, e.target.value)} />
+              )}
+            </label>
+          ))}
+        </div>
+      ))}
+      <button type="button" className="add-link-btn" onClick={() => onChange([...items, { ...field.newItem }])}>+ Добавить</button>
+    </div>
+  );
+}
 
 export default function ContentPage() {
   const [lang, setLang] = useState("ru");
@@ -591,6 +676,12 @@ export default function ContentPage() {
                           value={data[field.key] || ''}
                           onChange={(e) => handleChange(field.key, e.target.value)}
                           rows={3}
+                        />
+                      ) : field.type === 'objectList' ? (
+                        <ObjectListEditor
+                          field={field}
+                          items={Array.isArray(data[field.key]) ? data[field.key] : []}
+                          onChange={(items) => handleChange(field.key, items)}
                         />
                       ) : field.type === 'linkList' ? (
                         <div className="link-list-editor" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

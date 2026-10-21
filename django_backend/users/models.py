@@ -14,6 +14,14 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='client')
     avatar = models.TextField(blank=True, null=True)
 
+    # Public partner profile shown in "Joyzone hamkorlari" and /agent-<id>.
+    company_name = models.CharField(max_length=150, blank=True)
+    partner_bio = models.TextField(blank=True)
+    is_featured_partner = models.BooleanField(
+        default=False,
+        help_text='Show this partner first in the home page partners block.',
+    )
+
     # Tariff info
     tariff = models.ForeignKey(
         'tariffs.TariffPlan',

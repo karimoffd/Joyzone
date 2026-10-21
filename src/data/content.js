@@ -229,36 +229,3 @@ export const partnerAgents = [
     tone: "#68a7a1"
   }
 ];
-
-export const joyBenefits = [
-  {
-    title: "Joyni tez tushunish",
-    text: "Rasm, narx, manzil, sig'im va qulayliklar birinchi ko'rinishdayoq aniq ko'rinadi.",
-    icon: "interface"
-  },
-  {
-    title: "Aqlli qidiruv",
-    text: "Shahar, format, narx va odam soni bo'yicha mos joylarni tez ajratib beradi.",
-    icon: "search"
-  },
-  {
-    title: "Hamkor kabineti",
-    text: "Partnerlar joy qo'shadi, tarif tanlaydi va so'rovlarni bitta kabinetda boshqaradi.",
-    icon: "building"
-  },
-  {
-    title: "Ishonch signallari",
-    text: "Reyting, sharhlar va tasdiqlangan profil foydalanuvchiga xavfsiz tanlov beradi.",
-    icon: "shield"
-  },
-  {
-    title: "Mos tariflar",
-    text: "Free, Bronze va Gold paketlari joy egasiga o'z o'sish bosqichini tanlash imkonini beradi.",
-    icon: "crown"
-  },
-  {
-    title: "Ko'rinishni oshirish",
-    text: "Reklama, tavsiya bloklari va yuqori joylashuv orqali obyekt ko'proq mijozga chiqadi.",
-    icon: "megaphone"
-  }
-];

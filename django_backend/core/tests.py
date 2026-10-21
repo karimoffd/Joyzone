@@ -344,3 +344,25 @@ class SitemapTests(TestCase):
         self.assertIn('<loc>https://joyzone.uz/</loc>', body)
         self.assertIn(f'<loc>https://joyzone.uz/space-{approved.id}</loc>', body)
         self.assertNotIn(f'/space-{hidden.id}<', body)
+
+
+class AdminOverviewRevenueChartTests(TestCase):
+    def test_revenue_chart_sums_paid_payments_by_period(self):
+        User = get_user_model()
+        admin = User.objects.create_user(username='chart-admin', password='pass', role='admin')
+        payer = User.objects.create_user(username='chart-payer', password='pass')
+        Payment.objects.create(user=payer, amount='150000', status='test_paid')
+        Payment.objects.create(user=payer, amount='50000', status='test_paid')
+        Payment.objects.create(user=payer, amount='999999', status='created')
+        client = APIClient()
+        client.force_authenticate(admin)
+
+        response = client.get('/api/admin/overview/')
+
+        self.assertEqual(response.status_code, 200)
+        chart = response.data['revenue_chart']
+        self.assertEqual(len(chart['week']), 7)
+        self.assertEqual(len(chart['month']), 5)
+        self.assertEqual(len(chart['quarter']), 3)
+        self.assertEqual(chart['week'][-1]['value'], 200000)
+        self.assertEqual(chart['quarter'][-1]['value'], 200000)

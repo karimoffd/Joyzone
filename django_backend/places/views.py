@@ -617,6 +617,21 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 raise ValidationError({'user': 'A valid numeric user id is required.'})
             qs = qs.filter(user_id=user_id)
 
+        if not is_admin_or_moderator(self.request.user):
+            qs = qs.filter(place__status='approved')
+
+        min_rating = self.request.query_params.get('min_rating')
+        if min_rating:
+            if not _is_int_like(min_rating):
+                raise ValidationError({'min_rating': 'min_rating must be a number from 1 to 5.'})
+            qs = qs.filter(rating__gte=int(min_rating))
+
+        limit = self.request.query_params.get('limit')
+        if limit and self.action == 'list':
+            if not _is_int_like(limit):
+                raise ValidationError({'limit': 'limit must be a number.'})
+            qs = qs.order_by('-created_at')[:max(1, min(int(limit), 50))]
+
         return qs
 
     def get_permissions(self):

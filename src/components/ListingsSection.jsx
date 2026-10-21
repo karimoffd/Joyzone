@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 import { NoteIcon } from "./ui/Shared.jsx";
-import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
+import { partnerAgents, propertyCards } from "../data/content.js";
 import api, { getApiErrorMessage } from "../api/client.js";
 import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
 import { getPlacesFromApiResponse, normalizePlace, slugifyPlaceTitle } from "../utils/placeMapper.js";
 import logoImage from "../assets/img/Logo.png";
+import { cmsList, mailHref, phoneHref, socialLinks } from "../utils/cmsLinks.js";
 import "./ListingsSection.css";
 import "./CardVariants.css";
 
@@ -19,8 +20,35 @@ function getSpaceHref(place = {}) {
   return `/space-${routeKey}`;
 }
 
-function getAgentHref(name) {
-  return `/agent-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+const AGENT_TONES = ["#294a6d", "#e46630", "#1f78d1", "#00a86b", "#7b3ff2", "#c4332c", "#68a7a1", "#f6c445"];
+const AGENT_PHOTO_PLACEHOLDER = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=200&q=80";
+
+// Partners come from /api/partners/ (real partners with approved places).
+// The bundled demo agents are shown only in local development.
+function usePublicPartners() {
+  const [partners, setPartners] = useState(() => (import.meta.env.DEV ? null : []));
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/api/partners/", { params: { limit: 12 }, skipAuth: true })
+      .then((res) => { if (!cancelled) setPartners(Array.isArray(res.data) ? res.data : []); })
+      .catch(() => { if (!cancelled) setPartners([]); });
+    return () => { cancelled = true; };
+  }, []);
+  return useMemo(() => {
+    const list = partners?.length ? partners : (import.meta.env.DEV ? partnerAgents.map((agent, index) => ({ ...agent, id: `demo-${index}` })) : []);
+    return list.map((partner, index) => ({
+      id: partner.id,
+      name: partner.name,
+      service: partner.bio ?? partner.service ?? "",
+      city: partner.city || "",
+      spaces: partner.places_count ?? partner.spaces ?? 0,
+      rating: partner.rating_avg ?? partner.rating ?? 0,
+      reviews: partner.reviews_count ?? partner.reviews ?? 0,
+      image: partner.avatar || partner.cover_image || AGENT_PHOTO_PLACEHOLDER,
+      tone: partner.tone || AGENT_TONES[index % AGENT_TONES.length],
+      href: `/agent-${partner.id}`,
+    }));
+  }, [partners]);
 }
 
 const DURATION_LABELS = {
@@ -229,23 +257,13 @@ function CatalogTrail() {
 }
 
 function PartnerAgents({ cms = {} }) {
+  const agents = usePublicPartners();
   const [active, setActive] = useState(0);
   const [visible, setVisible] = useState(4);
   const sectionRef = useRef(null);
   const viewportRef = useRef(null);
   const timerRef = useRef(null);
-  const maxStart = Math.max(0, partnerAgents.length - visible);
-  
-  const partnerImages = [
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=200&q=80",
-    "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=200&q=80"
-  ];
+  const maxStart = Math.max(0, agents.length - visible);
 
   useEffect(() => {
     const updateVisible = () => {
@@ -277,7 +295,7 @@ function PartnerAgents({ cms = {} }) {
       { y: 0, opacity: 1, scale: 1, duration: 0.56, stagger: 0.05, ease: "power3.out" }
     );
     return undefined;
-  }, []);
+  }, [agents.length]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -312,6 +330,8 @@ function PartnerAgents({ cms = {} }) {
     setActive(index);
   };
 
+  if (!agents.length) return null;
+
   return (
     <section ref={sectionRef} className="agents-showcase" id="agents">
       <div className="agents-head">
@@ -325,16 +345,16 @@ function PartnerAgents({ cms = {} }) {
       </div>
       <div ref={viewportRef} className="agents-viewport">
         <div className="agents-track">
-          {partnerAgents.map((agent, index) => {
+          {agents.map((agent, index) => {
             return (
               <article
-                key={`${agent.name}-${index}`}
+                key={agent.id}
                 className={`agent-card ${index >= active && index < active + visible ? "is-visible" : ""}`}
                 style={{ "--brand-tone": agent.tone }}
               >
                 <div className="brand-card-top">
                   <div className="brand-logo-mark" aria-hidden="true">
-                    <img src={partnerImages[index % partnerImages.length]} alt={agent.name} loading="lazy" />
+                    <img src={agent.image} alt={agent.name} loading="lazy" />
                   </div>
                   <span className="brand-badge">{cms.agent_premium || "Premium hamkor"}</span>
                 </div>
@@ -346,7 +366,7 @@ function PartnerAgents({ cms = {} }) {
                   <span>{agent.rating}</span>
                   <p>{agent.reviews} {cms.agent_reviews || "ta sharh"}</p>
                 </div>
-                <a className="agent-bottom-btn" href={getAgentHref(agent.name)} aria-label={`${agent.name} profilini ochish`}>
+                <a className="agent-bottom-btn" href={agent.href} aria-label={`${agent.name} profilini ochish`}>
                   <span className="agent-btn-text">{cms.agent_profile || "Profil"}</span>
                   <strong className="agent-btn-count">{agent.spaces}</strong>
                 </a>
@@ -371,7 +391,7 @@ function PartnerAgents({ cms = {} }) {
             />
           ))}
         </div>
-        <button type="button" className="agent-arrow" onClick={() => chooseAgent((active + 1) % partnerAgents.length)} aria-label="Keyingi agent">
+        <button type="button" className="agent-arrow" onClick={() => chooseAgent((active + 1) % agents.length)} aria-label="Keyingi agent">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </button>
       </div>
@@ -433,7 +453,7 @@ export function BenefitsSection({ cms = {} }) {
         <p>{cms.about_text || "Har kim uchun oddiy va qulay platforma"}</p>
       </div>
       <div className="benefits-grid bento">
-        {joyBenefits.map((benefit, index) => (
+        {cmsList(cms, "benefits_arr").map((benefit, index) => (
           <article key={benefit.title} className={`benefit-bento-card card-index-${index}`}>
             <div className="benefit-bento-icon">
               <BenefitIcon type={benefit.icon} />
@@ -580,25 +600,6 @@ const reviewHighlights = [
   }
 ];
 
-const faqItems = [
-  {
-    question: "Obyektimni Joyzone'ga qo'sha olamanmi?",
-    answer: "Ha. Partner sifatida ro'yxatdan o'tib, ofis, kovorking, zal yoki boshqa joyingizni kabinet orqali moderatsiyaga yuborasiz."
-  },
-  {
-    question: "Joylar xaritada ko'rinadimi?",
-    answer: "Joy manzili va hududi kartochkada ko'rinadi. Keyingi bosqichda xarita orqali yaqin joylarni tez tanlash oqimi ham qo'shiladi."
-  },
-  {
-    question: "Bron qilish qanday ishlaydi?",
-    answer: "Mijoz kerakli joyni tanlaydi, sanani yoki vaqtni belgilaydi va so'rov yuboradi. Partner kabinetda so'rovni tasdiqlaydi."
-  },
-  {
-    question: "Partnerlar uchun tariflar bormi?",
-    answer: "Ha, joy egasi o'sish bosqichiga qarab oddiy joylashtirish yoki ko'proq ko'rinish beradigan paketlarni tanlashi mumkin."
-  }
-];
-
 export function ReviewsFaqSection({ cms = {} }) {
   const [openIndex, setOpenIndex] = useState(0);
   const [firstReview, setFirstReview] = useState(0);
@@ -623,11 +624,34 @@ export function ReviewsFaqSection({ cms = {} }) {
     return () => observer.disconnect();
   }, []);
 
+  // Real 4-5 star reviews of approved places; demo quotes only in local dev.
+  const [reviews, setReviews] = useState(() => (import.meta.env.DEV ? reviewHighlights : []));
   useEffect(() => {
+    let cancelled = false;
+    api.get("/api/reviews/", { params: { min_rating: 4, limit: 12 }, skipAuth: true })
+      .then((res) => {
+        if (cancelled) return;
+        const rows = getPlacesFromApiResponse(res.data);
+        if (rows.length || !import.meta.env.DEV) {
+          setReviews(rows.map((review, index) => ({
+            id: review.id,
+            name: review.user_name,
+            text: review.comment,
+            rating: review.rating,
+            tone: index % 2 ? "dark" : "light",
+          })));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (reviews.length < 2) return undefined;
     const timer = window.setInterval(() => {
       setIsReviewSliding(true);
       reviewTimeoutRef.current = window.setTimeout(() => {
-        setFirstReview((current) => (current + 1) % reviewHighlights.length);
+        setFirstReview((current) => (current + 1) % reviews.length);
         setIsReviewSliding(false);
       }, 560);
     }, 3400);
@@ -638,37 +662,37 @@ export function ReviewsFaqSection({ cms = {} }) {
         window.clearTimeout(reviewTimeoutRef.current);
       }
     };
-  }, []);
+  }, [reviews.length]);
 
-  const visibleReviews = Array.from({ length: 4 }, (_, position) => ({
+  const visibleReviews = Array.from({ length: Math.min(4, reviews.length) }, (_, position) => ({
     position,
-    review: reviewHighlights[(firstReview + position) % reviewHighlights.length]
+    review: reviews[(firstReview + position) % reviews.length]
   }));
 
   return (
     <section ref={sectionRef} className="reviews-faq-section" id="faq">
       <div className="reviews-faq-inner">
-        <div className="reviews-panel" aria-label="Joyzone foydalanuvchi sharhlari">
+        {visibleReviews.length ? <div className="reviews-panel" aria-label="Joyzone foydalanuvchi sharhlari">
           <div className="reviews-label">{cms.rev_title || "Sharhlar"}</div>
           <div className={`review-stage ${isReviewSliding ? "is-sliding" : ""}`}>
             {visibleReviews.map(({ review, position }) => (
               <article
-                key={review.name}
+                key={`${review.id ?? review.name}-${position}`}
                 className={`review-bubble review-position-${position} ${review.tone === "dark" ? "is-dark" : ""}`}
               >
                 <strong>{review.name}</strong>
                 <p>{review.text}</p>
-                <span aria-label="5 yulduzli baho">★★★★★</span>
+                <span aria-label={`${review.rating || 5} yulduzli baho`}>{"★".repeat(review.rating || 5)}</span>
               </article>
             ))}
           </div>
-        </div>
+        </div> : null}
 
         <div className="faq-panel">
           <p className="section-kicker">{cms.faq_kicker || "FAQ"}</p>
           <h2>{cms.faq_title || "Qisqacha asosiylari"}</h2>
           <div className="faq-list">
-            {faqItems.map((item, index) => {
+            {cmsList(cms, "faq_arr").map((item, index) => {
               const isOpen = openIndex === index;
               return (
                 <article key={item.question} className={`faq-item ${isOpen ? "is-open" : ""}`}>
@@ -749,12 +773,7 @@ export function FooterQuestionStrip() {
 }
 
 export function JoyFooter({ cms = {} }) {
-  const socials = [
-    ["instagram", "#instagram"],
-    ["facebook", "#facebook"],
-    ["telegram", "#telegram"],
-    ["linkedin", "#linkedin"]
-  ];
+  const socials = socialLinks(cms).map(([type, , href]) => [type, href]);
 
   return (
     <footer className="joy-footer-section" id="contact">
@@ -766,11 +785,11 @@ export function JoyFooter({ cms = {} }) {
           <a href="/" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
             <img src={logoImage} alt="Joyzone" />
           </a>
-          <a href="tel:+998770444000" className="joy-footer-contact">
+          <a href={phoneHref(cms.footer_phone)} className="joy-footer-contact">
             <FooterIcon type="phone" />
             {cms.footer_phone || "+998 77 044 40 00"}
           </a>
-          <a href="mailto:info@joyzone.uz" className="joy-footer-contact">
+          <a href={mailHref(cms.footer_email)} className="joy-footer-contact">
             <FooterIcon type="mail" />
             {cms.footer_email || "info@joyzone.uz"}
           </a>

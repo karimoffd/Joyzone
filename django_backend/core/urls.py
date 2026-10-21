@@ -8,6 +8,7 @@ from bookings.views import BookingViewSet
 from payments.views import FinanceSummaryView, FinanceTransactionsView
 from core.views import AdminOverviewView, AuditLogListView
 from core.seo import sitemap_xml
+from places.partners import PartnerDetailView, PartnerListView
 
 router = DefaultRouter()
 router.register(r'places', PlaceViewSet, basename='place')
@@ -33,6 +34,8 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('api/admin/overview/', AdminOverviewView.as_view(), name='admin-overview'),
     path('api/audit-logs/', AuditLogListView.as_view(), name='audit-log-list'),
+    path('api/partners/', PartnerListView.as_view(), name='partner-list'),
+    path('api/partners/<int:pk>/', PartnerDetailView.as_view(), name='partner-detail'),
     path('api/favorites/', favorite_list, name='favorite-list'),
     path('api/favorites/toggle/', favorite_toggle, name='favorite-toggle'),
     path('api/favorites/merge/', favorite_merge, name='favorite-merge'),

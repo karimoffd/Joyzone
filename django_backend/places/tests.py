@@ -899,3 +899,67 @@ class FavoriteApiTests(TestCase):
         response = self.client.post('/api/favorites/merge/', {'token': 'guest-token'}, format='json')
 
         self.assertIn(response.status_code, (401, 403))
+
+
+class PublicPartnerApiTests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        User = get_user_model()
+        self.client = APIClient()
+        self.partner = User.objects.create_user(
+            username='+998901234001', password='pass', role='partner',
+            company_name='Acme Offices', partner_bio='Ofislar', is_featured_partner=True,
+        )
+        self.no_places = User.objects.create_user(username='+998901234002', password='pass', role='partner')
+        self.pending_only = User.objects.create_user(username='+998901234003', password='pass', role='partner')
+        self.client_user = User.objects.create_user(username='+998901234004', password='pass', role='client')
+        self.place = Place.objects.create(owner=self.partner, title='Acme Hub', location='Toshkent', area=50, people=10, status='approved', images=['https://example.com/a.jpg'])
+        Place.objects.create(owner=self.partner, title='Hidden', location='Toshkent', area=10, people=2, status='pending')
+        Place.objects.create(owner=self.pending_only, title='Pending', location='Toshkent', area=10, people=2, status='pending')
+        Review.objects.create(user=self.client_user, place=self.place, rating=4, comment='Yaxshi')
+
+    def test_list_shows_only_partners_with_approved_places_without_phone(self):
+        response = self.client.get('/api/partners/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['id'] for item in response.data], [self.partner.id])
+        item = response.data[0]
+        self.assertEqual(item['name'], 'Acme Offices')
+        self.assertEqual(item['places_count'], 1)
+        self.assertEqual(item['reviews_count'], 1)
+        self.assertEqual(item['rating_avg'], 4.0)
+        self.assertEqual(item['cover_image'], 'https://example.com/a.jpg')
+        self.assertNotIn('username', item)
+        self.assertNotIn('phone_number', item)
+
+    def test_detail_lists_only_approved_places_and_reviews(self):
+        response = self.client.get(f'/api/partners/{self.partner.id}/')
+        hidden = self.client.get(f'/api/partners/{self.pending_only.id}/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([place['title'] for place in response.data['places']], ['Acme Hub'])
+        self.assertEqual(len(response.data['reviews']), 1)
+        self.assertEqual(hidden.status_code, 404)
+
+
+class PublicReviewsFilterTests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        User = get_user_model()
+        self.client = APIClient()
+        owner = User.objects.create_user(username='review-owner', password='pass', role='partner')
+        author = User.objects.create_user(username='review-author', password='pass', role='client')
+        approved = Place.objects.create(owner=owner, title='Open', location='T', area=10, people=2, status='approved')
+        pending = Place.objects.create(owner=owner, title='Hidden', location='T', area=10, people=2, status='pending')
+        Review.objects.create(user=author, place=approved, rating=5, comment='Zo\'r')
+        Review.objects.create(user=author, place=approved, rating=2, comment='Yomon')
+        Review.objects.create(user=author, place=pending, rating=5, comment='Yashirin')
+
+    def test_public_list_hides_unapproved_places_and_filters_rating(self):
+        response = self.client.get('/api/reviews/?min_rating=4&limit=5')
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        self.assertEqual([row['comment'] for row in rows], ["Zo'r"])

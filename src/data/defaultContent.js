@@ -1,4 +1,6 @@
-export const defaultContent = {
+import { defaultLists } from "./defaultLists.js";
+
+const baseContent = {
   uz: {
     nav_links_arr: [
       { label: "Bosh sahifa", href: "/" },
@@ -315,3 +317,7 @@ export const defaultContent = {
     sms_booking_cancel: "Your booking is canceled.",
   }
 };
+
+export const defaultContent = Object.fromEntries(
+  Object.entries(baseContent).map(([lang, values]) => [lang, { ...values, ...defaultLists[lang] }]),
+);

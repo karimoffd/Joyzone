@@ -2,144 +2,28 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
-import { partnerAgents, propertyCards } from "../data/content.js";
-import api from "../api/client.js";
-import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
-import "./AgentDetail.css";
+import { partnerAgents } from "../data/content.js";
+import api, { getApiErrorMessage } from "../api/client.js";
+import { normalizePlace } from "../utils/placeMapper.js";
+import { useSiteContent } from "../context/LanguageContext.jsx";
+import { mailHref } from "../utils/cmsLinks.js";
+import { setPageMeta } from "../utils/seo.js";
 
-const slugify = (text) =>
-  text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+const PHOTO_PLACEHOLDER = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86";
 
-const routeToSlug = (hash) => hash.replace(/^agent-/, "");
-
-const agentPhotos = [
-  "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=86",
-  "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=86"
-];
-
-const profileExtras = [
-  {
-    year: "2010",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "2 yil 7 oy",
-    response: "12 daqiqa",
-    verified: "Tasdiqlangan korporativ agent",
-    role: "Korporativ ofislar kuratori"
-  },
-  {
-    year: "2019",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "1 yil 11 oy",
-    response: "18 daqiqa",
-    verified: "Startup hub partneri",
-    role: "Kovorking va meeting room menejeri"
-  },
-  {
-    year: "2017",
-    languages: ["Uzbek", "Russian"],
-    joined: "1 yil 5 oy",
-    response: "24 daqiqa",
-    verified: "Kreativ maydonlar operatori",
-    role: "Jamoaviy ish joylari bo'yicha agent"
-  },
-  {
-    year: "2011",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "1 yil 2 oy",
-    response: "31 daqiqa",
-    verified: "Showroom va trening zallari",
-    role: "Tadbir va prezentatsiya zonalari agenti"
-  },
-  {
-    year: "2020",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "9 oy",
-    response: "16 daqiqa",
-    verified: "Premium loyiha xonalari",
-    role: "Ofis bloklari koordinatori"
-  },
-  {
-    year: "2021",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "8 oy",
-    response: "14 daqiqa",
-    verified: "Bank meeting room partneri",
-    role: "Premium muzokara xonalari agenti"
-  },
-  {
-    year: "2006",
-    languages: ["Uzbek", "Russian"],
-    joined: "1 yil",
-    response: "27 daqiqa",
-    verified: "Event space operatori",
-    role: "Brend zonalar va tadbirlar agenti"
-  },
-  {
-    year: "2018",
-    languages: ["Uzbek", "Russian", "English"],
-    joined: "1 yil 8 oy",
-    response: "20 daqiqa",
-    verified: "Seminar maydonlari partneri",
-    role: "Konferensiya zallari kuratori"
-  }
-];
-
-const reviewBank = [
-  {
-    name: "Dilshod Karimov",
-    date: "May 2026",
-    text: "Agent juda tez javob berdi. Ofisni ko'rish, shartlar va kirish qoidalari birinchi xabardayoq aniq bo'ldi.",
-    rating: "5.0"
-  },
-  {
-    name: "Madina Saidova",
-    date: "April 2026",
-    text: "Meeting room toza, yorug' va texnika tayyor edi. Bron jarayoni ortiqcha savollarsiz o'tdi.",
-    rating: "4.9"
-  },
-  {
-    name: "Azizbek Nurmatov",
-    date: "April 2026",
-    text: "Jamoamiz uchun kovorking joyini bir kunda topdik. Agent narx va vaqt bo'yicha mos variant taklif qildi.",
-    rating: "5.0"
-  },
-  {
-    name: "Sevara Tursunova",
-    date: "March 2026",
-    text: "Hudud, parking va kirish masalalarini oldindan tushuntirib berdi. Rasmlardagi holat real joyga mos keldi.",
-    rating: "4.8"
-  },
-  {
-    name: "Temur Olimov",
-    date: "February 2026",
-    text: "Bir nechta zalni solishtirib berdi, vaqtimizni tejadi. Keyingi seminar uchun ham shu agent bilan ishlaymiz.",
-    rating: "4.9"
-  },
-  {
-    name: "Lola Akramova",
-    date: "January 2026",
-    text: "Korporativ mijozlar bilan ishlash madaniyati yaxshi. Hujjatlar va to'lov bo'yicha hammasi tartibli.",
-    rating: "5.0"
-  }
-];
-
-function findAgentByRoute(route) {
-  const targetSlug = routeToSlug(route);
-  const index = partnerAgents.findIndex((agent) => slugify(agent.name) === targetSlug);
-  return {
-    agent: partnerAgents[index] || partnerAgents[0],
-    index: index >= 0 ? index : 0
-  };
+function formatReviewDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("ru-RU");
 }
+
+// Route is agent-<partner id>. Old demo slugs (agent-it-park) only resolve in dev.
+function demoPartner(route) {
+  const slug = route.replace(/^agent-/, "");
+  const index = Math.max(0, partnerAgents.findIndex((agent) => agent.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") === slug));
+  const agent = partnerAgents[index];
+  return { id: slug, name: agent.name, bio: agent.service, city: agent.city, places_count: agent.spaces, rating_avg: agent.rating, reviews_count: agent.reviews, places: [], reviews: [] };
+}
+import "./AgentDetail.css";
 
 function AgentIcon({ type }) {
   const paths = {
@@ -222,48 +106,72 @@ function AgentReviews({ reviews }) {
 }
 
 function AgentDetail({ route, userState, setUserState }) {
-  const { agent, index } = useMemo(() => findAgentByRoute(route), [route]);
-  const extra = profileExtras[index % profileExtras.length];
-  const image = agentPhotos[index % agentPhotos.length];
-  const [agentSpaces, setAgentSpaces] = useState([]);
-  const [usingDevFallback, setUsingDevFallback] = useState(false);
+  const { cms } = useSiteContent();
+  const partnerId = route.replace(/^agent-/, "");
+  const [partner, setPartner] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
-    api.get("/api/places/", { skipAuth: true })
-      .then((res) => {
-        if (cancelled) return;
-        const spaces = getPlacesFromApiResponse(res.data).map(normalizePlace);
-        setAgentSpaces(spaces.slice(0, 4));
-        setUsingDevFallback(false);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        if (import.meta.env.DEV) {
-          // Dev fallback keeps legacy agent pages populated while backend places are unavailable.
-          const selected = propertyCards.filter((_, cardIndex) => (cardIndex + index) % 2 === 0);
-          setAgentSpaces((selected.length >= 3 ? selected : propertyCards).map(normalizePlace).slice(0, 4));
-          setUsingDevFallback(true);
-        } else {
-          setAgentSpaces([]);
-          setUsingDevFallback(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [index]);
-  const reviews = useMemo(
-    () => reviewBank.map((review, reviewIndex) => ({ ...review, rating: reviewIndex % 2 === index % 2 ? agent.rating : review.rating })),
-    [agent.rating, index]
-  );
+    setPartner(null);
+    setError("");
+    if (!/^\d+$/.test(partnerId)) {
+      if (import.meta.env.DEV) setPartner(demoPartner(route));
+      else setError("Hamkor topilmadi.");
+      return undefined;
+    }
+    api.get(`/api/partners/${partnerId}/`, { skipAuth: true })
+      .then((res) => { if (!cancelled) setPartner(res.data); })
+      .catch((err) => { if (!cancelled) setError(getApiErrorMessage(err, "Hamkor topilmadi.")); });
+    return () => { cancelled = true; };
+  }, [partnerId, route]);
+
+  const agent = useMemo(() => ({
+    name: partner?.name || "",
+    service: partner?.bio || "",
+    city: partner?.city || "",
+    rating: partner?.rating_avg || 0,
+    reviews: partner?.reviews_count || 0,
+    spaces: partner?.places_count || 0,
+    tone: "#294a6d",
+  }), [partner]);
+  const image = partner?.avatar || partner?.cover_image || PHOTO_PLACEHOLDER;
+  const agentSpaces = useMemo(() => (partner?.places || []).map(normalizePlace), [partner]);
+  const reviews = useMemo(() => (partner?.reviews || []).map((review) => ({
+    name: review.user_name,
+    date: formatReviewDate(review.created_at),
+    text: review.comment,
+    rating: review.rating,
+  })), [partner]);
+  const firstPlaceHref = agentSpaces[0]?.href || "/filter";
+
+  useEffect(() => {
+    if (partner?.name) setPageMeta({ title: `${partner.name} — Joyzone hamkori`, description: partner.bio, image });
+  }, [partner, image]);
 
   const profileStats = [
-    { icon: "calendar", label: "Год основания", value: extra.year },
-    { icon: "city", label: "Город", value: agent.city },
-    { icon: "language", label: "Языки", value: extra.languages.join(", ") },
-    { icon: "clock", label: "У нас", value: extra.joined }
+    { icon: "city", label: "Shahar", value: agent.city || "—" },
+    { icon: "flag", label: "Faol e'lonlar", value: agent.spaces },
+    { icon: "star", label: "Reyting", value: agent.rating || "—" },
+    { icon: "review", label: "Sharhlar", value: agent.reviews },
   ];
+
+  const shareProfile = () => {
+    if (navigator.share) navigator.share({ title: agent.name, url: window.location.href }).catch(() => {});
+    else navigator.clipboard?.writeText(window.location.href);
+  };
+
+  if (error || !partner) {
+    return (
+      <main className="agent-detail-shell">
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={0} />
+        <section className="agent-detail-hero">
+          <p style={{ color: error ? "#dc2626" : "#64748b", fontWeight: 700 }}>{error || "Yuklanmoqda..."}</p>
+        </section>
+        <JoyFooter cms={cms} />
+      </main>
+    );
+  }
 
   return (
     <main className="agent-detail-shell">
@@ -273,14 +181,13 @@ function AgentDetail({ route, userState, setUserState }) {
         <div className="agent-hero-card">
           <div className="agent-hero-photo">
             <img src={image} alt={agent.name} />
-            <span>{extra.verified}</span>
           </div>
           <div className="agent-hero-copy">
-            <p className="agent-kicker">Joyzone agent</p>
+            <p className="agent-kicker">Joyzone hamkori</p>
             <h1>{agent.name}</h1>
             <p>{agent.service}</p>
             <div className="agent-hero-actions">
-              <a href="/login">Bog'lanish</a>
+              <a href={firstPlaceHref}>Bog'lanish</a>
               <a href="/filter">Bo'sh joylarni ko'rish</a>
             </div>
           </div>
@@ -290,14 +197,13 @@ function AgentDetail({ route, userState, setUserState }) {
           <div className="agent-avatar-mark" style={{ "--agent-tone": agent.tone }}>
             {agent.name.slice(0, 2)}
           </div>
-          <h2>{extra.role}</h2>
+          <h2>{agent.name}</h2>
           <div className="agent-rating-row">
             <strong><AgentIcon type="star" /> {agent.rating}</strong>
             <span>{agent.reviews} ta sharh</span>
           </div>
           <div className="agent-quick-facts">
-            <span><AgentIcon type="shield" /> Hujjatlari tekshirilgan</span>
-            <span><AgentIcon type="clock" /> O'rtacha javob: {extra.response}</span>
+            <span><AgentIcon type="shield" /> Joylari moderatsiyadan o'tgan</span>
             <span><AgentIcon type="flag" /> {agent.spaces} ta faol e'lon</span>
           </div>
         </aside>
@@ -314,16 +220,15 @@ function AgentDetail({ route, userState, setUserState }) {
           ))}
         </section>
 
-        <AgentReviews reviews={reviews} />
+        {reviews.length ? <AgentReviews reviews={reviews} /> : null}
 
         <section className="agent-detail-section">
           <div className="agent-section-head">
             <div>
               <span>E'lonlar</span>
               <h2>Bu agent joylari</h2>
-              {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
             </div>
-            <a className="agent-section-link" href="/filter">Barchasini ko'rish</a>
+
           </div>
           <div className="agent-listings-grid">
             {agentSpaces.length > 0 ? (
@@ -343,11 +248,11 @@ function AgentDetail({ route, userState, setUserState }) {
             <p>Maydon ko'rigi, bron va hujjat masalalarini bitta joyda kelishtiring. Joyzone profili orqali barcha muloqot tarixini saqlab borasiz.</p>
           </div>
           <div className="agent-safety-actions">
-            <button type="button">
+            <a href={mailHref(cms.footer_email) ? `${mailHref(cms.footer_email)}?subject=${encodeURIComponent(`Shikoyat: ${agent.name}`)}` : undefined}>
               <AgentIcon type="report" />
               Пожаловаться на агента
-            </button>
-            <button type="button">
+            </a>
+            <button type="button" onClick={shareProfile}>
               <AgentIcon type="share" />
               Поделиться профилем
             </button>
@@ -355,7 +260,7 @@ function AgentDetail({ route, userState, setUserState }) {
         </section>
       </div>
 
-      <JoyFooter />
+      <JoyFooter cms={cms} />
     </main>
   );
 }

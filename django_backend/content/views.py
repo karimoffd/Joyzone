@@ -2,10 +2,11 @@ import json
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import permissions, serializers, status
+from rest_framework import permissions, serializers, status, viewsets
 from drf_spectacular.utils import extend_schema, inline_serializer
-from core.permissions import IsAdminOrModerator
-from .models import SiteContent
+from core.permissions import IsAdminOrModerator, is_admin_or_moderator
+from .models import Banner, SiteContent
+from .serializers import BannerSerializer
 
 
 LANG_FIELDS = {
@@ -108,3 +109,21 @@ class ContentView(APIView):
             return Response({"error": "Invalid content data", "fields": errors}, status=status.HTTP_400_BAD_REQUEST)
             
         return Response({"status": "success"})
+
+
+class BannerViewSet(viewsets.ModelViewSet):
+    """Public read of active banners; admins and moderators manage all of them."""
+
+    serializer_class = BannerSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.AllowAny()]
+        return [IsAdminOrModerator()]
+
+    def get_queryset(self):
+        queryset = Banner.objects.all()
+        if not is_admin_or_moderator(self.request.user):
+            queryset = queryset.filter(is_active=True)
+        return queryset

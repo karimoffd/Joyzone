@@ -75,3 +75,40 @@ class ContentPermissionTests(TestCase):
 
         self.assertEqual(bad_lang.status_code, 400)
         self.assertEqual(bad_key.status_code, 400)
+
+
+class BannerApiTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from rest_framework.test import APIClient
+        from .models import Banner
+
+        User = get_user_model()
+        self.client = APIClient()
+        self.admin = User.objects.create_user(username='banner-admin', password='pass', role='admin')
+        self.user = User.objects.create_user(username='banner-user', password='pass', role='client')
+        Banner.objects.all().delete()
+        self.active = Banner.objects.create(title_uz='Active', image='https://example.com/a.jpg', order=1)
+        self.hidden = Banner.objects.create(title_uz='Hidden', image='https://example.com/b.jpg', is_active=False)
+
+    def test_public_sees_only_active_banners(self):
+        response = self.client.get('/api/content/banners/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['title_uz'] for item in response.data], ['Active'])
+
+    def test_admin_manages_banners_and_client_cannot(self):
+        self.client.force_authenticate(self.user)
+        denied = self.client.post('/api/content/banners/', {'title_uz': 'X', 'image': 'https://example.com/x.jpg'}, format='json')
+        self.assertEqual(denied.status_code, 403)
+
+        self.client.force_authenticate(self.admin)
+        listing = self.client.get('/api/content/banners/')
+        created = self.client.post('/api/content/banners/', {'title_uz': 'New', 'image': 'https://example.com/n.jpg', 'order': 0}, format='json')
+        updated = self.client.patch(f'/api/content/banners/{self.hidden.id}/', {'is_active': True}, format='json')
+        deleted = self.client.delete(f'/api/content/banners/{self.active.id}/')
+
+        self.assertEqual(len(listing.data), 2)
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(deleted.status_code, 204)

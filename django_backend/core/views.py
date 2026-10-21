@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, Q, Sum
 from django.utils.dateparse import parse_date
@@ -98,6 +99,7 @@ class AdminOverviewView(APIView):
                 'latest_bookings': serializers.ListField(child=serializers.DictField()),
                 'latest_reviews': serializers.ListField(child=serializers.DictField()),
                 'top_places': serializers.ListField(child=serializers.DictField()),
+                'revenue_chart': serializers.DictField(),
             },
         ),
         tags=['admin'],
@@ -148,7 +150,43 @@ class AdminOverviewView(APIView):
             'latest_bookings': [_latest_booking_item(booking) for booking in latest_bookings],
             'latest_reviews': [_latest_review_item(review) for review in latest_reviews],
             'top_places': [_top_place_item(place) for place in top_places],
+            'revenue_chart': _revenue_chart(now, paid_statuses),
         })
+
+
+WEEKDAY_LABELS = ('Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс')
+MONTH_LABELS = ('Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек')
+
+
+def _revenue_chart(now, paid_statuses):
+    """Paid revenue for the admin overview chart: 7 days, 30 days, 3 months."""
+    today = timezone.localdate(now)
+    since = today - timedelta(days=92)
+    by_day = {}
+    payments = Payment.objects.filter(status__in=paid_statuses, created_at__date__gte=since)
+    for created_at, amount in payments.values_list('created_at', 'amount'):
+        day = timezone.localtime(created_at).date()
+        by_day[day] = by_day.get(day, 0) + float(amount or 0)
+
+    week = []
+    for offset in range(6, -1, -1):
+        day = today - timedelta(days=offset)
+        week.append({'label': WEEKDAY_LABELS[day.weekday()], 'value': round(by_day.get(day, 0))})
+
+    month = []
+    for bucket in range(4, -1, -1):
+        start = today - timedelta(days=bucket * 6 + 5)
+        days = [start + timedelta(days=i) for i in range(6)]
+        month.append({'label': str(start.day), 'value': round(sum(by_day.get(d, 0) for d in days))})
+
+    quarter = []
+    for back in range(2, -1, -1):
+        month_index = (today.month - 1 - back) % 12
+        year = today.year + ((today.month - 1 - back) // 12)
+        total = sum(v for d, v in by_day.items() if d.year == year and d.month == month_index + 1)
+        quarter.append({'label': MONTH_LABELS[month_index], 'value': round(total)})
+
+    return {'week': week, 'month': month, 'quarter': quarter}
 
 
 class AuditLogListView(APIView):

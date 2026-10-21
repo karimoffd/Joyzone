@@ -18,6 +18,7 @@ import ParametersPage from "./pages/ParametersPage.jsx";
 import AmenitiesPage from "./pages/AmenitiesPage.jsx";
 import DiscountsPage from "./pages/DiscountsPage.jsx";
 import AuditLogPage from "./pages/AuditLogPage.jsx";
+import BannersPage from "./pages/BannersPage.jsx";
 
 const PAGES = {
   overview:   { title: "Обзор",          eyebrow: "Главная",      component: OverviewPage },
@@ -35,6 +36,7 @@ const PAGES = {
   parameters: { title: "Счетчики и х-ки", eyebrow: "Платформа",    component: ParametersPage },
   discounts:  { title: "Скидки",           eyebrow: "Платформа",    component: DiscountsPage },
   content:    { title: "Контент сайта",  eyebrow: "CMS",          component: ContentPage },
+  banners:    { title: "Баннеры",        eyebrow: "CMS",          component: BannersPage },
   settings:   { title: "Настройки",      eyebrow: "Профиль",      component: SettingsPage },
 };
 

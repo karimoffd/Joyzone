@@ -1,3 +1,4 @@
+import { cmsList } from "../utils/cmsLinks.js";
 import React, { useState, useEffect, useContext } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
 import { LanguageContext, useSiteContent } from "../context/LanguageContext.jsx";
@@ -42,97 +43,6 @@ function BackButton() {
     </a>
   );
 }
-
-const aboutStats = [
-  ["120+", "joy kartalari"],
-  ["24/7", "bron so'rovlari"],
-  ["10 min", "tanlash va yuborish"],
-  ["1 joy", "hamma formatlar"]
-];
-
-const aboutValues = [
-  {
-    icon: "map",
-    title: "Joyni tez tushunish",
-    text: "Kartochkada rasm, manzil, narx, sig'im va format birinchi qarashdayoq ko'rinadi."
-  },
-  {
-    icon: "shield",
-    title: "Ishonchli tanlov",
-    text: "Partner profili, sharhlar va moderatsiya signallari mijozga xavfsiz qaror qilishga yordam beradi."
-  },
-  {
-    icon: "building",
-    title: "Partnerlar uchun o'sish",
-    text: "Joy egasi o'z maydonini chiroyli ko'rsatadi, so'rovlarni oladi va ko'rinishini oshiradi."
-  }
-];
-
-const guideSteps = [
-  {
-    step: "01",
-    title: "Ariza yuborish",
-    text: "Joy egasi yoki vakili asosiy ma'lumotlarni qoldiradi: tashkilot nomi, telefon, joy formati va manzil.",
-    deliverable: "Kontakt va joy profili"
-  },
-  {
-    step: "02",
-    title: "Joyni tekshirish",
-    text: "Joyzone jamoasi joy formati, sig'im, rasmlar sifati va mijoz uchun muhim bo'lgan shartlarni ko'rib chiqadi.",
-    deliverable: "Moderatsiya statusi"
-  },
-  {
-    step: "03",
-    title: "Karta tayyorlash",
-    text: "Rasmlar, narx, sig'im, qulayliklar, joy qoidalari va qisqa tavsif yagona karta ko'rinishiga keltiriladi.",
-    deliverable: "Tayyor listing"
-  },
-  {
-    step: "04",
-    title: "Shartlarni kelishish",
-    text: "Narx, bron qilish tartibi, bekor qilish qoidasi, aloqa va mas'uliyat chegaralari tasdiqlanadi.",
-    deliverable: "Hamkorlik shartlari"
-  },
-  {
-    step: "05",
-    title: "E'longa chiqarish",
-    text: "Karta katalogda ko'rinadi, foydalanuvchi joyni saqlashi, ko'rishi va bron so'rovini yuborishi mumkin.",
-    deliverable: "Public ko'rinish"
-  },
-  {
-    step: "06",
-    title: "So'rovlar bilan ishlash",
-    text: "Hamkor kelgan so'rovlarni ko'radi, tez javob beradi, band sanalarni yangilaydi va karta ma'lumotlarini dolzarb ushlab turadi.",
-    deliverable: "Doimiy boshqaruv"
-  }
-];
-
-const partnerTerms = [
-  {
-    title: "Joy egasi yoki vakolatli vakil",
-    text: "Joyni platformaga joylashtirayotgan shaxs joy egasi bo'lishi yoki e'lon berishga ruxsatga ega bo'lishi kerak."
-  },
-  {
-    title: "Aniq narx va real ma'lumot",
-    text: "Narx, sig'im, manzil, qulayliklar va cheklovlar mijoz ko'rgan paytda amaldagi holatga mos bo'lishi kerak."
-  },
-  {
-    title: "Sifatli rasmlar",
-    text: "Rasmlar joyning haqiqiy ko'rinishini berishi, juda qorong'i, chalg'ituvchi yoki boshqa obyektga tegishli bo'lmasligi kerak."
-  },
-  {
-    title: "Bron va bekor qilish qoidasi",
-    text: "Tasdiqlash muddati, to'lov tartibi, bekor qilish sharti va qo'shimcha xizmatlar oldindan kelishiladi."
-  },
-  {
-    title: "Xavfsizlik va tozalik",
-    text: "Hamkor joyni foydalanuvchi keladigan vaqtda tayyor, toza va kelishilgan imkoniyatlar bilan ta'minlaydi."
-  },
-  {
-    title: "Moderatsiya huquqi",
-    text: "Joyzone karta matni, rasmlari yoki shartlari ishonchsiz bo'lsa, e'lonni tuzatish, pauza qilish yoki rad etish huquqini saqlaydi."
-  }
-];
 
 const footerColumns = [
   {
@@ -184,7 +94,7 @@ function AboutUsPage() {
       </section>
 
       <section className="about-stats-grid" aria-label="Joyzone raqamlari">
-        {aboutStats.map(([value, label]) => (
+        {cmsList(cms, "about_stats_arr").map(({ value, label }) => (
           <article key={label}>
             <strong>{value}</strong>
             <span>{label}</span>
@@ -193,7 +103,7 @@ function AboutUsPage() {
       </section>
 
       <section className="about-values-grid">
-        {aboutValues.map((item) => (
+        {cmsList(cms, "about_values_arr").map((item) => (
           <article key={item.title}>
             <div className="static-icon">
               <PageIcon type={item.icon} />
@@ -269,7 +179,7 @@ function PartnerGuidePage() {
           <p>Har bir qadam karta sifatini, mijoz ishonchini va bron konversiyasini oshirish uchun kerak.</p>
         </aside>
         <div className="partner-process-list">
-          {guideSteps.map((item) => (
+          {cmsList(cms, "guide_steps_arr").map((item) => (
             <article className="partner-process-item" key={item.step}>
               <span>{item.step}</span>
               <div>
@@ -289,7 +199,7 @@ function PartnerGuidePage() {
           <p>{cms.partner_terms_text}</p>
         </div>
         <div className="partner-terms-grid">
-          {partnerTerms.map((term) => (
+          {cmsList(cms, "partner_terms_arr").map((term) => (
             <article key={term.title}>
               <h3>{term.title}</h3>
               <p>{term.text}</p>
