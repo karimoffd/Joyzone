@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
 const API = "/api";

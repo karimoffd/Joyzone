@@ -134,7 +134,6 @@ function ParameterModal({ initial, groupId, groupName, onSave, onClose }) {
   const [err, setErr] = useState(null);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-  const setConfig = (k, v) => setForm(p => ({ ...p, config: { ...p.config, [k]: v } }));
 
   const handleSubmit = async () => {
     if (!form.name_ru.trim() || !form.slug.trim()) return setErr("Название и slug обязательны");
@@ -153,22 +152,8 @@ function ParameterModal({ initial, groupId, groupName, onSave, onClose }) {
     setSaving(false);
   };
 
-  const handleAddOption = () => {
-    const opts = Array.isArray(form.config.options) ? form.config.options : [];
-    setConfig("options", [...opts, { slug: "", uz: "", ru: "", en: "" }]);
-  };
 
-  const updateOption = (index, key, val) => {
-    const opts = [...(form.config.options || [])];
-    opts[index][key] = val;
-    setConfig("options", opts);
-  };
 
-  const removeOption = (index) => {
-    const opts = [...(form.config.options || [])];
-    opts.splice(index, 1);
-    setConfig("options", opts);
-  };
 
   return (
     <Modal title={isEdit ? "Редактировать удобство" : `Новое удобство → ${groupName}`} onClose={onClose}>

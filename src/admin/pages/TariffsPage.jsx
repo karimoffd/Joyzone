@@ -419,10 +419,6 @@ export default function TariffsPage() {
     } catch (e) { alert(getApiErrorMessage(e, 'Error activating subscription')); }
   };
 
-  const formatPrice = (price) => {
-    if (!price || price == 0) return 'Бесплатно';
-    return new Intl.NumberFormat('ru-RU').format(price) + ' сум / мес';
-  };
 
   return (
     <>

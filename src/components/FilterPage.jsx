@@ -80,7 +80,6 @@ function SortDropdown({ selected, onSelect }) {
   );
 }
 
-const priceOptions = ["Byudjet < 500 000 so'm", "500 000-2 000 000 so'm", "2 000 000-8 000 000 so'm", "8 000 000+ so'm"];
 const capacityOptions = ["1-5 kishi", "6-12 kishi", "13-24 kishi", "25+ kishi"];
 const extraOptions = ["Tavsiya etilgan", "Katta maydon", "Kichik jamoa uchun"];
 const MAX_PRICE_LIMIT = 10000000;
@@ -184,13 +183,6 @@ const durationOptions = [
 
 // ===== Kategoriyalar va sub-kategoriyalar =====
 
-const SUB_CATEGORIES = {
-  ofis: ["Xususiy kabinet", "Open space", "Virtual ofis"],
-  kovorking: ["Belgilangan joy", "Erkin joy (hot desk)"],
-  zal: ["Konferensiya zali", "Trening / seminar zali", "Banket / tantana zali"],
-  tijorat: ["Do'kon / savdo", "Showroom", "Ombor"],
-  turarjoy: ["Kvartira", "Xona", "Uy / Kottej"]
-};
 
 // Extra filters per category (shown alongside common ones)
 const CATEGORY_EXTRA_OPTIONS = {

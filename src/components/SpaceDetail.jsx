@@ -1,3 +1,5 @@
+import { formatMoney, weekdayLabels, hourlySlots, toDateKey, fromDateKey, addDays, addMonths, getDefaultBookingDate, getMonthOffset, buildCalendarDays, buildDateRange, getDayDiff, formatShortDate, normalizeReview, getReviewFallback, isBlockingBooking } from "./spaceDetail/helpers.js";
+import { Icon, DetailStat, Stars } from "./spaceDetail/parts.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
@@ -45,29 +47,6 @@ const amenityList = [
   { name: "Doska / Whiteboard", icon: "board" }
 ];
 
-const reviewList = [
-  {
-    name: "Dilshod",
-    role: "Startup asoschisi",
-    date: "May 2026",
-    rating: 5,
-    text: "Joy toza, yorug' va jamoa bilan sprint o'tkazish uchun juda qulay bo'ldi. Bron qilish jarayoni ham tez."
-  },
-  {
-    name: "Madina",
-    role: "HR manager",
-    date: "April 2026",
-    rating: 5,
-    text: "Trening uchun kerakli jihozlar tayyor edi. Mehmonlarni kutib olish va parkovka masalasi yaxshi hal qilingan."
-  },
-  {
-    name: "Aziz",
-    role: "Product lead",
-    date: "March 2026",
-    rating: 4,
-    text: "Lokatsiya qulay, internet barqaror. Keyingi safar ham shu joyni bron qilishimiz mumkin."
-  }
-];
 
 function slugify(text) {
   if (!text) return "";
@@ -160,186 +139,6 @@ async function fetchPlaceForRoute(route) {
   }
 
   return null;
-}
-
-function formatMoney(value) {
-  return `${new Intl.NumberFormat("uz-UZ").format(value)} so'm`;
-}
-
-const weekdayLabels = ["D", "S", "Ch", "P", "J", "Sh", "Ya"];
-const hourlySlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
-
-function toDateKey(date) {
-  return date.toISOString().split("T")[0];
-}
-
-function fromDateKey(dateKey) {
-  return new Date(`${dateKey}T00:00:00Z`);
-}
-
-function addDays(dateKey, amount) {
-  const date = fromDateKey(dateKey);
-  date.setUTCDate(date.getUTCDate() + amount);
-  return toDateKey(date);
-}
-
-function addMonths(dateKey, amount) {
-  const date = fromDateKey(dateKey);
-  date.setUTCMonth(date.getUTCMonth() + amount);
-  return toDateKey(date);
-}
-
-function getDefaultBookingDate() {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + 3);
-  return toDateKey(date);
-}
-
-function getMonthOffset(year, month, offset) {
-  const date = new Date(Date.UTC(year, month + offset, 1));
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
-}
-
-function buildCalendarDays(year, month) {
-  const date = new Date(Date.UTC(year, month, 1));
-  const daysArr = [];
-  let startDay = date.getUTCDay();
-  startDay = startDay === 0 ? 6 : startDay - 1;
-
-  for (let i = 0; i < startDay; i++) {
-    daysArr.push({ label: "", dateStr: null, isMuted: true });
-  }
-
-  const totalDays = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  for (let d = 1; d <= totalDays; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    daysArr.push({ label: d, dateStr, isMuted: false });
-  }
-
-  return daysArr;
-}
-
-function buildDateRange(startDate, endDate) {
-  if (!startDate) return [];
-  const start = fromDateKey(startDate);
-  const end = fromDateKey(endDate || startDate);
-  const first = start <= end ? start : end;
-  const last = start <= end ? end : start;
-  const dates = [];
-  const current = new Date(first);
-
-  while (current <= last) {
-    dates.push(toDateKey(current));
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  return dates;
-}
-
-function getDayDiff(startDate, endDate) {
-  if (!startDate || !endDate) return 1;
-  const diff = fromDateKey(endDate).getTime() - fromDateKey(startDate).getTime();
-  return Math.max(1, Math.round(diff / 86400000) + 1);
-}
-
-function formatShortDate(dateKey) {
-  if (!dateKey) return "";
-  const date = fromDateKey(dateKey);
-  return `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function formatReviewDate(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat("uz-UZ", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(date);
-}
-
-function normalizeReview(review = {}) {
-  const rating = Number(review.rating ?? review.stars ?? 5);
-  const name = review.user_name || review.name || review.user?.name || review.user?.username || "Foydalanuvchi";
-  return {
-    ...review,
-    id: review.id || `${name}-${review.created_at || review.date || Math.random()}`,
-    name,
-    role: review.role || "Joyzone mehmoni",
-    date: formatReviewDate(review.created_at || review.date) || "Yaqinda",
-    rating: Number.isFinite(rating) ? rating : 5,
-    text: review.comment || review.text || ""
-  };
-}
-
-function getReviewFallback() {
-  return import.meta.env.DEV ? reviewList.map(normalizeReview) : [];
-}
-
-function isBlockingBooking(booking) {
-  const status = String(booking?.status || "").toLowerCase();
-  return ["booked", "closed", "paid", "pending", "confirmed", "blocked"].includes(status);
-}
-
-function Icon({ type, className = "" }) {
-  const paths = {
-    arrow: "M19 12H5M12 5l-7 7 7 7",
-    map: "M12 21s7-4.7 7-11a7 7 0 0 0-14 0c0 6.3 7 11 7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
-    users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
-    area: "M4 4h16v16H4zM9 4v16M4 9h16",
-    clock: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
-    star: "m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9 6.6 19.8l1-6.1-4.4-4.3 6.1-.9L12 3Z",
-    check: "m20 6-11 11-5-5",
-    calendar: "M7 3v4M17 3v4M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z",
-    shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z",
-    phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z",
-    wifi: "M5 13a10 10 0 0 1 14 0M8.5 16.5a5 5 0 0 1 7 0M2 9.5a15 15 0 0 1 20 0M12 20h.01",
-    wind: "M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2",
-    tv: "M2 5h20v12H2zm10 12v4M8 21h8",
-    parking: "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm4 14V7h4a3 3 0 0 1 0 6H9",
-    coffee: "M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4ZM6 1v3M10 1v3M14 1v3",
-    key: "m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4",
-    sparkles: "m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z",
-    help: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z",
-    printer: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 9V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5M6 14h12v6H6z",
-    gamepad: "M18 11h.01M15 14h.01M10 10v4M8 12h4M2 12a10 10 0 0 1 20 0v2a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z",
-    book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V5A2.5 2.5 0 0 1 6.5 2.5H20v14.5H6.5a2.5 2.5 0 0 0-2.5 2.5z",
-    lock: "M3 11a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm4-2V7a5 5 0 0 1 10 0v2",
-    utensils: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v4M12 18V2M12 18h3.5a2.5 2.5 0 0 0 2.5-2.5V2",
-    board: "M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm8 14v4m-4 0h8",
-    x: "M18 6 6 18M6 6l12 12"
-  };
-
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d={paths[type]} />
-    </svg>
-  );
-}
-
-function DetailStat({ icon, label, value }) {
-  return (
-    <div className="sd-stat">
-      <span>
-        <Icon type={icon} />
-      </span>
-      <div>
-        <small>{label}</small>
-        <strong>{value}</strong>
-      </div>
-    </div>
-  );
-}
-
-function Stars({ value = 5 }) {
-  return (
-    <span className="sd-stars" aria-label={`${value} reyting`}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Icon key={index} type="star" className={index < value ? "is-filled" : "is-muted"} />
-      ))}
-    </span>
-  );
 }
 
 export default function SpaceDetail({ route, userState, setUserState }) {
@@ -753,7 +552,6 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     if (!priceStr) return 0;
     return parseMoneyValue(priceStr) || 0;
   }, [availableDurations, bookingDuration, space]);
-
 
   const galleryImages = useMemo(() => {
     const images = Array.isArray(space?.images) ? space.images.filter(Boolean) : [];

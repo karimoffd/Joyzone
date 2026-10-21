@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
-import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
+import { NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
 import api, { getApiErrorMessage } from "../api/client.js";
 import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
@@ -755,7 +755,6 @@ export function JoyFooter({ cms = {} }) {
     ["telegram", "#telegram"],
     ["linkedin", "#linkedin"]
   ];
-  const openPage = (hash) => `${window.location.origin}${window.location.pathname}${hash}`;
 
   return (
     <footer className="joy-footer-section" id="contact">

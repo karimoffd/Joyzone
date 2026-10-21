@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { LanguageContext } from "../context/LanguageContext.jsx";
 import api, { getApiErrorMessage } from "../api/client.js";
 import { beginAuthSession } from "../utils/storageKeys.js";
-import { Logo, GoogleIcon, ChevronIcon, CheckIcon, LangButton } from "./ui/Shared.jsx";
+import { Logo, GoogleIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
 import { navigate } from "../utils/router.js";
 
