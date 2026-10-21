@@ -1,30 +1,44 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
+import { defaultContent } from "../data/defaultContent.js";
+import { CONTENT_LANGUAGES, mergeSiteContent } from "../utils/content.js";
+import { getStoredLanguage, setStoredLanguage } from "../utils/storageKeys.js";
 
-const LANGS = ["uz", "ru", "en"];
-const LANG_KEY = "joyzone-language";
+export const LanguageContext = createContext({
+  lang: "uz",
+  setLang: () => {},
+  content: defaultContent,
+  contentLoading: false,
+  contentError: "",
+  isEditMode: false,
+});
 
-const LanguageContext = createContext(null);
+export function LanguageProvider({ children, content = defaultContent, ...providerState }) {
+  const [lang, setLangRaw] = useState(() => getStoredLanguage("uz"));
 
-export function LanguageProvider({ children }) {
-  const [lang, setLangRaw] = useState(
-    () => localStorage.getItem(LANG_KEY) || "uz"
-  );
-
-  const setLang = (l) => {
-    if (!LANGS.includes(l)) return;
-    setLangRaw(l);
-    try { localStorage.setItem(LANG_KEY, l); } catch {}
+  const setLang = (language) => {
+    if (!CONTENT_LANGUAGES.includes(language)) return;
+    setLangRaw(language);
+    setStoredLanguage(language);
   };
 
-  return (
-    <LanguageContext.Provider value={{ lang, setLang }}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  const value = useMemo(() => ({
+    lang,
+    setLang,
+    content: mergeSiteContent(content),
+    ...providerState,
+  }), [lang, content, providerState]);
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage must be used inside <LanguageProvider>");
-  return ctx;
+  return useContext(LanguageContext);
+}
+
+export function useSiteContent() {
+  const context = useLanguage();
+  return {
+    ...context,
+    cms: context.content?.[context.lang] || defaultContent[context.lang] || {},
+  };
 }

@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import logoImage from "../assets/img/Logo.png";
 import { SimpleFooter } from "./ListingsSection.jsx";
+import api, { getApiErrorMessage } from "../api/client.js";
+import { cacheProfile, normalizeProfile, profileToUserState, splitFullName } from "../utils/profileMapper.js";
+import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../utils/storageKeys.js";
 import "./AccountSettings.css";
 
 const settingsSections = [
@@ -103,7 +106,9 @@ function SettingsIcon({ type }) {
   );
 }
 
-function AccountSettings() {
+const BACKEND_PROFILE_KEYS = new Set(["legalName", "email", "phone"]);
+
+function AccountSettings({ userState, setUserState }) {
   const [activeSectionId, setActiveSectionId] = useState("personal");
   const [editingKey, setEditingKey] = useState("");
   const [values, setValues] = useState(() => {
@@ -116,10 +121,41 @@ function AccountSettings() {
     return initial;
   });
   const [draftValue, setDraftValue] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const activeSection = useMemo(
     () => settingsSections.find((section) => section.id === activeSectionId) || settingsSections[0],
     [activeSectionId]
   );
+
+  useEffect(() => {
+    let active = true;
+    const loadProfile = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/api/auth/profile/");
+        if (!active) return;
+        const normalized = normalizeProfile(response.data);
+        const localValues = readJsonStorage(STORAGE_KEYS.profile.localAccountSettings, {});
+        setValues((current) => ({
+          ...current,
+          ...localValues,
+          legalName: normalized.full_name,
+          email: normalized.email,
+          phone: normalized.phone_number,
+        }));
+      } catch (requestError) {
+        if (active) setError(getApiErrorMessage(requestError, "Не удалось загрузить профиль"));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadProfile();
+    return () => { active = false; };
+  }, []);
 
   const startEditing = (item) => {
     setEditingKey(item.key);
@@ -131,9 +167,41 @@ function AccountSettings() {
     setDraftValue("");
   };
 
-  const saveEditing = () => {
-    setValues((current) => ({ ...current, [editingKey]: draftValue }));
-    cancelEditing();
+  const saveEditing = async () => {
+    if (!editingKey) return;
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      if (BACKEND_PROFILE_KEYS.has(editingKey)) {
+        let payload = {};
+        if (editingKey === "legalName") payload = splitFullName(draftValue);
+        if (editingKey === "email") payload = { email: draftValue.trim() };
+        if (editingKey === "phone") payload = { phone_number: draftValue.trim() };
+        const response = await api.patch("/api/auth/profile/", payload);
+        const normalized = cacheProfile(response.data);
+        setUserState?.(profileToUserState(normalized, userState));
+        setValues((current) => ({
+          ...current,
+          legalName: normalized.full_name,
+          email: normalized.email,
+          phone: normalized.phone_number,
+        }));
+      } else {
+        const nextValues = { ...values, [editingKey]: draftValue };
+        const localOnly = Object.fromEntries(
+          Object.entries(nextValues).filter(([key]) => !BACKEND_PROFILE_KEYS.has(key))
+        );
+        writeJsonStorage(STORAGE_KEYS.profile.localAccountSettings, localOnly);
+        setValues(nextValues);
+      }
+      setSuccess(BACKEND_PROFILE_KEYS.has(editingKey) ? "Профиль сохранён" : "Сохранено только на этом устройстве");
+      cancelEditing();
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Не удалось сохранить изменения"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -172,6 +240,9 @@ function AccountSettings() {
             <span>Joyzone account</span>
             <h2>{activeSection.title}</h2>
             <p>{activeSection.description}</p>
+            {loading ? <p role="status">Загрузка профиля...</p> : null}
+            {error ? <p role="alert" style={{ color: "#b91c1c" }}>{error}</p> : null}
+            {success ? <p role="status" style={{ color: "#15803d" }}>{success}</p> : null}
           </div>
 
           <div className="settings-row-list">
@@ -184,6 +255,7 @@ function AccountSettings() {
                   <div className="settings-row-copy">
                     <h3>{item.title}</h3>
                     {item.note ? <p>{item.note}</p> : null}
+                    {!BACKEND_PROFILE_KEYS.has(item.key) ? <p>Локальная настройка: пока не синхронизируется с сервером.</p> : null}
                     <strong className={!value ? "is-empty" : ""}>{value || item.empty || "Нет данных"}</strong>
                   </div>
 
@@ -196,12 +268,14 @@ function AccountSettings() {
                         onChange={(event) => setDraftValue(event.target.value)}
                       />
                       <div>
-                        <button type="button" className="settings-save" onClick={saveEditing}>Сохранить</button>
+                        <button type="button" className="settings-save" onClick={saveEditing} disabled={saving}>
+                          {saving ? "Сохранение..." : "Сохранить"}
+                        </button>
                         <button type="button" className="settings-cancel" onClick={cancelEditing}>Отмена</button>
                       </div>
                     </div>
                   ) : (
-                    <button type="button" className="settings-row-action" onClick={() => startEditing(item)}>
+                    <button type="button" className="settings-row-action" onClick={() => startEditing(item)} disabled={loading}>
                       {item.action}
                     </button>
                   )}

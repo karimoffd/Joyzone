@@ -1,6 +1,5 @@
 """
-Seed script: creates the 3 main categories and their 3 subcategories each,
-complete with characteristics_schema and amenities_schema for the partner form.
+Seed script: creates/updates the main categories and their subcategories.
 
 Run:  python seed_categories.py
 """
@@ -191,22 +190,28 @@ CATEGORIES = [
 
 def seed():
     print("Seeding categories...")
-    Category.objects.all().delete()
-    SubCategory.objects.all().delete()
 
     for cat_data in CATEGORIES:
-        subs = cat_data.pop("subcategories")
-        cat, _ = Category.objects.update_or_create(
-            slug=cat_data["slug"],
-            defaults=cat_data,
+        subs = cat_data["subcategories"]
+        category_defaults = {
+            key: value for key, value in cat_data.items()
+            if key != "subcategories"
+        }
+        cat, created = Category.objects.update_or_create(
+            slug=category_defaults["slug"],
+            defaults=category_defaults,
         )
-        print(f"  [OK] Category: {cat.name_ru}")
+        print(f"  [{'CREATED' if created else 'UPDATED'}] Category: {cat.name_ru}")
         for sub_data in subs:
-            sub, _ = SubCategory.objects.update_or_create(
+            sub_defaults = {
+                key: value for key, value in sub_data.items()
+                if key in {"slug", "name_uz", "name_ru", "name_en", "order"}
+            }
+            sub, sub_created = SubCategory.objects.update_or_create(
                 slug=sub_data["slug"],
-                defaults={**sub_data, "category": cat},
+                defaults={**sub_defaults, "category": cat},
             )
-            print(f"       -- SubCategory: {sub.name_ru}")
+            print(f"       -- [{'CREATED' if sub_created else 'UPDATED'}] SubCategory: {sub.name_ru}")
 
     print("\nDone! Categories seeded.")
 

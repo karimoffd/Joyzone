@@ -1,4 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import api, { API_BASE_URL, getApiErrorMessage } from "../../api/client.js";
+import { cacheProfile, normalizeProfile } from "../../utils/profileMapper.js";
+import { getStorageItem, readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../../utils/storageKeys.js";
 
 const ICONS = {
   user: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
@@ -19,27 +22,92 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
   
   // Profile state
-  const [name, setName] = useState(localStorage.getItem('joyzone-name') || 'Амир Каримов');
-  const [phone, setPhone] = useState(localStorage.getItem('joyzone-phone') || '+998 90 123 45 67');
-  const [email, setEmail] = useState('admin@joyzone.uz');
+  const cachedName = getStorageItem(STORAGE_KEYS.profile.name, 'Администратор').trim().split(/\s+/);
+  const [firstName, setFirstName] = useState(cachedName[0] || '');
+  const [lastName, setLastName] = useState(cachedName.slice(1).join(' '));
+  const [phone, setPhone] = useState(getStorageItem(STORAGE_KEYS.profile.phone, '+998 90 123 45 67'));
+  const [email, setEmail] = useState(getStorageItem(STORAGE_KEYS.profile.email, ''));
   const [role, setRole] = useState('Администратор');
-  const [avatar, setAvatar] = useState(localStorage.getItem('joyzone-avatar') || null);
+  const [avatar, setAvatar] = useState(getStorageItem(STORAGE_KEYS.profile.avatar));
   
-  // Settings state
-  const [notifs, setNotifs] = useState({ email: true, sms: false, push: true });
+  // These preferences do not exist in UserSerializer yet, so they remain local-only.
+  const localSettings = readJsonStorage(STORAGE_KEYS.profile.localAccountSettings, {});
+  const [notifs, setNotifs] = useState({
+    email: localSettings.adminNotifications?.email ?? true,
+    sms: localSettings.adminNotifications?.sms ?? false,
+    push: localSettings.adminNotifications?.push ?? true,
+  });
   const fileInputRef = useRef(null);
 
-  const handleSave = () => {
+  useEffect(() => {
+    let active = true;
+    api.get('/api/auth/profile/')
+      .then((response) => {
+        if (!active) return;
+        const profile = normalizeProfile(response.data);
+        setFirstName(profile.first_name);
+        setLastName(profile.last_name);
+        setPhone(profile.phone_number);
+        setEmail(profile.email);
+        setAvatar(profile.avatar);
+        setRole(profile.role || 'admin');
+        cacheProfile(profile);
+      })
+      .catch((error) => {
+        if (active) setProfileError(getApiErrorMessage(error, 'Не удалось загрузить профиль'));
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => { active = false; };
+  }, []);
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      localStorage.setItem('joyzone-name', name);
-      localStorage.setItem('joyzone-phone', phone);
+    setProfileError('');
+    setIsSaved(false);
+
+    if (activeTab !== 'profile') {
+      // Password and integration controls have no backend contract. Never send them to UserSerializer.
+      if (activeTab === 'notifications') {
+        const currentLocalSettings = readJsonStorage(STORAGE_KEYS.profile.localAccountSettings, {});
+        writeJsonStorage(STORAGE_KEYS.profile.localAccountSettings, {
+          ...currentLocalSettings,
+          adminNotifications: notifs,
+        });
+      }
       setIsSaving(false);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
-    }, 600);
+      return;
+    }
+
+    try {
+      const response = await api.patch('/api/auth/profile/', {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim(),
+        phone_number: phone.trim(),
+        avatar,
+      });
+      const profile = cacheProfile(response.data);
+      setFirstName(profile.first_name);
+      setLastName(profile.last_name);
+      setPhone(profile.phone_number);
+      setEmail(profile.email);
+      setAvatar(profile.avatar);
+      setRole(profile.role || role);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (error) {
+      setProfileError(getApiErrorMessage(error, 'Не удалось сохранить профиль'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarChange = (e) => {
@@ -48,7 +116,6 @@ export default function SettingsPage() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAvatar(reader.result);
-        localStorage.setItem('joyzone-avatar', reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -56,14 +123,15 @@ export default function SettingsPage() {
 
   const handleRemoveAvatar = () => {
     setAvatar(null);
-    localStorage.removeItem('joyzone-avatar');
   };
 
   const getInitials = (n) => {
-    const parts = n.split(' ');
+    const parts = n.trim().split(/\s+/).filter(Boolean);
     if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return n.slice(0, 2).toUpperCase();
+    return (n || 'AD').slice(0, 2).toUpperCase();
   };
+
+  const fullName = `${firstName} ${lastName}`.trim();
 
   return (
     <div className="adm-anim adm-anim-1" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 24, alignItems: 'start' }}>
@@ -98,6 +166,9 @@ export default function SettingsPage() {
             <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)' }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px 0' }}>Личные данные</h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Управляйте информацией о себе и фотографией профиля.</p>
+              {isLoading && <p role="status" style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>Загрузка профиля...</p>}
+              {profileError && <p role="alert" style={{ fontSize: 13, color: '#b91c1c', marginTop: 8 }}>{profileError}</p>}
+              {isSaved && activeTab === 'profile' && <p role="status" style={{ fontSize: 13, color: '#166534', marginTop: 8 }}>Профиль сохранён в backend.</p>}
             </div>
             
             <div style={{ padding: '32px' }}>
@@ -105,7 +176,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 32 }}>
                 <div style={{ position: 'relative' }}>
                   <div style={{ width: 100, height: 100, borderRadius: '50%', background: avatar ? `url(${avatar}) center/cover` : 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 32, fontWeight: 700, overflow: 'hidden', border: '4px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-                    {!avatar && getInitials(name)}
+                    {!avatar && getInitials(fullName)}
                   </div>
                   <button 
                     onClick={() => fileInputRef.current.click()}
@@ -128,8 +199,12 @@ export default function SettingsPage() {
               {/* Form Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Полное имя</label>
-                  <input value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Имя</label>
+                  <input value={firstName} onChange={e => setFirstName(e.target.value)} disabled={isLoading || isSaving} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Фамилия</label>
+                  <input value={lastName} onChange={e => setLastName(e.target.value)} disabled={isLoading || isSaving} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Роль в системе</label>
@@ -137,11 +212,11 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Email адрес</label>
-                  <input value={email} onChange={e => setEmail(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
+                  <input value={email} onChange={e => setEmail(e.target.value)} disabled={isLoading || isSaving} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text)' }}>Номер телефона</label>
-                  <input value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
+                  <input value={phone} onChange={e => setPhone(e.target.value)} disabled={isLoading || isSaving} style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} onFocus={e => { e.target.style.borderColor = 'var(--navy)'; e.target.style.boxShadow = '0 0 0 3px rgba(41,74,109,0.1)'; }} onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }} />
                 </div>
               </div>
             </div>
@@ -234,7 +309,7 @@ export default function SettingsPage() {
                   <div style={{ width: 40, height: 40, borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)' }}>⚙️</div>
                   <div><div style={{ fontSize: 16, fontWeight: 700 }}>Главный Backend (Django)</div><div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Базовый URL для всех API запросов дашборда</div></div>
                 </div>
-                <input value="http://localhost:8000/api" readOnly style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none', background: 'var(--cream)' }} />
+                <input value={`${API_BASE_URL}/api`} readOnly style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none', background: 'var(--cream)' }} />
               </div>
             </div>
           </div>
@@ -245,7 +320,7 @@ export default function SettingsPage() {
           <button 
             className="adm-btn adm-btn-primary" 
             onClick={handleSave} 
-            disabled={isSaving}
+            disabled={isSaving || isLoading}
             style={{ padding: '10px 28px', background: isSaved ? '#16a34a' : 'var(--orange)', transition: 'background 0.3s' }}
           >
             {isSaving ? 'Сохранение...' : isSaved ? '✓ Сохранено' : 'Сохранить изменения'}

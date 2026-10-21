@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage, withUploadTimeout } from "../api/client.js";
+import { getStorageItem, removeStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
+import {
+  buildPlacePayload,
+  groupOnboardingErrors,
+  mapPlaceApiErrors,
+  validateOnboarding,
+  validateOnboardingStep,
+} from "../utils/placeOnboarding.js";
 import logoImage from "../assets/img/logoLight.png";
 import "./PartnerOnboarding.css";
 import "./CardVariants.css";
@@ -95,7 +103,12 @@ function Header({ profile }) {
 
 function SelectionCard({ item, active, onClick }) {
   return (
-    <button type="button" className={`selection-card ${active ? "is-selected" : ""}`} onClick={onClick}>
+    <button
+      type="button"
+      data-testid={`onboarding-selection-${item.slug || item.id}`}
+      className={`selection-card ${active ? "is-selected" : ""}`}
+      onClick={onClick}
+    >
       <span className="selection-icon" aria-hidden="true">
         <Icon name={item.icon || "building"} />
       </span>
@@ -197,8 +210,18 @@ function AddressStep({ address, setAddress, lat, setLat, lng, setLng, confirmed,
         <div style={{marginTop: 20}}>
           <label className="linear-field">
             <span>Найденный адрес</span>
-            <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Адрес определится автоматически" />
+            <input data-testid="onboarding-address" value={address} onChange={e => { setAddress(e.target.value); setConfirmed(false); }} placeholder="Адрес определится автоматически" />
           </label>
+          <button
+            type="button"
+            data-testid="onboarding-address-confirm"
+            className="partner-next"
+            disabled={!address.trim()}
+            onClick={() => setConfirmed(true)}
+            style={{ marginTop: 12 }}
+          >
+            Подтвердить указанный адрес
+          </button>
         </div>
       </div>
       <div className="map-card" style={{height: 400}}>
@@ -267,6 +290,11 @@ export default function PartnerOnboarding() {
   const [profile, setProfile] = useState(null);
   const [activePreviewImage, setActivePreviewImage] = useState(0);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
+  const [stepErrors, setStepErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [editPlaceId, setEditPlaceId] = useState(() => getStorageItem(STORAGE_KEYS.workflow.editPlaceId));
+  const [originalPlaceStatus, setOriginalPlaceStatus] = useState(null);
+  const [moderationConfirmOpen, setModerationConfirmOpen] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ open: true, message, type });
@@ -276,51 +304,52 @@ export default function PartnerOnboarding() {
   const screenRef = useRef(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("joyzone-access");
+    const token = getAccessToken();
     if (token) {
-      axios.get("http://localhost:8000/api/auth/profile/", {
+      api.get("/api/auth/profile/", {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => setProfile(res.data))
-      .catch(err => console.log("Failed to fetch profile in onboarding:", err));
+      .catch(err => showToast(getApiErrorMessage(err, "Не удалось загрузить профиль партнёра"), "error"));
     }
 
-    axios.get("http://localhost:8000/api/categories/")
+    api.get("/api/categories/", { skipAuth: true })
       .then(res => {
          setCategories(res.data?.results || res.data || []);
          setCategoriesError(null);
       })
       .catch(err => {
-         console.error("Categories Error:", err);
-         setCategoriesError(err.message);
+         setCategoriesError(getApiErrorMessage(err, "Не удалось загрузить категории"));
       });
       
-    axios.get("http://localhost:8000/api/parameters/")
+    api.get("/api/parameters/", { skipAuth: true })
       .then(res => setAllParameters(res.data?.results || res.data || []))
       .catch(err => console.log("No params endpoint, ignoring", err));
       
-    axios.get("http://localhost:8000/api/parameter-groups/")
+    api.get("/api/parameter-groups/", { skipAuth: true })
       .then(res => setParamGroups(res.data?.results || res.data || []))
       .catch(err => console.log("No param groups endpoint, ignoring", err));
 
-    axios.get("http://localhost:8000/api/discounts/")
+    api.get("/api/discounts/", { skipAuth: true })
       .then(res => setApiDiscounts(res.data?.results || res.data || []))
       .catch(err => console.log("No discounts endpoint yet", err));
   }, []);
 
   useEffect(() => {
-    const editId = localStorage.getItem("joyzone-edit-place-id");
+    const editId = editPlaceId;
     if (editId) {
-      axios.get(`http://localhost:8000/api/places/${editId}/`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("joyzone-access")}` }
+      api.get(`/api/places/${editId}/`, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` }
       })
       .then(res => {
         const p = res.data;
+        setOriginalPlaceStatus(p.status || null);
         setSpaceTitle(p.title || "");
         setDescRu(p.description_ru || "");
         setDescUz(p.description_uz || "");
         setDescEn(p.description_en || "");
         setAddress(p.location || "");
+        setAddressConfirmed(Boolean(p.location));
         setLat(p.latitude || 41.311081);
         setLng(p.longitude || 69.240562);
         setCapacity(p.people || 0);
@@ -343,17 +372,22 @@ export default function PartnerOnboarding() {
         setCustomCounters(counters);
         setCustomSelects(selects);
         
-        if (p.prices) {
-          setPrices(p.prices);
-          const enabled = {};
-          Object.keys(p.prices).forEach(k => {
-            enabled[k] = !!p.prices[k];
-          });
-          setEnabledPrices(enabled);
-        }
+        const loadedPrices = {
+          soatlik: p.prices?.soatlik ?? p.price_hourly ?? "",
+          kunlik: p.prices?.kunlik ?? p.price_daily ?? "",
+          haftalik: p.prices?.haftalik ?? p.price_weekly ?? "",
+          oylik: p.prices?.oylik ?? p.price_monthly ?? "",
+        };
+        setPrices(loadedPrices);
+        setEnabledPrices(Object.fromEntries(
+          Object.entries(loadedPrices).map(([key, value]) => [key, value !== "" && value !== null]),
+        ));
         
-        if (p.discounts) {
-          setSelectedDiscountIds(p.discounts);
+        const savedDiscountIds = p.discount_ids || p.discounts;
+        if (Array.isArray(savedDiscountIds)) {
+          setSelectedDiscountIds(savedDiscountIds.map(item => (
+            typeof item === "object" && item !== null ? item.id : item
+          )).filter(Boolean));
         }
         
         if (p.images) {
@@ -365,18 +399,28 @@ export default function PartnerOnboarding() {
         }
         
         if (p.subcategory_info) {
-          setObjectType(p.subcategory_info.category?.id || null);
+          const subcategoryCategory = p.subcategory_info.category;
+          const categoryId = typeof subcategoryCategory === "object"
+            ? subcategoryCategory?.id
+            : subcategoryCategory;
+          setObjectType(categoryId || null);
           setAccessType(p.subcategory_info.id || null);
         }
         
         setStep(1); // Skip introduction welcome step when editing
       })
       .catch(err => {
-        console.error("Failed to load edit place data:", err);
-        localStorage.removeItem("joyzone-edit-place-id");
+        showToast(getApiErrorMessage(err, "Не удалось загрузить место для редактирования"), "error");
+        removeStorageItem(STORAGE_KEYS.workflow.editPlaceId);
+        const returnHash = getStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
+        removeStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
+        setEditPlaceId(null);
+        if (returnHash) {
+          window.setTimeout(() => { window.location.hash = returnHash; }, 1200);
+        }
       });
     }
-  }, []);
+  }, [editPlaceId]);
 
 
   const selectedCategory = categories.find(c => c.id === objectType);
@@ -395,19 +439,47 @@ export default function PartnerOnboarding() {
 
 
   const maxStep = 13;
-  
-  const canContinue = () => {
-    if (step === 1) return !!objectType;
-    if (step === 2) return !!accessType;
-    if (step === 3) return addressConfirmed && address.trim().length > 0;
-    if (step === 4) return addressDetails.street.trim().length > 0;
-    if (step === 5) return photos.length >= 1;
-    if (step === 6) return spaceTitle.trim().length > 0;
-    if (step === 7) return descRu.trim().length > 0 && descUz.trim().length > 0 && descEn.trim().length > 0;
-    if (step === 11) {
-      return ['soatlik', 'kunlik', 'haftalik', 'oylik'].some(key => enabledPrices[key] && prices[key].trim() !== "");
+
+  const getFormData = () => ({
+    objectType,
+    accessType,
+    address,
+    lat,
+    lng,
+    addressConfirmed,
+    addressDetails,
+    photos,
+    spaceTitle,
+    descRu,
+    descUz,
+    descEn,
+    capacity,
+    area,
+    customCounters,
+    customSelects,
+    amenities,
+    prices,
+    enabledPrices,
+    bookingType,
+    selectedDiscountIds,
+  });
+
+  const focusDescriptionError = (errors) => {
+    if (errors.some(item => item.field === "description_uz")) setActiveDescTab("uz");
+    else if (errors.some(item => item.field === "description_en")) setActiveDescTab("en");
+    else if (errors.some(item => item.field === "description_ru")) setActiveDescTab("ru");
+  };
+
+  const handleNext = () => {
+    const errors = validateOnboardingStep(step, getFormData());
+    if (errors.length > 0) {
+      setStepErrors(prev => ({ ...prev, [step]: errors.map(item => item.message) }));
+      focusDescriptionError(errors);
+      showToast(errors[0].message, "error");
+      return;
     }
-    return true;
+    setStepErrors(prev => ({ ...prev, [step]: [] }));
+    setStep(step + 1);
   };
 
   useEffect(() => {
@@ -428,7 +500,12 @@ export default function PartnerOnboarding() {
   const addFiles = (fileList) => {
     const files = Array.from(fileList || []).filter((file) => file.type.startsWith("image/"));
     if (files.length === 0) return;
-    const newPhotos = files.map((file) => ({
+    const availableSlots = Math.max(0, 10 - photos.length);
+    const acceptedFiles = files.slice(0, availableSlots);
+    if (acceptedFiles.length < files.length) {
+      showToast("Для одного объекта можно загрузить не более 10 фотографий.", "error");
+    }
+    const newPhotos = acceptedFiles.map((file) => ({
       id: Math.random().toString(36).substring(7),
       name: file.name,
       url: URL.createObjectURL(file),
@@ -437,7 +514,36 @@ export default function PartnerOnboarding() {
     setPhotos(prev => [...prev, ...newPhotos]);
   };
 
-  const handleBooking = async () => {
+  const isPrivilegedEditor = Boolean(
+    profile?.role === "admin"
+    || profile?.role === "moderator"
+    || profile?.is_staff
+    || profile?.is_superuser,
+  );
+  const requiresRemoderationConfirmation = Boolean(
+    editPlaceId && originalPlaceStatus === "approved" && !isPrivilegedEditor,
+  );
+
+  const handleBooking = async ({ moderationConfirmed = false } = {}) => {
+    const formData = getFormData();
+    const validationErrors = validateOnboarding(formData);
+    if (validationErrors.length > 0) {
+      const groupedErrors = groupOnboardingErrors(validationErrors);
+      const firstStep = Math.min(...validationErrors.map(item => item.step));
+      setStepErrors(groupedErrors);
+      setStep(firstStep);
+      focusDescriptionError(validationErrors.filter(item => item.step === firstStep));
+      showToast(validationErrors[0].message, "error");
+      return;
+    }
+
+    if (requiresRemoderationConfirmation && !moderationConfirmed) {
+      setModerationConfirmOpen(true);
+      return;
+    }
+
+    setModerationConfirmOpen(false);
+    setSubmitting(true);
     try {
       showToast("Загрузка фотографий и отправка объекта...", "info");
       
@@ -447,11 +553,11 @@ export default function PartnerOnboarding() {
         if (photo.file) {
           const formData = new FormData();
           formData.append("image", photo.file);
-          const uploadRes = await axios.post("http://localhost:8000/api/places/upload_image/", formData, {
+          const uploadRes = await api.post("/api/places/upload_image/", formData, withUploadTimeout({
             headers: {
               "Content-Type": "multipart/form-data"
             }
-          });
+          }));
           if (uploadRes.data?.url) {
             uploadedImageUrls.push(uploadRes.data.url);
           }
@@ -460,55 +566,65 @@ export default function PartnerOnboarding() {
         }
       }
 
-      const priceVal = prices.kunlik || prices.soatlik || prices.oylik || "0";
-      const charMap = { ...customCounters, ...customSelects };
-      
-      const payload = {
-        title: spaceTitle,
-        description_uz: descUz,
-        description_ru: descRu,
-        description_en: descEn,
-        subcategory: accessType,
-        location: address,
-        latitude: Number(lat).toFixed(6),
-        longitude: Number(lng).toFixed(6),
-        people: capacity,
-        area: area,
-        price: priceVal + " UZS",
-        prices: prices,
-        discounts: selectedDiscountIds,
-        booking_type: bookingType,
-        amenities: amenities,
-        characteristics: charMap,
-        images: uploadedImageUrls
-      };
+      const payload = buildPlacePayload(formData, uploadedImageUrls);
 
-      const token = localStorage.getItem("joyzone-access");
-      const editId = localStorage.getItem("joyzone-edit-place-id");
+      const token = getAccessToken();
+      const editId = editPlaceId;
       
+      let response;
       if (editId) {
-        await axios.put(`http://localhost:8000/api/places/${editId}/`, payload, {
+        response = await api.put(`/api/places/${editId}/`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        localStorage.removeItem("joyzone-edit-place-id"); // Clear edit mode
-        showToast("Объект успешно обновлен!", "success");
       } else {
-        await axios.post("http://localhost:8000/api/places/", payload, {
+        response = await api.post("/api/places/", payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
+      }
+
+      const shouldBecomePending = !editId || !isPrivilegedEditor;
+      if (shouldBecomePending && response.data?.status !== "pending") {
+        throw new Error("Backend не вернул ожидаемый статус pending.");
+      }
+
+      if (editId) {
+        removeStorageItem(STORAGE_KEYS.workflow.editPlaceId); // Clear edit mode
+        setEditPlaceId(null);
+        if (requiresRemoderationConfirmation) {
+          showToast("Объект отправлен на повторную модерацию.", "success");
+        } else if (isPrivilegedEditor) {
+          showToast("Изменения объекта сохранены.", "success");
+        } else {
+          showToast("Объект обновлён и отправлен на модерацию.", "success");
+        }
+      } else {
         showToast("Объект успешно отправлен на модерацию!", "success");
       }
       
-      setTimeout(() => { window.location.hash = "#host-listings"; }, 2000);
+      const returnHash = getStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
+      removeStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash);
+      setTimeout(() => {
+        window.location.hash = returnHash || "#host-listings";
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("joyzone-place-saved", {
+            detail: { id: response.data?.id, status: response.data?.status },
+          }));
+        }, 500);
+      }, 2000);
     } catch(err) {
-      let errorMsg = "Произошла неизвестная ошибка";
-      if (err.response?.data?.detail) {
-        errorMsg = err.response.data.detail;
-      } else if (err.response?.data) {
-        errorMsg = typeof err.response.data === 'string' ? err.response.data : JSON.stringify(err.response.data);
+      const backendErrors = mapPlaceApiErrors(err.response?.data);
+      if (backendErrors.length > 0) {
+        const groupedErrors = groupOnboardingErrors(backendErrors);
+        const firstStep = Math.min(...backendErrors.map(item => item.step));
+        setStepErrors(prev => ({ ...prev, ...groupedErrors }));
+        setStep(firstStep);
+        focusDescriptionError(backendErrors.filter(item => item.step === firstStep));
+        showToast(backendErrors[0].message, "error");
+      } else {
+        showToast("Ошибка при публикации: " + getApiErrorMessage(err, "Не удалось сохранить место"), "error");
       }
-      showToast("Ошибка при публикации: " + errorMsg, "error");
-      console.error(err);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -632,12 +748,30 @@ export default function PartnerOnboarding() {
     <main className="partner-onboarding-page">
       <Header profile={profile} />
       <section ref={screenRef} className={`partner-onboarding-screen screen-${step}`}>
+        {step > 0 && stepErrors[step]?.length > 0 && (
+          <div
+            role="alert"
+            style={{
+              maxWidth: 1200,
+              margin: "0 auto 20px",
+              padding: "12px 16px",
+              border: "1px solid #fca5a5",
+              borderRadius: 12,
+              background: "#fef2f2",
+              color: "#991b1b",
+              fontSize: 14,
+              lineHeight: 1.5,
+            }}
+          >
+            {stepErrors[step].map((message, index) => <div key={`${message}-${index}`}>{message}</div>)}
+          </div>
+        )}
         {step === 0 && (
           <div style={{display: 'grid', gridTemplateColumns: '1.3fr 1fr', alignItems: 'center', maxWidth: 1200, margin: '0 auto', padding: '100px 20px', gap: 60}}>
              <div style={{textAlign: 'left', paddingRight: 40}}>
                <h1 style={{fontSize: 54, marginBottom: 24, lineHeight: 1.1, fontWeight: 800, color: '#0f172a'}}>Начните зарабатывать на своих пространствах</h1>
                <p style={{fontSize: 20, color: '#475569', marginBottom: 40, lineHeight: 1.6}}>Разместите свой офис, коворкинг или конференц-зал и находите резидентов без усилий.</p>
-               <button className="sd-primary-btn" onClick={() => setStep(1)} style={{padding: '16px 48px', fontSize: 20, borderRadius: 12}}>Начать</button>
+               <button data-testid="onboarding-start" className="sd-primary-btn" onClick={() => setStep(1)} style={{padding: '16px 48px', fontSize: 20, borderRadius: 12}}>Начать</button>
              </div>
              <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
                 <style>
@@ -713,7 +847,7 @@ export default function PartnerOnboarding() {
                 
                 <label style={{display: 'flex', flexDirection: 'column', gap: 8}}>
                   <span style={{fontSize: 14, fontWeight: 600, color: '#475569'}}>Улица, дом</span>
-                  <input value={addressDetails.street} onChange={e => setAddressDetails({...addressDetails, street: e.target.value})} style={{padding: '16px', borderRadius: 12, border: '1.5px solid #cbd5e1', fontSize: 16, backgroundColor: '#f8fafc', outline: 'none', transition: 'border-color 0.2s'}} onFocus={e => e.target.style.borderColor = '#0f172a'} onBlur={e => e.target.style.borderColor = '#cbd5e1'} />
+                  <input data-testid="onboarding-street" value={addressDetails.street} onChange={e => setAddressDetails({...addressDetails, street: e.target.value})} style={{padding: '16px', borderRadius: 12, border: '1.5px solid #cbd5e1', fontSize: 16, backgroundColor: '#f8fafc', outline: 'none', transition: 'border-color 0.2s'}} onFocus={e => e.target.style.borderColor = '#0f172a'} onBlur={e => e.target.style.borderColor = '#cbd5e1'} />
                 </label>
 
                 <label style={{display: 'flex', flexDirection: 'column', gap: 8}}>
@@ -754,6 +888,7 @@ export default function PartnerOnboarding() {
             <div style={{display: 'flex', flexDirection: 'column', gap: 32, marginTop: 24}}>
               <label style={{display: 'flex', flexDirection: 'column', gap: 10}}>
                 <textarea 
+                  data-testid="onboarding-title"
                   rows={4}
                   value={spaceTitle} 
                   maxLength={50} 
@@ -781,6 +916,7 @@ export default function PartnerOnboarding() {
                   <button
                     key={tab.id}
                     type="button"
+                    data-testid={`onboarding-description-tab-${tab.id}`}
                     onClick={() => setActiveDescTab(tab.id)}
                     style={{
                       padding: '10px 20px',
@@ -803,6 +939,7 @@ export default function PartnerOnboarding() {
               <label style={{display: 'flex', flexDirection: 'column', gap: 10}}>
                 {activeDescTab === 'ru' && (
                   <textarea 
+                    data-testid="onboarding-description-ru"
                     rows={8} 
                     maxLength={500}
                     value={descRu} 
@@ -814,6 +951,7 @@ export default function PartnerOnboarding() {
                 )}
                 {activeDescTab === 'uz' && (
                   <textarea 
+                    data-testid="onboarding-description-uz"
                     rows={8} 
                     maxLength={500}
                     value={descUz} 
@@ -825,6 +963,7 @@ export default function PartnerOnboarding() {
                 )}
                 {activeDescTab === 'en' && (
                   <textarea 
+                    data-testid="onboarding-description-en"
                     rows={8} 
                     maxLength={500}
                     value={descEn} 
@@ -933,29 +1072,27 @@ export default function PartnerOnboarding() {
                 Сколько человек могут здесь разместиться и какова площадь пространства?
               </p>
               <div className="counters-stack">
-                {/* Only show hardcoded capacity/area if no params from subcategory */}
-                {subCatParams.length === 0 && (
-                  <>
-                    <CounterRow 
-                      label="Вместимость (гостей)" 
-                      value={capacity} 
-                      onChange={setCapacity} 
-                    />
-                    
-                    <div style={{display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, marginBottom: 16}}>
-                      <span style={{fontWeight: 600, fontSize: 15}}>Площадь (кв.м)</span>
-                      <input 
-                        type="number"
-                        value={area} 
-                        onChange={e => setArea(e.target.value)} 
-                        placeholder="Например: 50"
-                        style={{padding: '16px 20px', borderRadius: 14, border: '1.5px solid #cbd5e1', fontSize: 16, backgroundColor: '#f8fafc', transition: 'border-color 0.2s', outline: 'none'}}
-                        onFocus={e => e.target.style.borderColor = '#0f172a'}
-                        onBlur={e => e.target.style.borderColor = '#cbd5e1'}
-                      />
-                    </div>
-                  </>
-                )}
+                <CounterRow
+                  label="Вместимость (гостей)"
+                  value={capacity}
+                  onChange={setCapacity}
+                />
+
+                <div style={{display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, marginBottom: 16}}>
+                  <span style={{fontWeight: 600, fontSize: 15}}>Площадь (кв.м)</span>
+                  <input
+                    data-testid="onboarding-area"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={area}
+                    onChange={e => setArea(e.target.value)}
+                    placeholder="Например: 50"
+                    style={{padding: '16px 20px', borderRadius: 14, border: '1.5px solid #cbd5e1', fontSize: 16, backgroundColor: '#f8fafc', transition: 'border-color 0.2s', outline: 'none'}}
+                    onFocus={e => e.target.style.borderColor = '#0f172a'}
+                    onBlur={e => e.target.style.borderColor = '#cbd5e1'}
+                  />
+                </div>
                 
                 {/* Counter params from subcategory */}
                 {counterParams.map(p => (
@@ -1096,7 +1233,8 @@ export default function PartnerOnboarding() {
                      transition: 'all 0.3s ease',
                      boxShadow: isActive ? '0 12px 24px rgba(244, 111, 54, 0.08)' : 'none'
                    }}>
-                     <div 
+                     <div
+                       data-testid={`onboarding-price-toggle-${tier.id}`}
                        style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer'}}
                        onClick={() => setEnabledPrices({...enabledPrices, [tier.id]: !isActive})}
                      >
@@ -1124,6 +1262,7 @@ export default function PartnerOnboarding() {
                      }}>
                        <div style={{position: 'relative'}}>
                          <input 
+                           data-testid={`onboarding-price-${tier.id}`}
                            placeholder={`Например: ${tier.placeholder}`} 
                            type="number" 
                            value={prices[tier.id]} 
@@ -1169,7 +1308,7 @@ export default function PartnerOnboarding() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = '#f46f36'; e.currentTarget.style.backgroundColor = '#fff'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(244, 111, 54, 0.08)'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.boxShadow = 'none'; }}
               >
-                <input type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} style={{display: 'none'}} />
+                <input data-testid="onboarding-photos" type="file" accept="image/*" multiple onChange={(e) => addFiles(e.target.files)} style={{display: 'none'}} />
                 <div style={{width: 64, height: 64, backgroundColor: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0f172a', transition: 'all 0.3s'}}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 </div>
@@ -1233,19 +1372,52 @@ export default function PartnerOnboarding() {
             ))}
           </div>
           <div className="partner-bottom-actions">
-            <button type="button" className="partner-back" onClick={() => setStep(step - 1)}>Назад</button>
+            <button type="button" className="partner-back" disabled={submitting} onClick={() => setStep(step - 1)}>Назад</button>
             {step < maxStep - 1 ? (
-              <button type="button" className="partner-next" disabled={!canContinue()} onClick={() => setStep(step + 1)}>Далее</button>
+              <button data-testid="onboarding-next" type="button" className="partner-next" disabled={submitting} onClick={handleNext}>Далее</button>
             ) : (
-              <button type="button" className="partner-next is-publish" disabled={!canContinue()} onClick={handleBooking}>Опубликовать</button>
+              <button data-testid="onboarding-publish" type="button" className="partner-next is-publish" disabled={submitting} onClick={() => handleBooking()}>
+                {submitting ? "Публикация..." : "Опубликовать"}
+              </button>
             )}
           </div>
         </footer>
       )}
 
+      {moderationConfirmOpen && (
+        <div className="partner-moderation-confirm-overlay" onClick={() => setModerationConfirmOpen(false)}>
+          <div
+            className="partner-moderation-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="partner-moderation-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="partner-moderation-confirm-icon" aria-hidden="true">!</div>
+            <h2 id="partner-moderation-confirm-title">Отправить изменения на модерацию?</h2>
+            <p>
+              После сохранения опубликованное место временно станет недоступно на публичных страницах
+              и будет отправлено на повторную модерацию. Оно снова появится после одобрения.
+            </p>
+            <div className="partner-moderation-confirm-actions">
+              <button type="button" className="partner-back" onClick={() => setModerationConfirmOpen(false)}>
+                Отмена
+              </button>
+              <button
+                type="button"
+                className="partner-next is-publish"
+                onClick={() => handleBooking({ moderationConfirmed: true })}
+              >
+                Сохранить и отправить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Custom Toast Notification */}
       {toast.open && (
-        <div style={{
+        <div data-testid={`onboarding-toast-${toast.type}`} style={{
           position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)',
           backgroundColor: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
           color: toast.type === 'error' ? '#991b1b' : '#166534',

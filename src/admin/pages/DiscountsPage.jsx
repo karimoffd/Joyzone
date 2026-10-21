@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
-const API = "http://localhost:8000/api";
+const API = "/api";
 const getHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("joyzone-access")}`
+  Authorization: `Bearer ${getAccessToken()}`
 });
 
 function IconPlus() {
@@ -92,14 +92,14 @@ function DiscountModal({ initial, categories, onSave, onClose }) {
     };
     try {
       if (isEdit) {
-        await axios.put(`${API}/discounts/${initial.id}/`, payload, { headers: getHeaders() });
+        await api.put(`${API}/discounts/${initial.id}/`, payload, { headers: getHeaders() });
       } else {
-        await axios.post(`${API}/discounts/`, payload, { headers: getHeaders() });
+        await api.post(`${API}/discounts/`, payload, { headers: getHeaders() });
       }
       onSave();
       onClose();
     } catch (e) {
-      setErr(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Ошибка при сохранении");
+      setErr(getApiErrorMessage(e, "Ошибка при сохранении"));
     }
     setSaving(false);
   };
@@ -343,18 +343,20 @@ export default function DiscountsPage() {
   const [modal, setModal] = useState(null); // null | "create" | discount object
   const [filterType, setFilterType] = useState("all");
   const [filterCat, setFilterCat] = useState("all");
+  const [pageError, setPageError] = useState("");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const [discRes, catRes] = await Promise.all([
-        axios.get(`${API}/discounts/`, { headers: getHeaders() }),
-        axios.get(`${API}/categories/`, { headers: getHeaders() }),
+        api.get(`${API}/discounts/`, { headers: getHeaders() }),
+        api.get(`${API}/categories/`, { headers: getHeaders() }),
       ]);
       setDiscounts(discRes.data?.results || discRes.data || []);
       setCategories(catRes.data?.results || catRes.data || []);
+      setPageError("");
     } catch (e) {
-      console.error(e);
+      setPageError(getApiErrorMessage(e, "Не удалось загрузить скидки"));
     }
     setLoading(false);
   }, []);
@@ -364,19 +366,19 @@ export default function DiscountsPage() {
   const handleDelete = async (discount) => {
     if (!window.confirm(`Удалить скидку «${discount.name_ru}»?`)) return;
     try {
-      await axios.delete(`${API}/discounts/${discount.id}/`, { headers: getHeaders() });
+      await api.delete(`${API}/discounts/${discount.id}/`, { headers: getHeaders() });
       fetchAll();
     } catch (e) {
-      alert("Ошибка: " + (e.response?.data?.detail || e.message));
+      alert("Ошибка: " + getApiErrorMessage(e, "Не удалось удалить скидку"));
     }
   };
 
   const handleToggle = async (discount) => {
     try {
-      await axios.patch(`${API}/discounts/${discount.id}/`, { is_active: !discount.is_active }, { headers: getHeaders() });
+      await api.patch(`${API}/discounts/${discount.id}/`, { is_active: !discount.is_active }, { headers: getHeaders() });
       fetchAll();
     } catch (e) {
-      alert("Ошибка: " + (e.response?.data?.detail || e.message));
+      alert("Ошибка: " + getApiErrorMessage(e, "Не удалось изменить статус скидки"));
     }
   };
 
@@ -405,6 +407,7 @@ export default function DiscountsPage() {
               <p style={{ margin: 0, fontSize: 13, color: "#64748b" }}>
                 Активных: <strong style={{ color: "#16a34a" }}>{activeCount}</strong> из <strong>{discounts.length}</strong>
               </p>
+              {pageError ? <div style={{ color: "#dc2626", marginTop: 8, fontSize: 13, fontWeight: 700 }}>{pageError}</div> : null}
             </div>
           </div>
         </div>

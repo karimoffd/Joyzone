@@ -1,14 +1,21 @@
 // Central Shared Chat Manager for Joyzone
-// Syncs live chats across Client Space Details, Host Dashboard, and Admin Panel
-import axios from 'axios';
+// Backend REST is the source of truth; localStorage is only dev/offline fallback.
+import api, { getAccessToken, isStaleSessionError } from '../api/client.js';
+import { getStorageItem, setStorageItem, STORAGE_KEYS } from './storageKeys.js';
 
-const CHAT_STORAGE_KEY = "joyzone-shared-chats";
+const CHAT_STORAGE_KEY = STORAGE_KEYS.offline.chats;
+const BACKEND_CHAT_URL = '/api/notifications/chats/';
+const BACKEND_MSG_URL = '/api/notifications/chats/message/';
+
+export function canUseBackendChat() {
+  return Boolean(getAccessToken());
+}
 
 export function getActiveClientName() {
   try {
     return (
-      localStorage.getItem("joyzone-name") ||
-      localStorage.getItem("joyzone-username") ||
+      getStorageItem(STORAGE_KEYS.profile.name) ||
+      getStorageItem(STORAGE_KEYS.profile.legacyUsername) ||
       "Nosirov Abdulboriy"
     );
   } catch (e) {
@@ -62,53 +69,121 @@ const INITIAL_CHATS = [
   }
 ];
 
+function getInitialChats() {
+  return import.meta.env.DEV ? INITIAL_CHATS.map(normalizeChat) : [];
+}
+
+function dispatchChatUpdate() {
+  window.dispatchEvent(new Event("joyzone-chat-update"));
+}
+
 export function getStoredChats() {
   try {
-    const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+    const raw = getStorageItem(CHAT_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(INITIAL_CHATS));
-      return INITIAL_CHATS;
+      const initialChats = getInitialChats();
+      if (canUseBackendChat()) {
+        setStorageItem(CHAT_STORAGE_KEY, JSON.stringify(initialChats));
+      }
+      return initialChats;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_CHATS;
+    return Array.isArray(parsed) ? parsed.map(normalizeChat) : getInitialChats();
   } catch (error) {
-    return INITIAL_CHATS;
+    return getInitialChats();
   }
 }
 
 export function saveStoredChats(chats) {
   try {
-    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chats));
-    window.dispatchEvent(new Event("joyzone-chat-update"));
+    setStorageItem(CHAT_STORAGE_KEY, JSON.stringify((chats || []).map(normalizeChat)));
+    dispatchChatUpdate();
   } catch (error) {
     console.error("Failed to save chats to storage", error);
   }
 }
 
-const BACKEND_CHAT_URL = 'http://localhost:8000/api/notifications/chats/';
-const BACKEND_MSG_URL = 'http://localhost:8000/api/notifications/chats/message/';
+export function getMessageSender(message) {
+  return String(message?.from || message?.sender || message?.from_sender || "guest").toLowerCase();
+}
 
-// Sync with Django REST API in background
-export async function syncChatsWithBackend() {
+export function normalizeChatMessage(message = {}) {
+  const from = getMessageSender(message);
+  return {
+    ...message,
+    from,
+    sender: message.sender || from,
+    from_sender: message.from_sender || from
+  };
+}
+
+export function normalizeChat(chat = {}) {
+  const spaceTitle = chat.spaceTitle || chat.space_title || chat.space || "Joyzone Space";
+  const hostName = chat.hostName || chat.host_name || chat.host_user_name || "Ega / Host";
+  return {
+    ...chat,
+    id: chat.id || chat.thread_id,
+    threadId: chat.thread_id || chat.id,
+    placeId: chat.place_id || chat.placeId || chat.space_id,
+    guestId: chat.guest_id || chat.guestId,
+    hostId: chat.host_id || chat.hostId,
+    name: chat.guest_name || chat.name || "Joyzone user",
+    hostName,
+    host_name: hostName,
+    space: spaceTitle,
+    spaceTitle,
+    space_title: spaceTitle,
+    preview: chat.preview || chat.last || "Диалог начат...",
+    unread: Boolean(chat.unread),
+    color: chat.color || "#e46630",
+    messages: Array.isArray(chat.messages) ? chat.messages.map(normalizeChatMessage) : []
+  };
+}
+
+function upsertStoredChat(chat) {
+  const normalized = normalizeChat(chat);
+  const chats = getStoredChats();
+  const index = chats.findIndex((item) => String(item.id) === String(normalized.id));
+  const updated = index >= 0
+    ? chats.map((item, itemIndex) => itemIndex === index ? normalized : item)
+    : [normalized, ...chats];
+  saveStoredChats(updated);
+  return normalized;
+}
+
+export async function syncChatsWithBackend({ placeId, silent = false, allowDevFallback = true } = {}) {
+  if (!canUseBackendChat()) {
+    if (import.meta.env.DEV && allowDevFallback) return getStoredChats();
+    throw new Error("Authentication is required to load chats.");
+  }
+
   try {
-    const res = await axios.get(BACKEND_CHAT_URL);
-    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(res.data));
-      window.dispatchEvent(new Event("joyzone-chat-update"));
-      return res.data;
+    const params = placeId ? { place: placeId } : {};
+    const res = await api.get(BACKEND_CHAT_URL, { params });
+    const data = res.data?.results || res.data || [];
+    if (Array.isArray(data)) {
+      const normalizedChats = data.map(normalizeChat);
+      setStorageItem(CHAT_STORAGE_KEY, JSON.stringify(normalizedChats));
+      if (!silent) dispatchChatUpdate();
+      return normalizedChats;
     }
   } catch (err) {
-    console.warn("Backend chat sync error (using local storage fallback):", err.message);
+    if (isStaleSessionError(err)) throw err;
+    if (import.meta.env.DEV && allowDevFallback) {
+      console.warn("Backend chat sync error (using local storage fallback):", err.message);
+      return getStoredChats();
+    }
+    throw err;
   }
-  return getStoredChats();
+  return [];
 }
 
 export function getChatById(chatId) {
   const chats = getStoredChats();
-  return chats.find((c) => String(c.id) === String(chatId)) || null;
+  return chats.find((c) => String(c.id) === String(chatId) || String(c.threadId) === String(chatId)) || null;
 }
 
-export function startOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
+function localStartOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
   const chats = getStoredChats();
   const activeClient = clientName || getActiveClientName();
   const slug = (spaceTitle || "space").toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -122,7 +197,7 @@ export function startOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
     return existingChat;
   }
 
-  const newChat = {
+  const newChat = normalizeChat({
     id: slug,
     name: activeClient,
     hostName: hostName || "Ega / Host",
@@ -135,58 +210,117 @@ export function startOrGetChatForSpace({ spaceTitle, hostName, clientName }) {
     messages: [
       { from: "host", text: `Здравствуйте! Добро пожаловать в ${spaceTitle}. Чем могу помочь?` }
     ]
-  };
+  });
 
-  const updatedChats = [newChat, ...chats];
-  saveStoredChats(updatedChats);
-
-  // Sync to Django Backend
-  axios.post(BACKEND_CHAT_URL, {
-    id: slug,
-    name: activeClient,
-    space_title: spaceTitle,
-    host_name: hostName || 'Ega / Host'
-  }).catch(e => console.warn("Failed to sync new chat to backend", e));
-
+  saveStoredChats([newChat, ...chats]);
   return newChat;
 }
 
-export function sendMessageToChat(chatId, { from, text }) {
-  if (!text || !text.trim()) return null;
+export async function startOrGetChatForSpace({ spaceId, placeId, spaceTitle, hostName, clientName }) {
+  const targetPlaceId = placeId || spaceId;
+  if (canUseBackendChat() && targetPlaceId) {
+    try {
+      const res = await api.post(BACKEND_CHAT_URL, {
+        place_id: targetPlaceId,
+        name: clientName || getActiveClientName(),
+        host_name: hostName || 'Ega / Host'
+      });
+      return upsertStoredChat(res.data);
+    } catch (e) {
+      if (isStaleSessionError(e)) throw e;
+      console.warn("Failed to create backend chat (using fallback):", e.message);
+    }
+  }
+  if (!import.meta.env.DEV && canUseBackendChat()) return null;
+  return localStartOrGetChatForSpace({ spaceTitle, hostName, clientName });
+}
+
+function saveLocalMessage(chatId, sender, messageText) {
+  if (!messageText) return null;
   const chats = getStoredChats();
   let targetChat = null;
 
   const updatedChats = chats.map((chat) => {
-    if (String(chat.id) === String(chatId)) {
+    if (String(chat.id) === String(chatId) || String(chat.threadId) === String(chatId)) {
       const updatedMessages = [
         ...chat.messages,
-        { from: from || "guest", text: text.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+        normalizeChatMessage({
+          from: sender,
+          text: messageText,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        })
       ];
-      targetChat = {
+      targetChat = normalizeChat({
         ...chat,
-        preview: text.trim(),
+        preview: messageText,
         time: "Только что",
-        unread: from === "guest",
+        unread: sender === "guest",
         messages: updatedMessages
-      };
+      });
       return targetChat;
     }
     return chat;
   });
 
   saveStoredChats(updatedChats);
-
-  // Send message to Django Backend
-  axios.post(BACKEND_MSG_URL, {
-    chat_id: chatId,
-    from: from || 'guest',
-    text: text.trim()
-  }).then(res => {
-    if (res.data && res.data.messages) {
-      // Background update local cache with backend response
-      syncChatsWithBackend();
-    }
-  }).catch(e => console.warn("Failed to post message to Django backend:", e.message));
-
   return targetChat;
+}
+
+export async function sendMessageToChat(chatId, { from, text }, { allowDevFallback = true } = {}) {
+  if (!text || !text.trim()) return null;
+  const sender = getMessageSender({ from });
+  const messageText = text.trim();
+
+  if (canUseBackendChat()) {
+    try {
+      const res = await api.post(BACKEND_MSG_URL, {
+        chat_id: chatId,
+        from: sender,
+        text: messageText
+      });
+      return upsertStoredChat(res.data);
+    } catch (e) {
+      if (isStaleSessionError(e)) throw e;
+      if (import.meta.env.DEV && allowDevFallback) {
+        console.warn("Failed to post message to Django backend (using local fallback):", e.message);
+        return saveLocalMessage(chatId, sender, messageText);
+      }
+      throw e;
+    }
+  }
+
+  if (import.meta.env.DEV && allowDevFallback) {
+    return saveLocalMessage(chatId, sender, messageText);
+  }
+  throw new Error("Authentication is required to send messages.");
+}
+
+export async function markChatRead(chatId, { allowDevFallback = true } = {}) {
+  if (!chatId) return null;
+  if (!canUseBackendChat()) {
+    if (import.meta.env.DEV && allowDevFallback) return null;
+    throw new Error("Authentication is required to mark chats as read.");
+  }
+  try {
+    const res = await api.post(`/api/notifications/chats/${chatId}/read/`);
+    return upsertStoredChat(res.data);
+  } catch (e) {
+    if (isStaleSessionError(e)) throw e;
+    if (import.meta.env.DEV && allowDevFallback) {
+      console.warn("Failed to mark chat as read:", e.message);
+      return null;
+    }
+    throw e;
+  }
+}
+
+export async function fetchUnreadChatCount() {
+  if (!canUseBackendChat()) return 0;
+  try {
+    const res = await api.get('/api/notifications/chats/unread-count/');
+    return Number(res.data?.count || 0);
+  } catch (e) {
+    console.warn("Failed to fetch chat unread count:", e.message);
+    return 0;
+  }
 }

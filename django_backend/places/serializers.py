@@ -1,5 +1,61 @@
+import re
+from decimal import Decimal, InvalidOperation
+
+from django.db.models import Avg
 from rest_framework import serializers
-from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite
+from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite, PlaceModerationLog
+
+
+PRICE_FIELD_ALIASES = {
+    'price_hourly': ('soatlik', 'hourly', 'hour'),
+    'price_daily': ('kunlik', 'daily', 'day'),
+    'price_weekly': ('haftalik', 'weekly', 'week'),
+    'price_monthly': ('oylik', 'monthly', 'month'),
+}
+
+
+def _parse_price_value(value):
+    if value is None or value == '':
+        return None
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    compact = text.replace(' ', '')
+    try:
+        if re.fullmatch(r'\d+(\.\d+)?', compact):
+            return Decimal(compact)
+    except InvalidOperation:
+        return None
+
+    digits = re.sub(r'\D', '', text)
+    if not digits:
+        return None
+    try:
+        return Decimal(digits)
+    except InvalidOperation:
+        return None
+
+
+def _normalized_price_fields_from_prices(prices):
+    if not isinstance(prices, dict):
+        return {}
+
+    normalized = {}
+    for field_name, aliases in PRICE_FIELD_ALIASES.items():
+        for alias in aliases:
+            if alias not in prices:
+                continue
+            parsed = _parse_price_value(prices.get(alias))
+            if parsed is not None:
+                normalized[field_name] = str(parsed)
+                break
+    return normalized
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -23,6 +79,8 @@ class ParameterGroupSerializer(serializers.ModelSerializer):
 
 
 class SubCategorySerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name_ru', read_only=True)
+    category_slug = serializers.CharField(source='category.slug', read_only=True)
     parameters = ParameterSerializer(many=True, read_only=True)
     parameter_ids = serializers.PrimaryKeyRelatedField(
         many=True,
@@ -35,7 +93,7 @@ class SubCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SubCategory
         fields = (
-            'id', 'slug', 'category', 'name_uz', 'name_ru', 'name_en',
+            'id', 'slug', 'category', 'category_name', 'category_slug', 'name_uz', 'name_ru', 'name_en',
             'parameters', 'parameter_ids', 'order'
         )
 
@@ -51,20 +109,48 @@ class CategoryWithSubsSerializer(serializers.ModelSerializer):
 
 class PlaceSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField()
+    owner_email = serializers.SerializerMethodField()
+    owner_phone = serializers.SerializerMethodField()
     moderated_by_name = serializers.SerializerMethodField()
     subcategory_info = SubCategorySerializer(source='subcategory', read_only=True)
     category_name = serializers.SerializerMethodField()
     subcategory_name = serializers.SerializerMethodField()
+    bookings_count = serializers.SerializerMethodField()
+    rating_avg = serializers.SerializerMethodField()
+    reviews_count = serializers.SerializerMethodField()
+    moderation_logs = serializers.SerializerMethodField()
+    discounts = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Discount.objects.all(),
+        required=False
+    )
+    discount_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = Place
         fields = '__all__'
         read_only_fields = ('status', 'moderated_by', 'moderated_at', 'created_at', 'updated_at', 'owner')
 
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            data = data.copy()
+            if 'discount_ids' in data and 'discounts' not in data:
+                data['discounts'] = data.get('discount_ids')
+            if 'prices' in data:
+                for field_name, value in _normalized_price_fields_from_prices(data.get('prices')).items():
+                    data.setdefault(field_name, value)
+        return super().to_internal_value(data)
+
     def get_owner_name(self, obj):
         if obj.owner:
             return obj.owner.get_full_name() or obj.owner.username
         return None
+
+    def get_owner_email(self, obj):
+        return obj.owner.email if obj.owner else ""
+
+    def get_owner_phone(self, obj):
+        return obj.owner.phone_number if obj.owner else ""
 
     def get_moderated_by_name(self, obj):
         if obj.moderated_by:
@@ -80,6 +166,35 @@ class PlaceSerializer(serializers.ModelSerializer):
         if obj.subcategory:
             return obj.subcategory.name_ru
         return ""
+
+    def get_discount_ids(self, obj):
+        return list(obj.discounts.values_list('id', flat=True))
+
+    def get_bookings_count(self, obj):
+        annotated = getattr(obj, 'bookings_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.bookings.count()
+
+    def get_rating_avg(self, obj):
+        annotated = getattr(obj, 'rating_avg', None)
+        if annotated is None:
+            annotated = obj.reviews.aggregate(avg=Avg('rating'))['avg']
+        if annotated is None:
+            return 0
+        return round(float(annotated), 1)
+
+    def get_reviews_count(self, obj):
+        annotated = getattr(obj, 'reviews_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.reviews.count()
+
+    def get_moderation_logs(self, obj):
+        logs = getattr(obj, 'prefetched_moderation_logs', None)
+        if logs is None:
+            logs = obj.moderation_logs.select_related('actor').all()[:10]
+        return PlaceModerationLogSerializer(logs, many=True).data
 
     def validate_images(self, value):
         """Limit to max 10 images per place."""
@@ -110,6 +225,7 @@ class PlaceSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
+    place_title = serializers.CharField(source='place.title', read_only=True)
     
     class Meta:
         model = Review
@@ -120,6 +236,33 @@ class ReviewSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.get_full_name() or obj.user.username
         return "Foydalanuvchi"
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError('Rating must be between 1 and 5.')
+        return value
+
+    def validate_comment(self, value):
+        comment = str(value or '').strip()
+        if not comment:
+            raise serializers.ValidationError('Comment cannot be empty.')
+        return comment
+
+
+class PlaceModerationLogSerializer(serializers.ModelSerializer):
+    actor_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PlaceModerationLog
+        fields = (
+            'id', 'place', 'actor', 'actor_name', 'action',
+            'from_status', 'to_status', 'note', 'created_at'
+        )
+
+    def get_actor_name(self, obj):
+        if obj.actor:
+            return obj.actor.get_full_name() or obj.actor.username
+        return ""
 
 
 class DiscountSerializer(serializers.ModelSerializer):

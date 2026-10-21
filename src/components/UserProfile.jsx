@@ -1,11 +1,20 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
-import { propertyCards } from "../data/content.js";
+import { normalizePlace } from "../utils/placeMapper.js";
+import {
+  fetchPlaceAvailability,
+  getAvailabilityDayStatus,
+  getCalendarAvailabilityRange,
+  isAvailabilityDayUnavailable
+} from "../utils/availability.js";
 import { fetchFavoritesFromBackend, getLocalFavorites } from "../utils/favoritesManager.js";
+import { normalizeBooking } from "../utils/bookingMapper.js";
+import { cacheProfile, normalizeProfile, profileToUserState } from "../utils/profileMapper.js";
+import { getStorageItem, readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../utils/storageKeys.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
 
@@ -15,6 +24,8 @@ function slugify(text) {
 
 const initialProfile = {
   name: "",
+  firstName: "",
+  lastName: "",
   role: "Joyzone foydalanuvchisi",
   city: "Toshkent",
   birthYear: "",
@@ -34,7 +45,8 @@ const profileSections = [
     title: "Ismingiz",
     description: "Ism va qisqa tavsif profilida ko'rinadi.",
     fields: [
-      { key: "name", label: "Ism va familiya", type: "text", placeholder: "Aziz Karimov" },
+      { key: "firstName", label: "Ism", type: "text", placeholder: "Aziz" },
+      { key: "lastName", label: "Familiya", type: "text", placeholder: "Karimov" },
       { key: "role", label: "Qisqa tavsif", type: "text", placeholder: "Founder, product jamoasi" }
     ]
   },
@@ -97,32 +109,33 @@ const profileSections = [
   }
 ];
 
-const bookings = [
-  {
-    title: "Atlas Meeting Room",
-    type: "Konferensiya zali",
-    date: "12 may 2026",
-    time: "10:00 - 14:00",
-    location: "Toshkent, Yunusobod",
-    status: "Yakunlangan",
-    href: "#space-atlas-meeting-room"
-  },
-  {
-    title: "Quiet Work Studio",
-    type: "Kovorking",
-    date: "28 aprel 2026",
-    time: "09:00 - 18:00",
-    location: "Toshkent, Mirobod",
-    status: "Yakunlangan",
-    href: "#space-quiet-work-studio"
-  }
-];
+const BACKEND_PROFILE_DRAFT_KEYS = new Set(["firstName", "lastName", "email", "phone"]);
+const CANCELLABLE_BOOKING_STATUSES = new Set(["pending", "confirmed"]);
+const ACTIVE_BOOKING_STATUSES = new Set(["pending", "confirmed"]);
+
+const BOOKING_STATUS_LABELS = {
+  pending: "Kutilmoqda",
+  confirmed: "Tasdiqlangan",
+  cancelled: "Bekor qilingan",
+  completed: "Yakunlangan",
+  blocked: "Yopilgan",
+};
+
+const PAYMENT_STATUS_LABELS = {
+  created: "Yaratilgan",
+  unpaid: "To'lanmagan",
+  test_paid: "Test to'lov qilingan",
+  paid: "To'langan",
+  failed: "Muvaffaqiyatsiz",
+  refunded: "Qaytarilgan",
+};
 
 function ProfileIcon({ type }) {
   const paths = {
     edit: ["M12 20h9", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"],
     user: ["M20 21a8 8 0 0 0-16 0", "M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"],
     calendar: ["M7 3v4M17 3v4", "M4 8h16v13H4z", "M8 12h.01M12 12h.01M16 12h.01M8 16h.01"],
+    payment: ["M3 6h18v12H3z", "M3 10h18", "M7 15h3"],
     heart: ["M20.8 4.6a5.4 5.4 0 0 0-7.6 0L12 5.8l-1.2-1.2a5.4 5.4 0 1 0-7.6 7.6L12 21l8.8-8.8a5.4 5.4 0 0 0 0-7.6Z"],
     check: ["m5 13 4 4L19 7"],
     empty: ["M4 5h16v14H4z", "M8 9h8M8 13h5"],
@@ -151,8 +164,71 @@ function EmptyState({ title, text, action, href }) {
   );
 }
 
+function buildProfileBookingView(rawBooking = {}, index = 0) {
+  const booking = normalizeBooking(rawBooking, { fallbackId: `profile-booking-${index}` });
+  return {
+    ...booking,
+    title: booking.place_title,
+    type: booking.durationLabel || rawBooking.type || "Bron",
+    date: rawBooking.date || booking.start_date,
+    time: rawBooking.time || booking.time || booking.durationLabel,
+    location: rawBooking.location || booking.place_details?.location || "Toshkent",
+    status: rawBooking.status || booking.status,
+    href: rawBooking.href || `#space-${booking.place_id || booking.place_title}`,
+  };
+}
+
+function formatBookingDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("uz-UZ", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function formatBookingAmount(booking) {
+  return `${new Intl.NumberFormat("uz-UZ").format(Number(booking.amount) || 0)} ${booking.currency || "UZS"}`;
+}
+
+function bookingStatusLabel(status) {
+  const value = String(status || "pending").toLowerCase();
+  return `${BOOKING_STATUS_LABELS[value] || value} (${value})`;
+}
+
+function paymentStatusLabel(status) {
+  const value = String(status || "unpaid").toLowerCase();
+  return `${PAYMENT_STATUS_LABELS[value] || value} (${value})`;
+}
+
+function normalizeBookingResponse(data) {
+  const items = data?.results || data || [];
+  return Array.isArray(items)
+    ? items.map((booking, index) => normalizeBooking(booking, { fallbackId: `profile-booking-${index}` }))
+    : [];
+}
+
+function normalizePaymentResponse(data) {
+  const items = data?.results || data || [];
+  return Array.isArray(items) ? items : [];
+}
+
+function paymentSubject(payment) {
+  if (payment.booking_id) return `Bron: ${payment.booking_title || `#${payment.booking_id}`}`;
+  if (payment.tariff_subscription_id) return `Tarif: ${payment.tariff_name || `#${payment.tariff_id || payment.tariff_subscription_id}`}`;
+  return "To'lov";
+}
+
+function formatPaymentAmount(payment) {
+  return `${new Intl.NumberFormat("uz-UZ").format(Number(payment.amount) || 0)} ${payment.currency || "UZS"}`;
+}
+
 function getCompletion(data) {
-  const keys = ["name", "role", "city", "birthYear", "languages", "email", "phone", "work", "company", "interests", "about"];
+  const keys = ["firstName", "lastName", "role", "city", "birthYear", "languages", "email", "phone", "work", "company", "interests", "about"];
   const filled = keys.filter((key) => String(data[key] || "").trim()).length;
   return Math.round((filled / keys.length) * 100);
 }
@@ -160,35 +236,75 @@ function getCompletion(data) {
 function UserProfile({ userState, setUserState }) {
   const [activeTab, setActiveTab] = useState("about");
   const [selectedListing, setSelectedListing] = useState(null);
-  const [likedSpaces, setLikedSpaces] = useState(getLocalFavorites());
+  const [likedSpaces, setLikedSpaces] = useState(() => import.meta.env.DEV ? getLocalFavorites() : []);
+  const [favoritesLoading, setFavoritesLoading] = useState(true);
+  const [favoritesError, setFavoritesError] = useState("");
+  const [favoritesUsingDevFallback, setFavoritesUsingDevFallback] = useState(false);
   const avatarInputRef = useRef(null);
 
   useEffect(() => {
-    fetchFavoritesFromBackend().then(favs => setLikedSpaces(favs));
+    let active = true;
+    setFavoritesLoading(true);
+    setFavoritesError("");
+    setFavoritesUsingDevFallback(false);
+
+    if (!userState?.isAuthed || !getAccessToken()) {
+      setLikedSpaces([]);
+      setFavoritesLoading(false);
+      setFavoritesError("Saqlangan joylarni ko'rish uchun tizimga kiring.");
+      return undefined;
+    }
+
+    fetchFavoritesFromBackend({
+      onDevFallback: () => active && setFavoritesUsingDevFallback(true),
+    })
+      .then((favorites) => {
+        if (active) setLikedSpaces(favorites);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setLikedSpaces([]);
+        setFavoritesError(getApiErrorMessage(error, "Не удалось загрузить избранное"));
+      })
+      .finally(() => {
+        if (active) setFavoritesLoading(false);
+      });
     
-    const handleUpdate = () => {
+    const handleUpdate = (event) => {
       setLikedSpaces(getLocalFavorites());
+      if (event.detail?.source === "dev-fallback") setFavoritesUsingDevFallback(true);
+      if (["backend", "backend-merge"].includes(event.detail?.source)) {
+        setFavoritesError("");
+        setFavoritesUsingDevFallback(false);
+      }
     };
     window.addEventListener("joyzone-favorites-update", handleUpdate);
-    return () => window.removeEventListener("joyzone-favorites-update", handleUpdate);
-  }, []);
+    return () => {
+      active = false;
+      window.removeEventListener("joyzone-favorites-update", handleUpdate);
+    };
+  }, [userState?.isAuthed]);
 
   const profileData = useMemo(() => {
-    const activeName = userState?.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi";
-    const activeEmail = userState?.email || localStorage.getItem("joyzone-email") || "";
-    const activePhone = userState?.phone || localStorage.getItem("joyzone-phone") || "";
+    const activeName = userState?.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi";
+    const activeEmail = userState?.email || getStorageItem(STORAGE_KEYS.profile.email, "");
+    const activePhone = userState?.phone || getStorageItem(STORAGE_KEYS.profile.phone, "");
+    const localOnly = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
     return {
       ...initialProfile,
+      ...localOnly,
       name: activeName,
       email: activeEmail,
       phone: activePhone
     };
   }, [userState]);
   const completion = 50;
+  const [profileError, setProfileError] = useState("");
+  const [avatarSaving, setAvatarSaving] = useState(false);
 
   // Handle avatar upload and change
   const handleAvatarSelect = () => {
-    if (avatarInputRef.current) {
+    if (!avatarSaving && avatarInputRef.current) {
       avatarInputRef.current.click();
     }
   };
@@ -200,54 +316,60 @@ function UserProfile({ userState, setUserState }) {
     const reader = new FileReader();
     reader.onload = async () => {
       const base64Data = reader.result;
-
-      if (setUserState) {
-        setUserState({
-          ...userState,
-          avatar: base64Data
-        });
+      const token = getAccessToken();
+      if (!token) {
+        setProfileError("Profil rasmini saqlash uchun tizimga kiring.");
+        return;
       }
-      localStorage.setItem("joyzone-avatar", base64Data);
-
-      const token = localStorage.getItem("joyzone-access");
-      if (token) {
-        try {
-          await axios.patch("/api/auth/profile/", { avatar: base64Data }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-        } catch (err) {
-          console.warn("Backend avatar update deferred:", err);
-        }
+      setAvatarSaving(true);
+      try {
+        const response = await api.patch("/api/auth/profile/", { avatar: base64Data });
+        const profile = cacheProfile(response.data);
+        setUserState?.(profileToUserState(profile, userState));
+        setProfileError("");
+      } catch (err) {
+        setProfileError(getApiErrorMessage(err, "Не удалось обновить аватар"));
+      } finally {
+        setAvatarSaving(false);
       }
     };
     reader.readAsDataURL(file);
   };
 
   const handleAvatarRemove = async () => {
-    if (setUserState) {
-      setUserState({
-        ...userState,
-        avatar: null
-      });
+    const token = getAccessToken();
+    if (!token) {
+      setProfileError("Profil rasmini o'chirish uchun tizimga kiring.");
+      return;
     }
-    localStorage.removeItem("joyzone-avatar");
-
-    const token = localStorage.getItem("joyzone-access");
-    if (token) {
-      try {
-        await axios.patch("/api/auth/profile/", { avatar: null }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.warn("Backend avatar deletion deferred:", err);
-      }
+    setAvatarSaving(true);
+    try {
+      const response = await api.patch("/api/auth/profile/", { avatar: null });
+      const profile = cacheProfile(response.data);
+      setUserState?.(profileToUserState(profile, userState));
+      setProfileError("");
+    } catch (err) {
+      setProfileError(getApiErrorMessage(err, "Не удалось удалить аватар"));
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
   // Property states
   const [myObjects, setMyObjects] = useState([]);
   const [allBookings, setAllBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [payments, setPayments] = useState([]);
+  const [availabilityByPlace, setAvailabilityByPlace] = useState({});
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [bookingsLoaded, setBookingsLoaded] = useState(false);
+  const [bookingsError, setBookingsError] = useState("");
+  const [bookingActionError, setBookingActionError] = useState("");
+  const [bookingsSuccess, setBookingsSuccess] = useState("");
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [cancellingBookingId, setCancellingBookingId] = useState(null);
+  const [cancelBookingTarget, setCancelBookingTarget] = useState(null);
+  const [cancelError, setCancelError] = useState("");
 
   // Property Manager States
   const [selectedObject, setSelectedObject] = useState(null);
@@ -272,27 +394,130 @@ function UserProfile({ userState, setUserState }) {
   const [customPriceVal, setCustomPriceVal] = useState("");
 
   const fetchUserData = async () => {
-    try {
-      const currentEmail = userState?.email || "aziz.karimov@mail.com";
-      const spacesRes = await axios.get("http://localhost:8000/api/places/");
-      const bookingsRes = await axios.get("http://localhost:8000/api/bookings/");
-
-      const spacesData = spacesRes.data?.results || spacesRes.data || [];
-      const bookingsData = Array.isArray(bookingsRes.data) ? bookingsRes.data : [];
-
-      const userSpaces = spacesData.filter(s => s.owner_name === userState.name || s.owner_id === userState.id);
-      setMyObjects(userSpaces);
-      setAllBookings(bookingsData);
-    } catch (err) {
-      console.warn("REST API loading error inside profile:", err.message);
-    } finally {
-      setLoading(false);
+    if (!userState?.isAuthed || !getAccessToken()) {
+      setMyObjects([]);
+      setAllBookings([]);
+      setPayments([]);
+      setBookingsLoading(false);
+      setBookingsLoaded(false);
+      setPaymentsLoading(false);
+      setBookingsError("Bronlar tarixini ko'rish uchun tizimga kiring.");
+      setPaymentsError("To'lovlar tarixini ko'rish uchun tizimga kiring.");
+      return;
     }
+
+    setBookingsLoading(true);
+    setPaymentsLoading(true);
+    setBookingsLoaded(false);
+    const [spacesResult, bookingsResult, paymentsResult] = await Promise.allSettled([
+      api.get("/api/places/"),
+      api.get("/api/bookings/", { params: { scope: "mine" } }),
+      api.get("/api/payments/my/"),
+    ]);
+
+    if (spacesResult.status === "fulfilled") {
+      const spacesData = spacesResult.value.data?.results || spacesResult.value.data || [];
+      const userSpaces = spacesData.filter((space) => (
+        space.owner === userState.id
+        || space.owner_id === userState.id
+        || space.owner_name === userState.name
+      ));
+      setMyObjects(userSpaces);
+      setProfileError("");
+    } else {
+      setMyObjects([]);
+      setProfileError(getApiErrorMessage(spacesResult.reason, "Не удалось загрузить объекты профиля"));
+    }
+
+    if (bookingsResult.status === "fulfilled") {
+      setAllBookings(normalizeBookingResponse(bookingsResult.value.data));
+      setBookingsError("");
+      setBookingsLoaded(true);
+    } else {
+      setAllBookings([]);
+      setBookingsError(getApiErrorMessage(bookingsResult.reason, "Не удалось загрузить историю бронирований"));
+    }
+
+    if (paymentsResult.status === "fulfilled") {
+      setPayments(normalizePaymentResponse(paymentsResult.value.data));
+      setPaymentsError("");
+    } else {
+      setPayments([]);
+      setPaymentsError(getApiErrorMessage(paymentsResult.reason, "Не удалось загрузить историю платежей"));
+    }
+    setBookingsLoading(false);
+    setPaymentsLoading(false);
   };
 
   useEffect(() => {
     fetchUserData();
-  }, [userState?.email]);
+  }, [userState?.id, userState?.email, userState?.isAuthed]);
+
+  useEffect(() => {
+    if (!cancelBookingTarget) return undefined;
+    const handleEscape = (event) => {
+      if (event.key === "Escape" && !cancellingBookingId) setCancelBookingTarget(null);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [cancelBookingTarget, cancellingBookingId]);
+
+  const openCancelBookingModal = (booking) => {
+    if (!booking?.id || !CANCELLABLE_BOOKING_STATUSES.has(booking.status)) return;
+    setCancelError("");
+    setBookingActionError("");
+    setBookingsSuccess("");
+    setCancelBookingTarget(booking);
+  };
+
+  const closeCancelBookingModal = () => {
+    if (cancellingBookingId) return;
+    setCancelBookingTarget(null);
+    setCancelError("");
+  };
+
+  const handleCancelBooking = async () => {
+    const booking = cancelBookingTarget;
+    if (!booking?.id || !CANCELLABLE_BOOKING_STATUSES.has(booking.status)) return;
+
+    setCancellingBookingId(booking.id);
+    setCancelError("");
+    setBookingActionError("");
+    setBookingsSuccess("");
+    let cancellationConfirmed = false;
+    try {
+      const response = await api.post(`/api/bookings/${booking.id}/cancel/`);
+      const cancelledBooking = normalizeBooking(response.data);
+      if (cancelledBooking.status !== "cancelled") {
+        throw new Error("Backend bronni bekor qilingan deb tasdiqlamadi.");
+      }
+      cancellationConfirmed = true;
+      setAllBookings((current) => current.map((item) => (
+        String(item.id) === String(cancelledBooking.id) ? cancelledBooking : item
+      )));
+      setCancelBookingTarget(null);
+
+      setBookingsLoading(true);
+      const refreshedBookingsResponse = await api.get("/api/bookings/", {
+        params: { scope: "mine" },
+      });
+      setAllBookings(normalizeBookingResponse(refreshedBookingsResponse.data));
+      setBookingsLoaded(true);
+      setBookingsSuccess(`${cancelledBooking.place_title} broni muvaffaqiyatli bekor qilindi.`);
+    } catch (err) {
+      const message = getApiErrorMessage(
+        err,
+        cancellationConfirmed
+          ? "Bron bekor qilindi, ammo tarixni qayta yuklab bo'lmadi."
+          : "Bronni bekor qilib bo'lmadi"
+      );
+      setBookingActionError(message);
+      if (!cancellationConfirmed) setCancelError(message);
+    } finally {
+      setCancellingBookingId(null);
+      setBookingsLoading(false);
+    }
+  };
 
   const handleAddSpace = async (e) => {
     e.preventDefault();
@@ -313,9 +538,9 @@ function UserProfile({ userState, setUserState }) {
     };
 
     try {
-      await axios.post("http://localhost:8000/api/places/", newSpaceData, {
+      await api.post("/api/places/", newSpaceData, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+          'Authorization': `Bearer ${getAccessToken()}`
         }
       });
       setNewName("");
@@ -327,9 +552,11 @@ function UserProfile({ userState, setUserState }) {
       setNewSpaceImages([]);
       setShowAddForm(false);
       await fetchUserData();
+      setProfileError("");
     } catch (err) {
-      console.error("Failed to add new property:", err);
-      alert("Xatolik yuz berdi: obyektni qo'shib bo'lmadi.");
+      const message = getApiErrorMessage(err, "Obyektni qo'shib bo'lmadi");
+      setProfileError(message);
+      alert("Xatolik yuz berdi: " + message);
     }
   };
 
@@ -365,6 +592,7 @@ function UserProfile({ userState, setUserState }) {
 
   const handleDayClick = (dateStr) => {
     if (!dateStr) return;
+    if (isActiveDateUnavailable(dateStr)) return;
     if (rangeStart && !rangeEnd) {
       if (dateStr < rangeStart) {
         setRangeStart(dateStr);
@@ -381,19 +609,23 @@ function UserProfile({ userState, setUserState }) {
     if (!rangeStart) return;
     const start = rangeStart;
     const end = rangeEnd || rangeStart;
+    const placeId = activeObject.id || activeObject._id;
 
     try {
-      await axios.post("http://localhost:8000/api/bookings/", {
-        place_id: activeObject.id || activeObject._id,
-        client: userState?.id || "anon",
+      await api.post("/api/bookings/", {
+        place: placeId,
         start_date: start,
         end_date: end,
-        total_price: 0,
-        status: "closed",
+        duration_type: "daily",
+        guests: 1,
+        amount: 0,
+        currency: "UZS",
+        status: "blocked",
+        payment_status: "unpaid",
         note: blockingNote || "Mulkdor tomonidan yopilgan"
       }, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+          'Authorization': `Bearer ${getAccessToken()}`
         }
       });
 
@@ -401,10 +633,15 @@ function UserProfile({ userState, setUserState }) {
       setRangeStart(null);
       setRangeEnd(null);
       await fetchUserData();
+      const range = getCalendarAvailabilityRange(currentYear, currentMonth);
+      const availability = await fetchPlaceAvailability({ placeId, ...range, skipAuth: false });
+      setAvailabilityByPlace((current) => ({ ...current, [placeId]: availability }));
+      setProfileError("");
       alert("Kunlar muvaffaqiyatli band qilindi / yopildi!");
     } catch (err) {
-      console.error("Manual booking error:", err);
-      alert("Xatolik yuz berdi: kunlarni yopib bo'lmadi.");
+      const message = getApiErrorMessage(err, "Kunlarni yopib bo'lmadi");
+      setProfileError(message);
+      alert("Xatolik yuz berdi: " + message);
     }
   };
 
@@ -426,11 +663,11 @@ function UserProfile({ userState, setUserState }) {
     }
 
     try {
-      await axios.put(`http://localhost:8000/api/places/${activeObject.id || activeObject._id}/`, {
+      await api.put(`/api/places/${activeObject.id || activeObject._id}/`, {
         priceOverrides: newOverrides
       }, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}`
+          'Authorization': `Bearer ${getAccessToken()}`
         }
       });
 
@@ -438,26 +675,58 @@ function UserProfile({ userState, setUserState }) {
       setRangeStart(null);
       setRangeEnd(null);
       await fetchUserData();
+      setProfileError("");
       alert("Kunlik narx(lar) muvaffaqiyatli o'zgartirildi!");
     } catch (err) {
-      console.error("Save price overrides error:", err);
-      alert("Xatolik yuz berdi: narxni saqlab bo'lmadi.");
+      const message = getApiErrorMessage(err, "Narxni saqlab bo'lmadi");
+      setProfileError(message);
+      alert("Xatolik yuz berdi: " + message);
     }
   };
 
   const activeObject = selectedObject
     ? (myObjects.find(o => o.id === selectedObject.id || o._id === selectedObject.id) || selectedObject)
     : null;
+  const activeObjectId = activeObject ? (activeObject.id || activeObject._id) : null;
+  const activeAvailability = activeObjectId ? availabilityByPlace[activeObjectId] : null;
+
+  useEffect(() => {
+    if (!activeObjectId) return;
+
+    let cancelled = false;
+    const range = getCalendarAvailabilityRange(currentYear, currentMonth);
+    fetchPlaceAvailability({ placeId: activeObjectId, ...range, skipAuth: false })
+      .then((data) => {
+        if (!cancelled) {
+          setAvailabilityByPlace((current) => ({ ...current, [activeObjectId]: data }));
+        }
+      })
+      .catch((err) => setProfileError(getApiErrorMessage(err, "Не удалось загрузить календарь доступности")));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeObjectId, currentYear, currentMonth]);
+
+  const isActiveDateUnavailable = (dateStr) => (
+    Boolean(dateStr) && isAvailabilityDayUnavailable(activeAvailability, dateStr)
+  );
 
   const spaceBookings = activeObject && Array.isArray(allBookings)
-    ? allBookings.filter(b => {
+    ? (activeAvailability?.bookings || allBookings).filter(b => {
         if (!b) return false;
-        const spaceId = typeof b.space_id === "object" && b.space_id !== null ? b.space_id?.id || b.space_id?._id : b.space_id;
+        const spaceId = typeof b.space_id === "object" && b.space_id !== null
+          ? b.space_id?.id || b.space_id?._id
+          : b.space_id || b.place_id || b.place || b.place_details?.id || b.place_details?._id;
         return spaceId && (spaceId === activeObject.id || spaceId === activeObject._id);
       })
     : [];
 
-  const calendarDays = selectedObject ? getDaysInMonth(currentYear, currentMonth) : [];
+  const calendarDays = selectedObject ? getDaysInMonth(currentYear, currentMonth).map((day) => ({
+    ...day,
+    status: day.dateStr ? getAvailabilityDayStatus(activeAvailability, day.dateStr) : "free",
+    isUnavailable: day.dateStr ? isActiveDateUnavailable(day.dateStr) : false,
+  })) : [];
 
   const prevMonth = () => {
     if (currentMonth === 0) {
@@ -487,20 +756,41 @@ function UserProfile({ userState, setUserState }) {
     return `${new Intl.NumberFormat("uz-UZ").format(val)} so'm`;
   };
 
-  const activeBookingObj = userState?.activeBooking ? {
-    title: userState.activeBooking.spaceTitle,
-    type: "Kovorking / Ofis",
-    date: userState.activeBooking.startDate || new Date(userState.activeBooking.timestamp || Date.now()).toLocaleDateString("uz-UZ", { day: "numeric", month: "long", year: "numeric" }),
-    time: (userState.activeBooking.duration || "1 kun") === "soatlik" ? "Band qilingan soatlar" : (userState.activeBooking.duration || "1 kun"),
-    location: "Toshkent",
-    status: "Kutishda (Pending)",
-    href: `#space-${slugify(userState.activeBooking.spaceTitle)}`
-  } : null;
+  const displayedBookings = allBookings.map(buildProfileBookingView);
+  const activeBookingObj = [...displayedBookings]
+    .filter((booking) => {
+      if (!ACTIVE_BOOKING_STATUSES.has(booking.status)) return false;
+      const endTime = new Date(booking.end_time).getTime();
+      return !Number.isFinite(endTime) || endTime >= Date.now();
+    })
+    .sort((left, right) => new Date(left.start_time).getTime() - new Date(right.start_time).getTime())[0] || null;
 
-  const totalVal = userState?.activeBooking?.total || 250000;
-  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + " UZS";
+  const totalVal = activeBookingObj?.amount || 0;
+  const formattedTotal = `${new Intl.NumberFormat("uz-UZ").format(totalVal)} ${activeBookingObj?.currency || "UZS"}`;
+  const activeBookingCacheKey = activeBookingObj
+    ? `${activeBookingObj.id}:${activeBookingObj.status}:${activeBookingObj.payment_status}:${activeBookingObj.updated_at}`
+    : "none";
 
-  const displayedBookings = activeBookingObj ? [activeBookingObj, ...bookings] : bookings;
+  useEffect(() => {
+    if (!bookingsLoaded || !userState?.isAuthed) return;
+    const cached = userState?.activeBooking;
+    if (
+      String(cached?.id || "") === String(activeBookingObj?.id || "")
+      && String(cached?.status || "") === String(activeBookingObj?.status || "")
+      && String(cached?.payment_status || cached?.paymentStatus || "") === String(activeBookingObj?.payment_status || "")
+    ) {
+      return;
+    }
+
+    setUserState?.({
+      ...userState,
+      activeBooking: activeBookingObj ? {
+        ...activeBookingObj,
+        placeSnapshot: activeBookingObj.place_details,
+        spaceTitle: activeBookingObj.place_title,
+      } : null,
+    });
+  }, [bookingsLoaded, activeBookingCacheKey]);
 
   const tabs = [
     { 
@@ -511,12 +801,19 @@ function UserProfile({ userState, setUserState }) {
       badge: completion < 100 ? "To'ldirilmagan" : null
     },
     { id: "history", label: "Tarix", count: displayedBookings.length, icon: "calendar" },
+    { id: "payments", label: "To'lovlar", count: payments.length, icon: "payment" },
     { id: "likes", label: "Saqlangan", count: likedSpaces.length, icon: "heart" }
   ];
 
   return (
     <main className="user-profile-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={-1} variant="dashboard" />
+
+      {profileError ? (
+        <div style={{ maxWidth: 1180, margin: "18px auto 0", padding: "12px 16px", borderRadius: 14, background: "#fef2f2", color: "#991b1b", fontWeight: 700 }}>
+          {profileError}
+        </div>
+      ) : null}
 
       <section className="profile-unified-panel">
         <section className="profile-content-panel">
@@ -560,8 +857,8 @@ function UserProfile({ userState, setUserState }) {
           <div className="profile-tab-content">
             {activeTab === "about" ? (
               <div className="profile-tab-panel" key="about">
-                {/* Active booking pending warning banner */}
-                {userState?.activeBooking && (
+                {/* Active booking is derived from the latest backend bookings response. */}
+                {activeBookingObj && (
                   <div className="profile-active-alert" style={{
                     background: "rgba(249, 115, 22, 0.08)",
                     border: "1px solid rgba(249, 115, 22, 0.15)",
@@ -584,10 +881,10 @@ function UserProfile({ userState, setUserState }) {
                       }} />
                       <div>
                         <strong style={{ display: "block", fontSize: "14px", fontWeight: "700" }}>
-                          Ko'rib chiqilayotgan buyurtma (Kutishda)
+                          {bookingStatusLabel(activeBookingObj.status)}
                         </strong>
                         <span style={{ fontSize: "12px", opacity: 0.85 }}>
-                          {userState.activeBooking.spaceTitle} uchun ijara so'rovi yuborilgan.
+                          {activeBookingObj.place_title} uchun faol bron mavjud.
                         </span>
                       </div>
                     </div>
@@ -745,17 +1042,20 @@ function UserProfile({ userState, setUserState }) {
                   <section className="profile-active-booking-section" style={{ marginTop: "32px" }}>
                     <div className="profile-section-head">
                       <div>
-                        <span>Kutishdagi buyurtma</span>
+                        <span>Faol buyurtma</span>
                         <h2>Arizangiz holati</h2>
                       </div>
                     </div>
                     <div className="host-listings-grid" style={{ display: "grid", gap: "24px" }}>
                       <article className="host-listing-shell" style={{ overflow: "visible" }}>
                         <PropertyCard 
-                          item={{
-                            ...(propertyCards.find(item => item.title === userState?.activeBooking?.spaceTitle) || propertyCards[0]),
-                            price: formattedTotal
-                          }} 
+                          item={normalizePlace({
+                            ...(activeBookingObj.place_details || {}),
+                            id: activeBookingObj.place_id,
+                            title: activeBookingObj.place_title || "Joyzone",
+                            price: formattedTotal,
+                            people: activeBookingObj.guests || 1,
+                          })}
                           index={0} 
                           onClick={(targetItem) => setSelectedListing(targetItem)}
                         />
@@ -772,7 +1072,7 @@ function UserProfile({ userState, setUserState }) {
                             display: "inline-block", 
                             marginBottom: "12px" 
                           }}>
-                            Kutishda (Pending)
+                            {bookingStatusLabel(activeBookingObj.status)}
                           </span>
                           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                             <div style={{ fontSize: "13px", color: "#64748b" }}>
@@ -782,7 +1082,7 @@ function UserProfile({ userState, setUserState }) {
                               Vaqt: <strong style={{ color: "#1e293b" }}>{activeBookingObj.time}</strong>
                             </div>
                             <div style={{ fontSize: "13px", color: "#64748b" }}>
-                              To'lov usuli: <strong style={{ color: "#1e293b", textTransform: "capitalize" }}>{userState.activeBooking.method === "card" ? "Karta" : userState.activeBooking.method}</strong>
+                              To'lov holati: <strong style={{ color: "#1e293b" }}>{paymentStatusLabel(activeBookingObj.payment_status)}</strong>
                             </div>
                           </div>
                         </div>
@@ -798,40 +1098,146 @@ function UserProfile({ userState, setUserState }) {
                 <div className="profile-section-head">
                   <div>
                     <span>Tarix</span>
-                    <h2>O'tgan bronlar</h2>
+                    <h2>Bronlar tarixi</h2>
                   </div>
                   <a href="#filter">Joy bron qilish</a>
                 </div>
 
-                <div className="profile-bookings-grid">
-                  {displayedBookings.map((booking) => (
-                    <article key={`${booking.title}-${booking.date}`} className="profile-booking-card">
-                      <div>
-                        <span>{booking.status}</span>
-                        <h3>{booking.title}</h3>
-                        <p>{booking.type}</p>
-                      </div>
-                      <dl>
+                {bookingsSuccess ? (
+                  <div className="profile-bookings-state is-success" role="status">{bookingsSuccess}</div>
+                ) : null}
+                {bookingActionError ? (
+                  <div className="profile-bookings-state is-error" role="alert">{bookingActionError}</div>
+                ) : null}
+
+                {bookingsLoading ? (
+                  <div className="profile-bookings-state" role="status">Bronlar yuklanmoqda...</div>
+                ) : bookingsError ? (
+                  <div className="profile-bookings-state is-error" role="alert">
+                    <p>{bookingsError}</p>
+                    <button type="button" className="profile-booking-link" onClick={fetchUserData}>Qayta urinish</button>
+                  </div>
+                ) : displayedBookings.length === 0 ? (
+                  <EmptyState
+                    title="Hozircha bronlar yo'q"
+                    text="Birinchi joyingizni tanlaganingizdan keyin bron shu yerda backend ma'lumotlari bilan ko'rinadi."
+                    action="Joy tanlash"
+                    href="#filter"
+                  />
+                ) : (
+                  <div className="profile-bookings-grid">
+                    {displayedBookings.map((booking) => (
+                      <article key={booking.id} className="profile-booking-card">
                         <div>
-                          <dt>Sana</dt>
-                          <dd>{booking.date}</dd>
+                          <span>{bookingStatusLabel(booking.status)}</span>
+                          <h3>{booking.place_title}</h3>
+                          <p>{booking.durationLabel} ({booking.duration_type})</p>
                         </div>
-                        <div>
-                          <dt>Vaqt</dt>
-                          <dd>{booking.time}</dd>
+                        <dl>
+                          <div>
+                            <dt>Boshlanish</dt>
+                            <dd>{formatBookingDateTime(booking.start_time)}</dd>
+                          </div>
+                          <div>
+                            <dt>Tugash</dt>
+                            <dd>{formatBookingDateTime(booking.end_time)}</dd>
+                          </div>
+                          <div>
+                            <dt>Muddat</dt>
+                            <dd>{booking.durationLabel} ({booking.duration_type})</dd>
+                          </div>
+                          <div>
+                            <dt>Summa</dt>
+                            <dd>{formatBookingAmount(booking)}</dd>
+                          </div>
+                          <div>
+                            <dt>Bron holati</dt>
+                            <dd>{bookingStatusLabel(booking.status)}</dd>
+                          </div>
+                          <div>
+                            <dt>To'lov</dt>
+                            <dd>{paymentStatusLabel(booking.payment_status)}</dd>
+                          </div>
+                          <div>
+                            <dt>Izoh</dt>
+                            <dd>{booking.note || "Izoh yo'q"}</dd>
+                          </div>
+                        </dl>
+                        <div className="profile-booking-actions">
+                          <a className="profile-booking-link" href={booking.href}>
+                            Maydonni ochish
+                            <ProfileIcon type="arrow" />
+                          </a>
+                          {CANCELLABLE_BOOKING_STATUSES.has(booking.status) ? (
+                            <button
+                              type="button"
+                              className="profile-booking-cancel"
+                              disabled={cancellingBookingId === booking.id}
+                              onClick={() => openCancelBookingModal(booking)}
+                            >
+                              {cancellingBookingId === booking.id ? "Bekor qilinmoqda..." : "Bronni bekor qilish"}
+                            </button>
+                          ) : null}
                         </div>
-                        <div>
-                          <dt>Manzil</dt>
-                          <dd>{booking.location}</dd>
-                        </div>
-                      </dl>
-                      <a className="profile-booking-link" href={booking.href}>
-                        Maydonni ochish
-                        <ProfileIcon type="arrow" />
-                      </a>
-                    </article>
-                  ))}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {activeTab === "payments" ? (
+              <div className="profile-tab-panel" key="payments">
+                <div className="profile-section-head">
+                  <div>
+                    <span>To'lovlar</span>
+                    <h2>To'lovlar tarixi</h2>
+                  </div>
                 </div>
+
+                {paymentsLoading ? (
+                  <div className="profile-bookings-state" role="status">To'lovlar yuklanmoqda...</div>
+                ) : paymentsError ? (
+                  <div className="profile-bookings-state is-error" role="alert">
+                    <p>{paymentsError}</p>
+                    <button type="button" className="profile-booking-link" onClick={fetchUserData}>Qayta urinish</button>
+                  </div>
+                ) : payments.length === 0 ? (
+                  <EmptyState
+                    title="Hozircha to'lovlar yo'q"
+                    text="Bron yoki tarif uchun backend orqali amalga oshirilgan to'lovlar shu yerda ko'rinadi."
+                  />
+                ) : (
+                  <div className="profile-bookings-grid profile-payments-grid">
+                    {payments.map((payment) => (
+                      <article key={payment.id} className="profile-booking-card profile-payment-card">
+                        <div>
+                          <span>{paymentStatusLabel(payment.status)}</span>
+                          <h3>{paymentSubject(payment)}</h3>
+                          <p>{payment.provider === "test" ? "Test payment provider" : payment.provider}</p>
+                        </div>
+                        <dl>
+                          <div>
+                            <dt>Summa</dt>
+                            <dd>{formatPaymentAmount(payment)}</dd>
+                          </div>
+                          <div>
+                            <dt>Holat</dt>
+                            <dd>{paymentStatusLabel(payment.status)}</dd>
+                          </div>
+                          <div>
+                            <dt>Sana</dt>
+                            <dd>{formatBookingDateTime(payment.created_at)}</dd>
+                          </div>
+                          <div>
+                            <dt>Tranzaksiya</dt>
+                            <dd>{payment.external_id || `#${payment.id}`}</dd>
+                          </div>
+                        </dl>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : null}
 
@@ -844,16 +1250,29 @@ function UserProfile({ userState, setUserState }) {
                   </div>
                 </div>
 
-                <div className="profile-liked-grid">
-                  {likedSpaces.map((item, index) => (
-                    <PropertyCard 
-                      key={`liked-${item.title}`} 
-                      item={item} 
-                      index={index} 
-                      onClick={(targetItem) => setSelectedListing(targetItem)}
-                    />
-                  ))}
-                </div>
+                {favoritesUsingDevFallback ? <span className="profile-dev-fallback">DEV fallback</span> : null}
+                {favoritesLoading ? (
+                  <div className="profile-bookings-state">Saqlangan joylar yuklanmoqda...</div>
+                ) : favoritesError ? (
+                  <div className="profile-bookings-state is-error" role="alert">{favoritesError}</div>
+                ) : likedSpaces.length === 0 ? (
+                  <div className="profile-empty-state">
+                    <span><ProfileIcon type="heart" /></span>
+                    <h3>Hozircha saqlangan joylar yo'q</h3>
+                    <p>Yoqtirgan joylaringizdagi saqlash tugmasini bosing.</p>
+                  </div>
+                ) : (
+                  <div className="profile-liked-grid">
+                    {likedSpaces.map((item, index) => (
+                      <PropertyCard
+                        key={`liked-${item.id || item.title}`}
+                        item={item}
+                        index={index}
+                        onClick={(targetItem) => setSelectedListing(targetItem)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             ) : null}
           </div>
@@ -866,6 +1285,42 @@ function UserProfile({ userState, setUserState }) {
           onClose={() => setSelectedListing(null)}
         />
       )}
+
+      {cancelBookingTarget ? (
+        <div className="profile-cancel-modal-overlay" onClick={closeCancelBookingModal}>
+          <div
+            className="profile-cancel-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-cancel-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="profile-cancel-modal-icon" aria-hidden="true">!</div>
+            <div>
+              <span>Bronni bekor qilish</span>
+              <h2 id="profile-cancel-modal-title">Qaroringizni tasdiqlang</h2>
+              <p>
+                <strong>{cancelBookingTarget.place_title}</strong> uchun bron bekor qilinadi.
+                Bu amal backend orqali bajariladi.
+              </p>
+            </div>
+            {cancelError ? <div className="profile-cancel-modal-error" role="alert">{cancelError}</div> : null}
+            <div className="profile-cancel-modal-actions">
+              <button type="button" onClick={closeCancelBookingModal} disabled={Boolean(cancellingBookingId)}>
+                Qaytish
+              </button>
+              <button
+                type="button"
+                className="is-danger"
+                onClick={handleCancelBooking}
+                disabled={Boolean(cancellingBookingId)}
+              >
+                {cancellingBookingId ? "Bekor qilinmoqda..." : "Ha, bronni bekor qilish"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -883,7 +1338,10 @@ function ProfileEditFormSection({ section, draft, onDraftChange }) {
       <div className="profile-edit-form">
         {section.fields.map((field) => (
           <label key={field.key} className={field.type === "textarea" ? "is-wide" : ""}>
-            <span>{field.label}</span>
+            <span>
+              {field.label}
+              {!BACKEND_PROFILE_DRAFT_KEYS.has(field.key) ? " · faqat shu qurilmada" : ""}
+            </span>
             {field.type === "textarea" ? (
               <textarea
                 value={draft[field.key] || ""}
@@ -908,14 +1366,78 @@ function ProfileEditFormSection({ section, draft, onDraftChange }) {
 
 function ProfileQuestionnaireEdit({ userState, setUserState }) {
   const [draft, setDraft] = useState(initialProfile);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const completion = useMemo(() => getCompletion(draft), [draft]);
+
+  useEffect(() => {
+    let active = true;
+    const loadProfile = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await api.get("/api/auth/profile/");
+        if (!active) return;
+        const profile = normalizeProfile(response.data);
+        const localOnly = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
+        setDraft({
+          ...initialProfile,
+          ...localOnly,
+          name: profile.full_name,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          email: profile.email,
+          phone: profile.phone_number,
+        });
+      } catch (requestError) {
+        if (active) setError(getApiErrorMessage(requestError, "Profilni yuklab bo'lmadi"));
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadProfile();
+    return () => { active = false; };
+  }, []);
 
   const updateDraft = (key, value) => {
     setDraft((current) => ({ ...current, [key]: value }));
   };
 
-  const saveProfile = () => {
-    window.location.hash = "#profile";
+  const saveProfile = async () => {
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const response = await api.patch("/api/auth/profile/", {
+        first_name: draft.firstName.trim(),
+        last_name: draft.lastName.trim(),
+        email: draft.email.trim(),
+        phone_number: draft.phone.trim(),
+      });
+      const profile = cacheProfile(response.data);
+      setUserState?.(profileToUserState(profile, userState));
+      try {
+        writeJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {
+          role: draft.role,
+          city: draft.city,
+          birthYear: draft.birthYear,
+          languages: draft.languages,
+          work: draft.work,
+          company: draft.company,
+          interests: draft.interests,
+          about: draft.about,
+        });
+      } catch (storageError) {
+        // Supported profile fields are already saved by the backend.
+      }
+      setSuccess("Profil saqlandi");
+    } catch (requestError) {
+      setError(getApiErrorMessage(requestError, "Profilni saqlab bo'lmadi"));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -941,7 +1463,7 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
         <div className="profile-editor-layout">
           <aside className="profile-preview-card">
             <div className="profile-preview-avatar">AK</div>
-            <h3>{draft.name || "Profilingiz"}</h3>
+            <h3>{`${draft.firstName} ${draft.lastName}`.trim() || "Profilingiz"}</h3>
             <p>{draft.city || "Shahar"} · {draft.work || "Soha"}</p>
             <div>
               <span>{draft.languages || "Tillar"}</span>
@@ -950,7 +1472,10 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
           </aside>
 
           <div className="profile-edit-list">
-            {profileSections.map((section) => (
+            {loading ? <p role="status">Profil yuklanmoqda...</p> : null}
+            {error ? <p role="alert" style={{ color: "#b91c1c", fontWeight: 700 }}>{error}</p> : null}
+            {success ? <p role="status" style={{ color: "#15803d", fontWeight: 700 }}>{success}</p> : null}
+            {!loading && profileSections.map((section) => (
               <ProfileEditFormSection
                 key={section.id}
                 section={section}
@@ -963,7 +1488,9 @@ function ProfileQuestionnaireEdit({ userState, setUserState }) {
 
         <div className="profile-editor-footer">
           <a href="#profile" className="profile-cancel-action">Bekor qilish</a>
-          <button type="button" className="profile-save-action" onClick={saveProfile}>Saqlash</button>
+          <button type="button" className="profile-save-action" onClick={saveProfile} disabled={loading || saving}>
+            {saving ? "Saqlanmoqda..." : success || "Saqlash"}
+          </button>
         </div>
       </section>
     </main>

@@ -1,5 +1,6 @@
 import os
 import django
+import sys
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
@@ -7,9 +8,29 @@ django.setup()
 from places.models import Place
 from users.models import User
 
-# Clear existing places to prevent duplicates
-print("Clearing existing places...")
-Place.objects.all().delete()
+
+def normalized_price_fields(price_text):
+    digits = ''.join(ch for ch in str(price_text) if ch.isdigit())
+    if not digits:
+        return {}
+
+    text = str(price_text).lower()
+    value = int(digits)
+    if 'soat' in text:
+        return {'price_hourly': value, 'currency': 'UZS'}
+    if 'hafta' in text:
+        return {'price_weekly': value, 'currency': 'UZS'}
+    if 'oy' in text:
+        return {'price_monthly': value, 'currency': 'UZS'}
+    return {'price_daily': value, 'currency': 'UZS'}
+
+
+reset = '--reset' in sys.argv
+if reset:
+    print("Reset mode enabled: clearing existing places...")
+    Place.objects.all().delete()
+else:
+    print("Safe mode: updating/creating demo places without deleting existing places.")
 
 # Get a default owner if users exist
 owner = User.objects.first()
@@ -77,18 +98,22 @@ places_data = [
 ]
 
 for item in places_data:
-    Place.objects.create(
-        owner=owner,
+    place, created = Place.objects.update_or_create(
         title=item["title"],
-        category=item["category"],
-        location=item["location"],
-        price=item["price"],
-        area=item["area"],
-        people=item["people"],
-        promoted=item["promoted"],
-        images=item["images"],
-        status=item["status"],
-        moderator_note=item.get("moderator_note", "")
+        defaults={
+            "owner": owner,
+            "category": item["category"],
+            "location": item["location"],
+            "price": item["price"],
+            "area": item["area"],
+            "people": item["people"],
+            "promoted": item["promoted"],
+            "images": item["images"],
+            "status": item["status"],
+            "moderator_note": item.get("moderator_note", ""),
+            **normalized_price_fields(item["price"]),
+        },
     )
+    print(f"{'Created' if created else 'Updated'}: {place.title}")
 
 print("Mock places for moderation seeded successfully.")

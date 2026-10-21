@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { getStorageItem, setStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
 
-const CACHE_KEY = "joyzone-currency-rates";
+const CACHE_KEY = STORAGE_KEYS.ui.currencyRates;
 const CBU_API   = "https://cbu.uz/ru/arkhiv-kursov-valyut/json/";
 const SUPPORTED  = ["USD", "RUB"]; // UZS is base — no rate needed
 
@@ -12,7 +13,7 @@ const CurrencyContext = createContext(null);
  */
 function readCache() {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = getStorageItem(CACHE_KEY);
     if (!raw) return null;
     const { date, rates } = JSON.parse(raw);
     const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
@@ -25,7 +26,7 @@ function readCache() {
 function writeCache(rates) {
   try {
     const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ date: today, rates }));
+    setStorageItem(CACHE_KEY, JSON.stringify({ date: today, rates }));
   } catch {}
 }
 
@@ -49,13 +50,13 @@ export function CurrencyProvider({ children }) {
   // rates: { USD: number, RUB: number }  (price of 1 foreign unit in UZS)
   const [rates, setRates]       = useState({});
   const [currency, setCurrencyRaw] = useState(
-    () => localStorage.getItem("joyzone-currency") || "UZS"
+    () => getStorageItem(STORAGE_KEYS.ui.currency, "UZS")
   );
   const [loading, setLoading]   = useState(true);
 
   const setCurrency = (c) => {
     setCurrencyRaw(c);
-    try { localStorage.setItem("joyzone-currency", c); } catch {}
+    setStorageItem(STORAGE_KEYS.ui.currency, c);
   };
 
   useEffect(() => {

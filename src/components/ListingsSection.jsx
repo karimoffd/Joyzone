@@ -1,20 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
-import axios from "axios";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 import { CategoryIcon, NoteIcon } from "./ui/Shared.jsx";
 import { joyBenefits, partnerAgents, propertyCards } from "../data/content.js";
+import api, { getApiErrorMessage } from "../api/client.js";
 import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
+import { getPlacesFromApiResponse, normalizePlace, slugifyPlaceTitle } from "../utils/placeMapper.js";
 import logoImage from "../assets/img/Logo.png";
 import "./ListingsSection.css";
 import "./CardVariants.css";
 
-function getSpaceHref(title) {
-  const t = title || "";
-  return `#space-${t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+function getSpaceHref(place = {}) {
+  if (String(place.href || "").startsWith("#space-")) return place.href;
+  const routeKey = place.id ?? place._id ?? slugifyPlaceTitle(place.title || place.name || "joyzone");
+  return `#space-${routeKey}`;
 }
 
 function getAgentHref(name) {
@@ -28,10 +30,28 @@ const DURATION_LABELS = {
   oylik: "/ oy"
 };
 
+function HighlightedTitle({ text, highlight = "Joyzone" }) {
+  const value = String(text || "");
+  const index = value.toLowerCase().indexOf(highlight.toLowerCase());
+  if (highlight && index >= 0) {
+    return (
+      <>
+        {value.slice(0, index)}
+        <span>{value.slice(index, index + highlight.length)}</span>
+        {value.slice(index + highlight.length)}
+      </>
+    );
+  }
+  const [firstWord, ...rest] = value.split(/\s+/);
+  return <><span>{firstWord}</span>{rest.length ? ` ${rest.join(" ")}` : ""}</>;
+}
+
 export function PropertyCard({ item, index, href, onClick, selectedDuration, viewMode = "grid" }) {
   const [activeImage, setActiveImage] = useState(0);
   const [saved, setSaved] = useState(isPlaceFavorited(item.id));
-  const cardHref = onClick ? "#" : (href || getSpaceHref(item.title));
+  const [favoritePending, setFavoritePending] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
+  const cardHref = onClick ? "#" : (href || getSpaceHref(item));
   const mediaRef = useRef(null);
   const saveRef = useRef(null);
   const manualSlideAt = useRef(0);
@@ -73,16 +93,26 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
     return undefined;
   }, [activeImage]);
 
-  const toggleSave = (e) => {
+  const toggleSave = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleFavoritePlace(item);
-    setSaved(!saved);
+    if (favoritePending) return;
+    setFavoritePending(true);
+    setFavoriteError("");
     gsap.fromTo(saveRef.current, { scale: 0.82 }, { scale: 1, duration: 0.46, ease: "elastic.out(1, 0.46)" });
+    try {
+      const favorites = await toggleFavoritePlace(item);
+      setSaved(favorites.some((favorite) => String(favorite.id) === String(item.id)));
+    } catch (error) {
+      setFavoriteError(getApiErrorMessage(error, "Не удалось обновить избранное"));
+      setSaved(isPlaceFavorited(item.id));
+    } finally {
+      setFavoritePending(false);
+    }
   };
 
   return (
-    <article className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""} ${viewMode === "list" ? "is-list-view" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
+    <article data-testid={`place-card-${item.id}`} className={`variant-card variant-estate ${priceUnavailable ? "is-duration-unavailable" : ""} ${viewMode === "list" ? "is-list-view" : ""}`} style={{ "--delay": `${index * 0.055}s` }}>
       <a 
         className="property-card-link" 
         href={cardHref} 
@@ -103,10 +133,13 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
         onClick={toggleSave}
         aria-label={saved ? "Eslatmaga saqlandi" : "Eslatmaga saqlash"}
         aria-pressed={saved}
+        aria-busy={favoritePending}
+        disabled={favoritePending}
         style={{ zIndex: 20 }}
       >
         <NoteIcon filled={saved} />
       </button>
+      {favoriteError ? <span className="variant-favorite-error" role="alert">{favoriteError}</span> : null}
       <div className="variant-media" ref={mediaRef} style={{ aspectRatio: 1.35 }}>
         {item.images.map((image, imageIndex) => (
           <img
@@ -195,7 +228,7 @@ function CatalogTrail() {
   );
 }
 
-function PartnerAgents() {
+function PartnerAgents({ cms = {} }) {
   const [active, setActive] = useState(0);
   const [visible, setVisible] = useState(4);
   const sectionRef = useRef(null);
@@ -283,12 +316,12 @@ function PartnerAgents() {
     <section ref={sectionRef} className="agents-showcase" id="agents">
       <div className="agents-head">
         <h2>
-          <span>Joyzone</span> hamkorlari
+          <HighlightedTitle text={cms.agent_title || "Joyzone hamkorlari"} />
         </h2>
         <svg className="agents-title-curve" width="160" height="14" viewBox="0 0 160 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2 12C45 -3 115 -3 158 12" stroke="#E46630" strokeWidth="3" strokeLinecap="round"/>
         </svg>
-        <p>Katta brendlar va ishonchli hamkorlar o'z ofis, kovorking, uy va tadbir maydonlarini Joyzone orqali joylashtiradi.</p>
+        <p>{cms.agent_sub || "Katta brendlar va ishonchli hamkorlar o'z joylarini Joyzone orqali joylashtiradi."}</p>
       </div>
       <div ref={viewportRef} className="agents-viewport">
         <div className="agents-track">
@@ -303,7 +336,7 @@ function PartnerAgents() {
                   <div className="brand-logo-mark" aria-hidden="true">
                     <img src={partnerImages[index % partnerImages.length]} alt={agent.name} loading="lazy" />
                   </div>
-                  <span className="brand-badge">Premium hamkor</span>
+                  <span className="brand-badge">{cms.agent_premium || "Premium hamkor"}</span>
                 </div>
                 <div className="agent-copy">
                   <h3>{agent.name}</h3>
@@ -311,10 +344,10 @@ function PartnerAgents() {
                 </div>
                 <div className="brand-trust">
                   <span>{agent.rating}</span>
-                  <p>{agent.reviews} ta sharh</p>
+                  <p>{agent.reviews} {cms.agent_reviews || "ta sharh"}</p>
                 </div>
                 <a className="agent-bottom-btn" href={getAgentHref(agent.name)} aria-label={`${agent.name} profilini ochish`}>
-                  <span className="agent-btn-text">Profil</span>
+                  <span className="agent-btn-text">{cms.agent_profile || "Profil"}</span>
                   <strong className="agent-btn-count">{agent.spaces}</strong>
                 </a>
               </article>
@@ -365,7 +398,7 @@ function BenefitIcon({ type }) {
   );
 }
 
-export function BenefitsSection() {
+export function BenefitsSection({ cms = {} }) {
   const benefitsRef = useRef(null);
 
   useEffect(() => {
@@ -394,10 +427,10 @@ export function BenefitsSection() {
     <section ref={benefitsRef} className="benefits-section" id="about">
       <div className="benefits-head">
         <h2>
-          <span>Joyzone</span> qulayliklari
+          <HighlightedTitle text={cms.about_title || "Joyzone qulayliklari"} />
         </h2>
         <i aria-hidden="true" />
-        <p>Har kim uchun oddiy va qulay platforma</p>
+        <p>{cms.about_text || "Har kim uchun oddiy va qulay platforma"}</p>
       </div>
       <div className="benefits-grid bento">
         {joyBenefits.map((benefit, index) => (
@@ -416,7 +449,7 @@ export function BenefitsSection() {
   );
 }
 
-function PartnerStartSection() {
+function PartnerStartSection({ cms = {} }) {
   const sectionRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -459,15 +492,12 @@ function PartnerStartSection() {
       
       <div className="soul-partner-inner">
         <div className="soul-partner-head">
-          <span className="soul-badge">Bron qilish jarayoni</span>
+          <span className="soul-badge">{cms.how_title || "Bron qilish jarayoni"}</span>
           <h2>
-            Sizning joyingiz, <br />
-            <span>bizning platforma</span>
+            {(cms.partner_title || "Sizning joyingiz, bizning platforma").split(",")[0]}, <br />
+            <span>{(cms.partner_title || "Sizning joyingiz, bizning platforma").split(",").slice(1).join(",").trim()}</span>
           </h2>
-          <p>
-            Joyzone bilan bron qilish endi shunchaki tugmani bosish emas, balki butun bir tajriba.
-            Biz bilan har bir qadam jonli, issiq va qulay.
-          </p>
+          <p>{cms.partner_subtitle || "Joyzone bilan bron qilish oddiy va qulay."}</p>
           
           <div className="soul-stats">
             <div className="soul-stat">
@@ -481,7 +511,7 @@ function PartnerStartSection() {
           </div>
           
           <a className="soul-cta" href="#filter">
-            <span>Hozir boshlash</span>
+            <span>{cms.partner_cta || "Hozir boshlash"}</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7"/>
             </svg>
@@ -494,7 +524,7 @@ function PartnerStartSection() {
             <div className="soul-step-number">01</div>
             <div className="soul-step-content">
               <h3>Akkaunt yarating</h3>
-              <p>Telefon yoki email orqali kiring, tasdiqlash kodini kiriting va Joyzone profilini soniyalar ichida ishga tushiring.</p>
+              <p>{cms.how_step1 || "Akkaunt yarating va Joyzone profilini ishga tushiring."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </div>
@@ -503,7 +533,7 @@ function PartnerStartSection() {
             <div className="soul-step-number">02</div>
             <div className="soul-step-content">
               <h3>Sizga mos joyni tanlang</h3>
-              <p>Manzil, narx va qulayliklarni ko'rib, o'z uchrashuvingiz yoki ish kuningiz uchun eng mukammal muhitni belgilang.</p>
+              <p>{cms.how_step2 || "Manzil, narx va qulayliklar bo'yicha mos joyni tanlang."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </div>
@@ -512,7 +542,7 @@ function PartnerStartSection() {
             <div className="soul-step-number">03</div>
             <div className="soul-step-content">
               <h3>Bron so'rovini yuboring</h3>
-              <p>Sana va vaqtni tanlab, qisqacha izoh qoldiring. Partnerimiz so'rovni darhol ko'rib, tasdiqlash uchun javob beradi.</p>
+              <p>{cms.how_step3 || "Sana va vaqtni tanlab, bron so'rovini yuboring."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </div>
@@ -569,7 +599,7 @@ const faqItems = [
   }
 ];
 
-export function ReviewsFaqSection() {
+export function ReviewsFaqSection({ cms = {} }) {
   const [openIndex, setOpenIndex] = useState(0);
   const [firstReview, setFirstReview] = useState(0);
   const [isReviewSliding, setIsReviewSliding] = useState(false);
@@ -619,7 +649,7 @@ export function ReviewsFaqSection() {
     <section ref={sectionRef} className="reviews-faq-section" id="faq">
       <div className="reviews-faq-inner">
         <div className="reviews-panel" aria-label="Joyzone foydalanuvchi sharhlari">
-          <div className="reviews-label">Sharhlar</div>
+          <div className="reviews-label">{cms.rev_title || "Sharhlar"}</div>
           <div className={`review-stage ${isReviewSliding ? "is-sliding" : ""}`}>
             {visibleReviews.map(({ review, position }) => (
               <article
@@ -635,8 +665,8 @@ export function ReviewsFaqSection() {
         </div>
 
         <div className="faq-panel">
-          <p className="section-kicker">FAQ</p>
-          <h2>Qisqacha asosiylari</h2>
+          <p className="section-kicker">{cms.faq_kicker || "FAQ"}</p>
+          <h2>{cms.faq_title || "Qisqacha asosiylari"}</h2>
           <div className="faq-list">
             {faqItems.map((item, index) => {
               const isOpen = openIndex === index;
@@ -718,7 +748,7 @@ export function FooterQuestionStrip() {
   );
 }
 
-export function JoyFooter() {
+export function JoyFooter({ cms = {} }) {
   const socials = [
     ["instagram", "#instagram"],
     ["facebook", "#facebook"],
@@ -739,25 +769,25 @@ export function JoyFooter() {
           </a>
           <a href="tel:+998770444000" className="joy-footer-contact">
             <FooterIcon type="phone" />
-            +998 77 044 40 00
+            {cms.footer_phone || "+998 77 044 40 00"}
           </a>
           <a href="mailto:info@joyzone.uz" className="joy-footer-contact">
             <FooterIcon type="mail" />
-            info@joyzone.uz
+            {cms.footer_email || "info@joyzone.uz"}
           </a>
           <a href="#partner" className="joy-footer-cta">Ariza qoldirish</a>
         </div>
 
         <div className="joy-footer-grid hide-on-mobile">
           <div>
-            <p>Bizning maqsadimiz qulay ish joylarini va saytni ijarachilarga yaqinlashtirish.</p>
+            <p>{cms.footer_about || "Bizning maqsadimiz qulay ish joylarini ijarachilarga yaqinlashtirish."}</p>
           </div>
           <nav aria-label="Ma'lumotlar">
-            <strong>Ma'lumotlar</strong>
-            <a href="#about-us">Biz haqimizda</a>
-            <a href="#filter">Yo'nalishlar</a>
-            <a href="#contact">Kontaktlar</a>
-            <a href="#policy">Maxfiylik siyosati</a>
+            <strong>{cms.footer_nav1 || "Ma'lumotlar"}</strong>
+            <a href="#about-us">{cms.footer_link_about || "Biz haqimizda"}</a>
+            <a href="#filter">{cms.footer_link_dirs || "Yo'nalishlar"}</a>
+            <a href="#contact">{cms.footer_link_contact || "Kontaktlar"}</a>
+            <a href="#policy">{cms.footer_link_privacy || "Maxfiylik siyosati"}</a>
           </nav>
           <nav aria-label="Xizmatlar">
             <strong>Xizmatlar</strong>
@@ -802,8 +832,51 @@ export function JoyFooter() {
   );
 }
 
-export default function ListingsSection() {
-  const [spaces] = useState(propertyCards);
+export default function ListingsSection({
+  cms = {},
+}) {
+  const [spaces, setSpaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [placesError, setPlacesError] = useState("");
+  const [empty, setEmpty] = useState(false);
+  const [usingDevFallback, setUsingDevFallback] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setPlacesError("");
+
+    api.get("/api/places/", { skipAuth: true })
+      .then((response) => {
+        if (cancelled) return;
+        const places = getPlacesFromApiResponse(response.data)
+          .map(normalizePlace)
+          .filter((place) => place.status === "approved");
+        setSpaces(places);
+        setEmpty(places.length === 0);
+        setUsingDevFallback(false);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setPlacesError(getApiErrorMessage(error, "Joyzone joylarini yuklab bo'lmadi."));
+        if (import.meta.env.DEV) {
+          // Never mutate the shared demo array; normalized copies are an offline development fallback only.
+          const fallbackPlaces = propertyCards.map((place) => normalizePlace({ ...place, status: "approved" }));
+          setSpaces(fallbackPlaces);
+          setEmpty(fallbackPlaces.length === 0);
+          setUsingDevFallback(true);
+        } else {
+          setSpaces([]);
+          setEmpty(true);
+          setUsingDevFallback(false);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -859,35 +932,50 @@ export default function ListingsSection() {
       });
     });
     return () => ctx.revert();
-  }, []);
+  }, [loading, spaces.length]);
 
   return (
     <section className="listings-section" id="home-listings">
       <div className="listings-inner">
         <div className="listings-head">
           <p>Joyzone tanlovi</p>
-          <h2>
-            <span>Har qanday</span> jamoa uchun joylar
-          </h2>
-          <p>Kovorking, ofis va uchrashuv xonalarini real ehtiyojga qarab tanlang.</p>
+          <h2><HighlightedTitle text={cms.popular_title || "Ommabop joylar"} highlight="" /></h2>
+          <p>{cms.popular_subtitle || "Eng ko'p izlangan va band qilingan joylar"}</p>
+          {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
+          {placesError && !usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>{placesError}</small> : null}
         </div>
         <div className="property-grid">
-          {spaces.map((item, index) => (
-            <PropertyCard key={item.title || item.name} item={item} index={index} />
-          ))}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <article className="home-place-skeleton" key={`home-place-skeleton-${index}`} aria-hidden="true">
+                <span className="home-place-skeleton-media" />
+                <span className="home-place-skeleton-line is-title" />
+                <span className="home-place-skeleton-line" />
+                <span className="home-place-skeleton-line is-short" />
+              </article>
+            ))
+          ) : spaces.length > 0 ? (
+            spaces.map((item, index) => (
+              <PropertyCard key={item.id || item.title || item.name} item={item} index={index} href={item.href} />
+            ))
+          ) : empty ? (
+            <div style={{ gridColumn: "1 / -1", color: "#64748b", fontWeight: 700 }}>
+              Hozircha joylar topilmadi.
+            </div>
+          ) : null}
         </div>
         <div className="more-row">
           <CatalogTrail />
         </div>
-        <PartnerAgents />
+        <PartnerAgents cms={cms} />
         <div className="hide-on-mobile">
-          <BenefitsSection />
+          <BenefitsSection cms={cms} />
         </div>
-        <PartnerStartSection />
+        <PartnerStartSection cms={cms} />
         <div className="hide-on-mobile">
-          <ReviewsFaqSection />
+          <ReviewsFaqSection cms={cms} />
         </div>
-        <JoyFooter />
+        <JoyFooter cms={cms} />
       </div>
     </section>
   );

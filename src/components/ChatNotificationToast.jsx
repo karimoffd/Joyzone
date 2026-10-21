@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getStoredChats } from "../utils/chatManager.js";
+import { getMessageSender, getStoredChats } from "../utils/chatManager.js";
 import "./ChatNotificationToast.css";
 
 export function ChatNotificationToast({ onOpenChat }) {
@@ -19,7 +19,7 @@ export function ChatNotificationToast({ onOpenChat }) {
           const lastMsg = chat.messages[chat.messages.length - 1];
           const msgKey = `${chat.id}-${chat.messages.length}-${lastMsg.text}`;
 
-          if (lastMsg.from === "host" && lastMsgRef.current !== msgKey) {
+          if (getMessageSender(lastMsg) === "host" && lastMsgRef.current !== msgKey) {
             if (lastMsgRef.current !== null) {
               setNotification({
                 chatId: chat.id,

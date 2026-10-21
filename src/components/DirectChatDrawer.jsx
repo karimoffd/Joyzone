@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getChatById, sendMessageToChat } from "../utils/chatManager.js";
+import { getChatById, getMessageSender, markChatRead, sendMessageToChat, syncChatsWithBackend } from "../utils/chatManager.js";
 import "./DirectChatDrawer.css";
 
 export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
@@ -12,7 +12,8 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
   const [chat, setChat] = useState(() => getChatById(chatId));
   const [draft, setDraft] = useState("");
 
-  const refreshChat = () => {
+  const refreshChat = async () => {
+    await syncChatsWithBackend({ silent: true });
     const updated = getChatById(chatId);
     if (updated) {
       setChat(updated);
@@ -22,13 +23,21 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
   useEffect(() => {
     refreshChat();
     const handleUpdate = () => refreshChat();
+    const poll = setInterval(refreshChat, 7000);
     window.addEventListener("joyzone-chat-update", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
+      clearInterval(poll);
       window.removeEventListener("joyzone-chat-update", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, [chatId]);
+
+  useEffect(() => {
+    if (chat?.id) {
+      markChatRead(chat.id).catch(() => {});
+    }
+  }, [chat?.id, chat?.messages?.length]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,10 +79,11 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!draft.trim() || !chat) return;
-    sendMessageToChat(chat.id, { from: "guest", text: draft });
+    await sendMessageToChat(chat.id, { from: "guest", text: draft });
     setDraft("");
+    refreshChat();
   };
 
   const handleKeyDown = (e) => {
@@ -115,7 +125,7 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
           {chat.messages.map((msg, index) => (
             <div
               key={index}
-              className={`direct-chat-bubble ${msg.from === "guest" ? "is-guest" : "is-host"}`}
+              className={`direct-chat-bubble ${getMessageSender(msg) === "guest" ? "is-guest" : "is-host"}`}
             >
               {msg.text}
             </div>

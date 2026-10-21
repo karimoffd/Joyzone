@@ -1,11 +1,61 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
+from drf_spectacular.utils import extend_schema, inline_serializer
 from django.utils import timezone
 from datetime import timedelta
+from core.audit import create_audit_log
+from core.permissions import IsAdminOrModerator, IsAdminUserRole, is_admin_or_moderator
+from notifications.services import notify_tariff_activated
 from .models import TariffPlan, TariffSubscription
 from .serializers import TariffPlanSerializer, TariffSubscriptionSerializer
+
+
+def activate_tariff_subscription(subscription, actor=None):
+    previous_status = subscription.status
+    now = timezone.now()
+    subscription.status = 'active'
+    subscription.start_date = now
+    subscription.end_date = now + timedelta(days=subscription.tariff.duration_days) if subscription.tariff and not subscription.tariff.is_free else None
+    subscription.save()
+
+    partner = subscription.partner
+    previous_role = partner.role
+    partner.tariff = subscription.tariff
+    partner.tariff_expires_at = subscription.end_date
+    partner.role = 'partner'
+    partner.save(update_fields=['tariff', 'tariff_expires_at', 'role'])
+    create_audit_log(
+        actor=actor or partner,
+        action='tariff.activated',
+        object_type='TariffSubscription',
+        object_id=subscription.id,
+        metadata={
+            'partner_id': partner.id,
+            'tariff_id': subscription.tariff_id,
+            'previous_status': previous_status,
+            'status': subscription.status,
+            'start_date': subscription.start_date,
+            'end_date': subscription.end_date,
+        },
+    )
+    if previous_role != partner.role:
+        create_audit_log(
+            actor=actor or partner,
+            action='user.role_updated',
+            object_type='User',
+            object_id=partner.id,
+            metadata={
+                'username': partner.username,
+                'previous_role': previous_role,
+                'role': partner.role,
+                'source': 'tariff_activation',
+                'tariff_subscription_id': subscription.id,
+            },
+        )
+    notify_tariff_activated(subscription)
+    return subscription
 
 
 class TariffPlanListView(generics.ListAPIView):
@@ -25,20 +75,41 @@ class TariffPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [IsAdminOrModerator()]
 
 
 class TariffPlanCreateView(generics.CreateAPIView):
     """Admin: create a new tariff plan"""
     queryset = TariffPlan.objects.all()
     serializer_class = TariffPlanSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrModerator]
 
 
 class SubscribeToTariffView(APIView):
-    """Partner requests a tariff subscription (auto-activates immediately)"""
+    """Partner requests a tariff subscription.
+
+    Free tariffs activate immediately. Paid tariffs stay pending_payment until
+    the test payment provider marks the subscription paid.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name='TariffSubscribeRequest',
+            fields={'tariff_id': serializers.IntegerField()},
+        ),
+        responses=inline_serializer(
+            name='TariffSubscribeResponse',
+            fields={
+                'detail': serializers.CharField(),
+                'subscription_id': serializers.IntegerField(),
+                'status': serializers.CharField(),
+                'requires_payment': serializers.BooleanField(),
+                'tariff': TariffPlanSerializer(),
+            },
+        ),
+        tags=['tariffs'],
+    )
     def post(self, request):
         tariff_id = request.data.get('tariff_id')
         if not tariff_id:
@@ -51,28 +122,20 @@ class SubscribeToTariffView(APIView):
 
         user = request.user
 
-        # Auto-activate immediately for all tariffs!
-        start_date = timezone.now()
-        end_date = timezone.now() + timedelta(days=tariff.duration_days) if not tariff.is_free else None
-
         sub = TariffSubscription.objects.create(
             partner=user,
             tariff=tariff,
-            status='active',
-            start_date=start_date,
-            end_date=end_date,
+            status='active' if tariff.is_free else 'pending_payment',
         )
 
-        # Update user's tariff details
-        user.tariff = tariff
-        user.tariff_expires_at = end_date
-        user.role = 'partner'
-        user.save()
+        if tariff.is_free:
+            activate_tariff_subscription(sub, actor=user)
 
         return Response({
-            'detail': 'Subscribed and activated successfully',
+            'detail': 'Free tariff activated successfully' if tariff.is_free else 'Subscription created and awaiting test payment',
             'subscription_id': sub.id,
             'status': sub.status,
+            'requires_payment': not tariff.is_free,
             'tariff': TariffPlanSerializer(tariff).data,
         })
 
@@ -87,42 +150,50 @@ class MySubscriptionsView(generics.ListAPIView):
 
 
 class AdminSubscriptionsView(generics.ListAPIView):
-    """Admin: list all pending subscriptions"""
-    permission_classes = [permissions.IsAuthenticated]
+    """Admin: list subscriptions, optionally filtered by status or status_group."""
+    permission_classes = [IsAdminOrModerator]
     serializer_class = TariffSubscriptionSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if not (user.role in ('admin', 'moderator') or user.is_superuser or user.is_staff):
+        if not is_admin_or_moderator(self.request.user):
             raise PermissionDenied("Admin or moderator only")
-        status_filter = self.request.query_params.get('status', 'pending')
-        return TariffSubscription.objects.filter(status=status_filter).order_by('-created_at')
+        queryset = TariffSubscription.objects.all()
+        status_filter = self.request.query_params.get('status')
+        status_group = self.request.query_params.get('status_group')
+
+        if status_filter:
+            statuses = [item.strip() for item in status_filter.split(',') if item.strip()]
+            queryset = queryset.filter(status__in=statuses)
+        elif status_group == 'pending_manual':
+            queryset = queryset.filter(status__in=('pending', 'pending_payment'))
+        elif status_group == 'paid_active':
+            queryset = queryset.filter(status='active')
+
+        return queryset.order_by('-created_at')
 
 
 class ActivateSubscriptionView(APIView):
     """Admin: activate a pending subscription"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminUserRole]
 
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            name='ActivateSubscriptionResponse',
+            fields={
+                'detail': serializers.CharField(),
+                'subscription_id': serializers.IntegerField(),
+            },
+        ),
+        tags=['tariffs'],
+    )
     def post(self, request, pk):
         user = request.user
-        if not (user.role in ('admin',) or user.is_superuser or user.is_staff):
-            raise PermissionDenied("Admin only")
         try:
             sub = TariffSubscription.objects.get(pk=pk)
         except TariffSubscription.DoesNotExist:
             return Response({'detail': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        sub.status = 'active'
-        sub.start_date = timezone.now()
-        if sub.tariff:
-            sub.end_date = timezone.now() + timedelta(days=sub.tariff.duration_days)
-        sub.save()
-
-        # Update user's tariff
-        partner = sub.partner
-        partner.tariff = sub.tariff
-        partner.tariff_expires_at = sub.end_date
-        partner.role = 'partner'
-        partner.save()
+        activate_tariff_subscription(sub, actor=user)
 
         return Response({'detail': 'Subscription activated', 'subscription_id': sub.id})

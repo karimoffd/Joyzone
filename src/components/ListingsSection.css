@@ -77,6 +77,42 @@
   gap: clamp(14px, 1.35vw, 20px);
 }
 
+.home-place-skeleton {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  padding-bottom: 18px;
+  animation: listing-skeleton-pulse 1.1s ease-in-out infinite alternate;
+}
+
+.home-place-skeleton-media {
+  width: 100%;
+  aspect-ratio: 1.35;
+  border-radius: 16px;
+  background: #e4e9ed;
+}
+
+.home-place-skeleton-line {
+  width: 76%;
+  height: 13px;
+  border-radius: 6px;
+  background: #e4e9ed;
+}
+
+.home-place-skeleton-line.is-title {
+  width: 92%;
+  height: 20px;
+}
+
+.home-place-skeleton-line.is-short {
+  width: 48%;
+}
+
+@keyframes listing-skeleton-pulse {
+  from { opacity: 0.58; }
+  to { opacity: 1; }
+}
+
 .property-card {
   position: relative;
   display: grid;

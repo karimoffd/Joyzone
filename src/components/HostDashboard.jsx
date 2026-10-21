@@ -1,13 +1,27 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback, useContext } from "react";
 import { createPortal } from "react-dom";
-import axios from "axios";
-import { LanguageContext } from "../App.jsx";
+import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
+import { LanguageContext } from "../context/LanguageContext.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { SimpleFooter, PropertyCard } from "./ListingsSection.jsx";
 import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
-import { getStoredChats, sendMessageToChat } from "../utils/chatManager.js";
+import { getMessageSender, getStoredChats, markChatRead, sendMessageToChat, syncChatsWithBackend } from "../utils/chatManager.js";
 import { propertyCards } from "../data/content.js";
+import {
+  fetchPlaceAvailability,
+  getAvailabilityDay,
+  getAvailabilityDayStatus,
+  getAvailabilitySlotStatus,
+  getCalendarAvailabilityRange
+} from "../utils/availability.js";
+import { parseMoneyValue } from "../utils/placePricing.js";
+import { normalizePlace } from "../utils/placeMapper.js";
+import { formatBookingDate, normalizeBooking as normalizeBookingContract } from "../utils/bookingMapper.js";
+import { buildPartnerStats, selectTodayBookings, selectUpcomingBookings } from "../utils/partnerDashboard.js";
+import { buildBlockedBookingPayload, isDateInSelectedRange, selectCalendarDate } from "../utils/partnerCalendar.js";
+import { removeStorageItem, setStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
+import { cacheProfile } from "../utils/profileMapper.js";
 import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
 
@@ -47,7 +61,7 @@ const navIndex = {
   tariffs: 4
 };
 
-const todayBookings = [
+const FALLBACK_TODAY_BOOKINGS = [
   {
     space: "Atlas Meeting Room",
     company: "Nova Labs",
@@ -66,77 +80,116 @@ const todayBookings = [
   }
 ];
 
-const upcomingBookings = [
+const FALLBACK_UPCOMING_BOOKINGS = [
   { date: "4 июня", title: "Focus Hub Coworking", type: "Дневной доступ" },
   { date: "6 июня", title: "Blue Line Office", type: "Просмотр офиса" },
   { date: "9 июня", title: "Orange Desk Office", type: "Месячная аренда" }
 ];
 
-const discounts = [
+const FALLBACK_DISCOUNTS = [
   { label: "Первые 3 брони", value: "20%", active: true },
   { label: "От 3 месяцев", value: "10%", active: true },
   { label: "Нерабочие часы", value: "7%", active: false }
 ];
 
-const calendarDays = Array.from({ length: 35 }, (_, index) => {
-  const day = index - 2;
-  const inMonth = day > 0 && day <= 30;
-  const status = [5, 12, 18, 24].includes(day) ? "booked" : [9, 21].includes(day) ? "blocked" : "free";
-  const discount = [7, 14, 26].includes(day);
-  return {
-    label: inMonth ? day : "",
-    status,
-    discount,
-    price: day % 6 === 0 ? "390k" : day % 4 === 0 ? "340k" : "320k"
-  };
-});
+function buildHostCalendarDays(year, month, availability, priceLabel = "") {
+  const days = [];
+  const firstDate = new Date(Date.UTC(year, month, 1));
+  let startDay = firstDate.getUTCDay();
+  startDay = startDay === 0 ? 6 : startDay - 1;
 
-const hostListings = propertyCards.slice(0, 4).map((item, index) => ({
+  for (let i = 0; i < startDay; i += 1) {
+    days.push({ label: "", status: "free", discount: false, price: "", isMuted: true });
+  }
+
+  const totalDays = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  for (let day = 1; day <= totalDays; day += 1) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const status = getAvailabilityDayStatus(availability, dateStr);
+    days.push({
+      label: day,
+      dateStr,
+      status,
+      discount: false,
+      price: priceLabel
+    });
+  }
+
+  return days;
+}
+
+function formatCalendarMonthTitle(year, month) {
+  return new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" })
+    .format(new Date(Date.UTC(year, month, 1)));
+}
+
+function formatMoneyShort(value) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount) || amount <= 0) return "0";
+  if (amount >= 1000000) return `${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1)}M`;
+  if (amount >= 1000) return `${Math.round(amount / 1000)}k`;
+  return String(Math.round(amount));
+}
+
+function buildHostListingView(place = {}, index = 0) {
+  const normalized = normalizePlace(place, { index, fallbackId: `fallback-place-${index}` });
+  return {
+    ...normalized,
+    occupancy: place.occupancy || "0%",
+  };
+}
+
+function buildHostBookingView(booking = {}, listingsById = new Map()) {
+  const normalized = normalizeBookingContract(booking, { listingsById });
+  return {
+    ...normalized,
+    date: formatBookingDate(normalized.start_time || normalized.start_date),
+    statusLabel: normalized.status === "confirmed"
+      ? "Подтверждено"
+      : normalized.status === "completed"
+        ? "Завершено"
+        : normalized.status === "blocked"
+          ? "Закрыто владельцем"
+          : normalized.status === "cancelled"
+            ? "Отменено"
+            : "Ожидает подтверждения",
+    guests: `${normalized.guests || 1} человек`,
+    note: normalized.note || "Без заметки",
+  };
+}
+
+function filterPartnerChats(chats = [], listings = [], partnerId = null) {
+  const placeIds = new Set(
+    listings
+      .map((item) => item.id || item._id)
+      .filter((id) => id !== null && id !== undefined)
+      .map(String)
+  );
+  const titles = new Set(
+    listings
+      .map((item) => String(item.title || item.name || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+  return chats.filter((chat) => {
+    const hostMatches = partnerId !== null
+      && partnerId !== undefined
+      && String(chat.hostId || chat.host_id || "") === String(partnerId);
+    const placeMatches = placeIds.has(String(chat.placeId || chat.place_id || chat.space_id || ""));
+    if (hostMatches || placeMatches) return true;
+
+    if (!import.meta.env.DEV || titles.size === 0) return false;
+    // Legacy title matching is only for local DEV chat fixtures without relational ids.
+    const chatSpace = String(chat.spaceTitle || chat.space_title || chat.space || "").trim().toLowerCase();
+    return titles.has(chatSpace);
+  });
+}
+
+const FALLBACK_HOST_LISTINGS = propertyCards.slice(0, 4).map((item, index) => ({
   ...item,
   status: index === 1 ? "Нужно обновить цену" : index === 2 ? "Черновик" : "Опубликовано",
   bookings: [12, 8, 0, 5][index],
   score: ["98%", "91%", "64%", "87%"][index]
 }));
-
-const inbox = [
-  {
-    id: "nova",
-    name: "Nova Labs",
-    space: "Atlas Meeting Room",
-    time: "12 мин назад",
-    preview: "Можно ли подготовить доску и воду до 10:00?",
-    unread: true,
-    messages: [
-      { from: "guest", text: "Здравствуйте, можно ли подготовить доску и воду до 10:00?" },
-      { from: "host", text: "Да, команда подготовит комнату заранее. HDMI тоже будет на столе." },
-      { from: "guest", text: "Отлично, спасибо. Тогда подтверждаем встречу." }
-    ]
-  },
-  {
-    id: "bridge",
-    name: "Bridge Team",
-    space: "Quiet Work Studio",
-    time: "Вчера",
-    preview: "Нам нужна тихая зона для созвона.",
-    unread: false,
-    messages: [
-      { from: "guest", text: "Нам нужна тихая зона для созвона на 4 человека." },
-      { from: "host", text: "Подойдёт второй кабинет, там меньше проходного шума." }
-    ]
-  },
-  {
-    id: "aurora",
-    name: "Aurora Studio",
-    space: "Blue Line Office",
-    time: "2 дня назад",
-    preview: "Хотим посмотреть офис на следующей неделе.",
-    unread: false,
-    messages: [
-      { from: "guest", text: "Хотим посмотреть офис на следующей неделе." },
-      { from: "host", text: "Свободные слоты: вторник 12:00 или четверг 15:30." }
-    ]
-  }
-];
 
 function DashboardIcon({ type }) {
   const paths = {
@@ -148,6 +201,8 @@ function DashboardIcon({ type }) {
     check: ["m5 13 4 4L19 7"],
     plus: ["M12 5v14M5 12h14"],
     arrow: ["M5 12h14", "m13 6 6 6-6 6"],
+    chevronLeft: ["m15 18-6-6 6-6"],
+    chevronRight: ["m9 18 6-6-6-6"],
     empty: ["M5 5h14v14H5z", "M9 9h6M9 13h4"]
   };
 
@@ -203,15 +258,25 @@ function EmptyPanel({ title, text, action, href }) {
   );
 }
 
-function TodayPage() {
+function TodayPage({ todayBookings = [], upcomingBookings = [], stats, usingFallback = false }) {
   const hasBookings = todayBookings.length > 0;
+  const statCards = [
+    { label: "Активные места", value: stats.activeListings, icon: "listing" },
+    { label: "Места на модерации", value: stats.pendingPlaces, icon: "clock" },
+    { label: "Отклонённые места", value: stats.rejectedPlaces, icon: "empty" },
+    { label: "Ожидающие брони", value: stats.pendingBookings, icon: "clock" },
+    { label: "Подтверждённые брони", value: stats.confirmedBookings, icon: "check" },
+    { label: "Завершённые брони", value: stats.completedBookings, icon: "check" },
+    { label: "Закрытые слоты", value: stats.blockedSlots, icon: "calendar" },
+    { label: "Доход", value: `${formatMoneyShort(stats.approximateRevenue)} UZS`, icon: "price" },
+  ];
 
   return (
     <div className="host-page-grid host-page-grid-today">
       <section className="host-main-surface">
         <div className="host-section-head">
           <div>
-            <span>Сегодня</span>
+            <span>{usingFallback ? "Сегодня · DEV fallback" : "Сегодня"}</span>
             <h2>{hasBookings ? `У вас ${todayBookings.length} бронирования` : "Сегодня бронирований нет"}</h2>
           </div>
           <a href="#host-calendar">Предстоящие<DashboardIcon type="arrow" /></a>
@@ -220,13 +285,13 @@ function TodayPage() {
         {hasBookings ? (
           <div className="host-booking-list">
             {todayBookings.map((booking) => (
-              <article className="host-booking-card" key={`${booking.space}-${booking.time}`}>
+              <article data-testid={`host-booking-${booking.id}`} className="host-booking-card" key={booking.id || `${booking.space}-${booking.time}`}>
                 <div className="host-booking-time">
                   <DashboardIcon type="clock" />
                   <strong>{booking.time}</strong>
                 </div>
                 <div>
-                  <span>{booking.status}</span>
+                  <span>{booking.statusLabel || booking.status}</span>
                   <h3>{booking.space}</h3>
                   <p>{booking.company} · {booking.guests}</p>
                 </div>
@@ -246,42 +311,185 @@ function TodayPage() {
             <h2>Предстоящие</h2>
           </div>
         </div>
-        <div className="host-upcoming-list">
-          {upcomingBookings.map((booking) => (
-            <article key={`${booking.title}-${booking.date}`}>
-              <span>{booking.date}</span>
-              <strong>{booking.title}</strong>
-              <small>{booking.type}</small>
+        <div className="host-upcoming-list" style={{ marginBottom: 18 }}>
+          {statCards.map((item) => (
+            <article key={item.label}>
+              <span><DashboardIcon type={item.icon} /></span>
+              <strong>{item.value}</strong>
+              <small>{item.label}</small>
             </article>
           ))}
+        </div>
+        <div className="host-upcoming-list">
+          {upcomingBookings.length > 0 ? (
+            upcomingBookings.map((booking) => (
+              <article data-testid={`host-upcoming-booking-${booking.id}`} key={booking.id || `${booking.title}-${booking.date}`}>
+                <span>{booking.date}</span>
+                <strong>{booking.title}</strong>
+                <small>{booking.type}</small>
+              </article>
+            ))
+          ) : (
+            <article>
+              <span>Нет</span>
+              <strong>Ближайших броней нет</strong>
+              <small>Новые заявки появятся здесь</small>
+            </article>
+          )}
         </div>
       </aside>
     </div>
   );
 }
 
-function CalendarPage({ listings = [] }) {
-  const displayListings = listings.length > 0 ? listings : hostListings;
-  const [activeSpace, setActiveSpace] = useState(displayListings[0] || hostListings[0]);
+function CalendarPage({ listings = [], usingFallback = false, onBookingCreated }) {
+  const displayListings = useMemo(
+    () => listings.length > 0 ? listings : (usingFallback && import.meta.env.DEV ? FALLBACK_HOST_LISTINGS : []),
+    [listings, usingFallback],
+  );
+  const [activeSpace, setActiveSpace] = useState(displayListings[0] || null);
   const [price, setPrice] = useState("320000");
   const [period, setPeriod] = useState("за день");
-  const [activeDiscounts, setActiveDiscounts] = useState(() => discounts.reduce((acc, item) => ({ ...acc, [item.label]: item.active }), {}));
+  const [activeDiscounts, setActiveDiscounts] = useState(() => (
+    import.meta.env.DEV
+      ? FALLBACK_DISCOUNTS.reduce((acc, item) => ({ ...acc, [item.label]: item.active }), {})
+      : {}
+  ));
+  const today = useMemo(() => new Date(), []);
+  const [calendarYear, setCalendarYear] = useState(() => today.getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(() => today.getMonth());
+  const [availability, setAvailability] = useState(null);
+  const [calendarError, setCalendarError] = useState("");
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [selection, setSelection] = useState({ startDate: "", endDate: "" });
+  const [blockMode, setBlockMode] = useState("daily");
+  const [blockStartTime, setBlockStartTime] = useState("09:00");
+  const [blockEndTime, setBlockEndTime] = useState("18:00");
+  const [blockNote, setBlockNote] = useState("");
+  const [blocking, setBlocking] = useState(false);
+  const [calendarNotice, setCalendarNotice] = useState("");
   
   useEffect(() => {
-    if (listings.length > 0 && (!activeSpace || !listings.some(l => l.id === activeSpace.id))) {
-      setActiveSpace(listings[0]);
+    if (displayListings.length === 0) {
+      if (activeSpace) setActiveSpace(null);
+      return;
     }
-  }, [listings]);
+    if (displayListings.length > 0 && (!activeSpace || !displayListings.some(l => l.id === activeSpace.id))) {
+      setActiveSpace(displayListings[0]);
+    }
+  }, [displayListings, activeSpace]);
+
+  const activeSpaceId = activeSpace?.id || activeSpace?._id;
+
+  const loadAvailability = useCallback(async () => {
+    if (!activeSpaceId) {
+      setAvailability(null);
+      return;
+    }
+    setAvailabilityLoading(true);
+    const range = getCalendarAvailabilityRange(calendarYear, calendarMonth);
+    try {
+      const data = await fetchPlaceAvailability({ placeId: activeSpaceId, ...range, skipAuth: false });
+      setAvailability(data);
+      setCalendarError("");
+    } catch (err) {
+      setCalendarError(getApiErrorMessage(err, "Не удалось загрузить календарь доступности"));
+      setAvailability(null);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, [activeSpaceId, calendarYear, calendarMonth]);
+
+  useEffect(() => {
+    loadAvailability();
+  }, [loadAvailability]);
+
+  useEffect(() => {
+    setSelection({ startDate: "", endDate: "" });
+    setCalendarNotice("");
+  }, [activeSpaceId, calendarYear, calendarMonth]);
+
+  const changeMonth = (offset) => {
+    const nextMonth = new Date(calendarYear, calendarMonth + offset, 1);
+    setCalendarYear(nextMonth.getFullYear());
+    setCalendarMonth(nextMonth.getMonth());
+  };
+
+  const handleDayClick = (dateStr) => {
+    if (!dateStr) return;
+    setSelection((current) => {
+      const next = selectCalendarDate(current.startDate, current.endDate, dateStr);
+      if (next.startDate !== next.endDate) setBlockMode("daily");
+      return next;
+    });
+    setCalendarError("");
+    setCalendarNotice("");
+  };
+
+  const handleCreateBlock = async () => {
+    if (usingFallback) {
+      setCalendarError("Блокировка недоступна для DEV fallback объекта.");
+      return;
+    }
+
+    let payload;
+    try {
+      payload = buildBlockedBookingPayload({
+        placeId: activeSpaceId,
+        startDate: selection.startDate,
+        endDate: selection.endDate,
+        mode: blockMode,
+        startTime: blockStartTime,
+        endTime: blockEndTime,
+        note: blockNote,
+      });
+    } catch (error) {
+      setCalendarError(error.message);
+      return;
+    }
+
+    setBlocking(true);
+    setCalendarError("");
+    setCalendarNotice("");
+    try {
+      await api.post("/api/bookings/", payload);
+      await loadAvailability();
+      await onBookingCreated?.();
+      setCalendarNotice("Период закрыт для бронирования.");
+      setSelection({ startDate: "", endDate: "" });
+      setBlockNote("");
+    } catch (error) {
+      const hasOverlap = Boolean(error.response?.data?.non_field_errors);
+      setCalendarError(hasOverlap
+        ? "Выбранный день или время уже заняты. Выберите свободный период."
+        : getApiErrorMessage(error, "Не удалось закрыть выбранный период."));
+    } finally {
+      setBlocking(false);
+    }
+  };
 
   // Parse base price from active space if it exists, otherwise fallback
   const currentBasePrice = useMemo(() => {
-    if (activeSpace && activeSpace.price) {
-      return activeSpace.price.replace(/\D/g, "");
+    if (activeSpace) {
+      const parsedPrice = parseMoneyValue(activeSpace.priceValue || activeSpace.price_daily || activeSpace.price);
+      if (parsedPrice !== null) return String(Math.round(parsedPrice));
     }
     return price;
   }, [activeSpace, price]);
 
   const formattedPrice = useMemo(() => Number(currentBasePrice || 0).toLocaleString("ru-RU"), [currentBasePrice]);
+  const dayPriceLabel = useMemo(() => `${formatMoneyShort(currentBasePrice)} сум`, [currentBasePrice]);
+  const calendarDays = useMemo(
+    () => buildHostCalendarDays(calendarYear, calendarMonth, availability, dayPriceLabel),
+    [calendarYear, calendarMonth, availability, dayPriceLabel]
+  );
+  const selectedDayAvailability = getAvailabilityDay(availability, selection.startDate);
+  const hourlySlots = useMemo(() => (
+    Array.from({ length: 24 }, (_, hour) => {
+      const label = `${String(hour).padStart(2, "0")}:00`;
+      return { label, status: getAvailabilitySlotStatus(availability, selection.startDate, label) };
+    })
+  ), [availability, selection.startDate]);
 
   return (
     <div className="host-calendar-page-container">
@@ -289,12 +497,12 @@ function CalendarPage({ listings = [] }) {
       <div className="host-spaces-top-bar" style={{ marginBottom: "28px" }}>
         <div className="host-section-head compact" style={{ marginBottom: "16px" }}>
           <div>
-            <span>Объекты</span>
+            <span>{usingFallback ? "Объекты · DEV fallback" : "Объекты"}</span>
             <h2>Выберите место</h2>
           </div>
         </div>
         <div className="host-spaces-list-horizontal">
-          {displayListings.map((space) => {
+          {displayListings.length > 0 ? displayListings.map((space) => {
             const isActive = activeSpace && (activeSpace.id === space.id || activeSpace.title === space.title);
             return (
               <button 
@@ -313,7 +521,9 @@ function CalendarPage({ listings = [] }) {
                 </div>
               </button>
             );
-          })}
+          }) : (
+            <EmptyPanel title="Нет мест для календаря" text="Добавьте или дождитесь модерации места, чтобы управлять доступностью." action="Добавить место" href="#partner" />
+          )}
         </div>
       </div>
 
@@ -337,7 +547,7 @@ function CalendarPage({ listings = [] }) {
 
           <div className="host-discount-stack">
             <h3>Скидки и надбавки</h3>
-            {discounts.map((item) => (
+            {(import.meta.env.DEV && usingFallback ? FALLBACK_DISCOUNTS : []).map((item) => (
               <button
                 key={item.label}
                 type="button"
@@ -348,6 +558,7 @@ function CalendarPage({ listings = [] }) {
                 <strong>{item.value}</strong>
               </button>
             ))}
+            {!usingFallback ? <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>Скидки управляются через backend и применяются на странице места.</p> : null}
           </div>
         </aside>
 
@@ -355,13 +566,22 @@ function CalendarPage({ listings = [] }) {
         <section className="host-calendar-panel">
           <div className="host-calendar-top">
             <div>
-              <span>Июнь 2026</span>
+              <span>{formatCalendarMonthTitle(calendarYear, calendarMonth)}</span>
               <h2>{activeSpace?.title || "Место"}</h2>
+              {availabilityLoading ? <small style={{ color: "#64748b", fontWeight: 700 }}>Обновление календаря...</small> : null}
+              {calendarError ? <small style={{ color: "#dc2626", fontWeight: 800 }}>{calendarError}</small> : null}
+              {calendarNotice ? <small style={{ color: "#15803d", fontWeight: 800 }}>{calendarNotice}</small> : null}
             </div>
-            <div className="host-calendar-legend">
-              <span><i className="free" />Свободно</span>
-              <span><i className="booked" />Бронь</span>
-              <span><i className="blocked" />Закрыто</span>
+            <div className="host-calendar-actions">
+              <div className="host-calendar-month-nav">
+                <button type="button" onClick={() => changeMonth(-1)} aria-label="Предыдущий месяц"><DashboardIcon type="chevronLeft" /></button>
+                <button type="button" onClick={() => changeMonth(1)} aria-label="Следующий месяц"><DashboardIcon type="chevronRight" /></button>
+              </div>
+              <div className="host-calendar-legend">
+                <span><i className="free" />Свободно</span>
+                <span><i className="booked" />Бронь</span>
+                <span><i className="blocked" />Закрыто</span>
+              </div>
             </div>
           </div>
 
@@ -369,14 +589,96 @@ function CalendarPage({ listings = [] }) {
             {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => <span key={day}>{day}</span>)}
           </div>
           <div className="host-calendar-grid">
-            {calendarDays.map((day, index) => (
-              <button key={`${day.label}-${index}`} type="button" className={`host-day ${day.status} ${day.discount ? "has-discount" : ""} ${day.label ? "" : "is-muted"}`}>
+            {calendarDays.map((day, index) => {
+              const isSelected = isDateInSelectedRange(day.dateStr, selection.startDate, selection.endDate);
+              const statusText = day.status === "booked"
+                ? "Забронировано"
+                : day.status === "blocked"
+                  ? "Закрыто"
+                  : day.price;
+              return (
+              <button
+                key={`${day.label}-${index}`}
+                type="button"
+                className={`host-day ${day.status} ${day.discount ? "has-discount" : ""} ${day.label ? "" : "is-muted"} ${isSelected ? "is-selected" : ""}`}
+                disabled={!day.label || availabilityLoading}
+                onClick={() => handleDayClick(day.dateStr)}
+                title={day.label ? statusText : undefined}
+              >
                 <strong>{day.label}</strong>
-                {day.label ? <small>{day.price}</small> : null}
+                {day.label ? <small>{statusText}</small> : null}
                 {day.discount ? <em>-10%</em> : null}
               </button>
-            ))}
+              );
+            })}
           </div>
+
+          {selection.startDate ? (
+            <div className="host-calendar-block-editor">
+              <div className="host-calendar-block-head">
+                <div>
+                  <span>Выбранный период</span>
+                  <strong>
+                    {selection.startDate === selection.endDate
+                      ? selection.startDate
+                      : `${selection.startDate} — ${selection.endDate}`}
+                  </strong>
+                </div>
+                <button type="button" onClick={() => setSelection({ startDate: "", endDate: "" })} aria-label="Сбросить выбранный период">×</button>
+              </div>
+
+              {selection.startDate === selection.endDate ? (
+                <div className="host-calendar-slots" aria-label={`Слоты на ${selection.startDate}`}>
+                  {hourlySlots.map((slot) => (
+                    <span key={slot.label} className={slot.status} title={`${slot.label}: ${slot.status}`}>
+                      {slot.label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="host-calendar-block-controls">
+                <div className="host-period-group" aria-label="Тип блокировки">
+                  <button type="button" className={blockMode === "daily" ? "is-active" : ""} onClick={() => setBlockMode("daily")}>Целый день</button>
+                  <button
+                    type="button"
+                    className={blockMode === "hourly" ? "is-active" : ""}
+                    disabled={selection.startDate !== selection.endDate}
+                    onClick={() => setBlockMode("hourly")}
+                  >
+                    По часам
+                  </button>
+                </div>
+
+                {blockMode === "hourly" && selection.startDate === selection.endDate ? (
+                  <div className="host-calendar-time-range">
+                    <label>С <input type="time" value={blockStartTime} onChange={(event) => setBlockStartTime(event.target.value)} /></label>
+                    <label>До <input type="time" value={blockEndTime} onChange={(event) => setBlockEndTime(event.target.value)} /></label>
+                  </div>
+                ) : null}
+
+                <label className="host-calendar-note">
+                  <span>Причина или заметка</span>
+                  <input value={blockNote} onChange={(event) => setBlockNote(event.target.value)} placeholder="Например: технические работы" />
+                </label>
+
+                <button
+                  type="button"
+                  className="host-calendar-block-submit"
+                  disabled={blocking || availabilityLoading || usingFallback || !activeSpaceId}
+                  onClick={handleCreateBlock}
+                >
+                  {blocking ? "Сохраняем..." : "Закрыть выбранный период"}
+                </button>
+              </div>
+
+              {selectedDayAvailability?.bookings?.length ? (
+                <small className="host-calendar-existing-count">
+                  В выбранный день занятых интервалов: {selectedDayAvailability.bookings.length}
+                </small>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       </div>
     </div>
@@ -393,7 +695,7 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
           <span>Объявления</span>
           <h2>Мои места</h2>
         </div>
-        <a href="#partner" onClick={() => localStorage.removeItem("joyzone-edit-place-id")}>
+        <a href="#partner" onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Добавить место
         </a>
@@ -404,7 +706,7 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
           <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 20px", color: "#64748b", background: "#f8fafc", borderRadius: 20, border: "1.5px dashed #e2e8f0" }}>
             <h3 style={{ margin: "0 0 8px 0", color: "#111820", fontSize: 18 }}>У вас пока нет объявлений</h3>
             <p style={{ margin: "0 0 20px 0", fontSize: 14 }}>Добавьте ваше первое пространство, чтобы начать принимать бронирования.</p>
-            <a href="#partner" className="host-alert-btn confirm" style={{ display: "inline-block", textDecoration: "none", width: "auto", background: "var(--orange)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700 }} onClick={() => localStorage.removeItem("joyzone-edit-place-id")}>Добавить место</a>
+            <a href="#partner" className="host-alert-btn confirm" style={{ display: "inline-block", textDecoration: "none", width: "auto", background: "var(--orange)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700 }} onClick={() => removeStorageItem(STORAGE_KEYS.workflow.editPlaceId)}>Добавить место</a>
           </div>
         ) : (
           listings.map((item, index) => (
@@ -421,6 +723,12 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
                 <span className={item.status === "approved" ? "is-live" : ""}>
                   {item.status === "approved" ? "Опубликовано" : item.status === "rejected" ? "Отклонено" : "Модерация"}
                 </span>
+                {item.status === "rejected" && item.moderator_note ? (
+                  <div className="host-listing-moderation-note">
+                    <strong>Причина отклонения</strong>
+                    <p>{item.moderator_note}</p>
+                  </div>
+                ) : null}
                 <div className="host-card-actions">
                   <button onClick={() => onEdit(item)} className="host-card-act-btn edit" title="Редактировать">✏️</button>
                   <button onClick={() => onDelete(item)} className="host-card-act-btn delete" title="Удалить">🗑️</button>
@@ -444,37 +752,79 @@ function ListingsPage({ listings = [], onEdit, onDelete }) {
   );
 }
 
-function MessagesPage() {
-  const [chats, setChats] = useState(() => getStoredChats());
+function MessagesPage({ listings = [], partnerId = null }) {
+  const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [draft, setDraft] = useState("");
+  const [messageError, setMessageError] = useState("");
+  const [usingOfflineFallback, setUsingOfflineFallback] = useState(false);
+  const [inboxLoading, setInboxLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
   
-  const refreshChats = useCallback(() => {
-    setChats(getStoredChats());
-  }, []);
+  const refreshChats = useCallback(async () => {
+    try {
+      const backendChats = await syncChatsWithBackend({ silent: true, allowDevFallback: false });
+      setChats(filterPartnerChats(backendChats, listings, partnerId));
+      setUsingOfflineFallback(false);
+      setMessageError("");
+    } catch (err) {
+      setMessageError(getApiErrorMessage(err, "Не удалось загрузить inbox"));
+      // Dev fallback keeps the partner inbox inspectable while the REST chat API is unavailable.
+      setChats(import.meta.env.DEV ? filterPartnerChats(getStoredChats(), listings, partnerId) : []);
+      setUsingOfflineFallback(import.meta.env.DEV);
+    } finally {
+      setInboxLoading(false);
+    }
+  }, [listings, partnerId]);
 
   useEffect(() => {
     refreshChats();
-    window.addEventListener("joyzone-chat-update", refreshChats);
-    window.addEventListener("storage", refreshChats);
+    const poll = setInterval(refreshChats, 7000);
     return () => {
-      window.removeEventListener("joyzone-chat-update", refreshChats);
-      window.removeEventListener("storage", refreshChats);
+      clearInterval(poll);
     };
   }, [refreshChats]);
 
   const activeChat = chats.find((chat) => chat.id === selectedChat);
 
   useEffect(() => {
+    if (selectedChat && !activeChat) {
+      setSelectedChat(null);
+    }
+  }, [activeChat, selectedChat]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeChat?.messages]);
 
-  const handleSend = () => {
-    if (!draft.trim() || !selectedChat) return;
-    sendMessageToChat(selectedChat, { from: "host", text: draft });
-    setDraft("");
-    refreshChats();
+  const handleSelectChat = async (chat) => {
+    setSelectedChat(chat.id);
+    if (!chat.unread || usingOfflineFallback) return;
+    try {
+      const updated = await markChatRead(chat.threadId || chat.id, { allowDevFallback: false });
+      if (updated) {
+        setChats((current) => current.map((item) => String(item.id) === String(updated.id) ? updated : item));
+      }
+      setMessageError("");
+    } catch (err) {
+      setMessageError(getApiErrorMessage(err, "Не удалось отметить чат прочитанным"));
+    }
+  };
+
+  const handleSend = async () => {
+    if (!draft.trim() || !selectedChat || sending) return;
+    setSending(true);
+    try {
+      await sendMessageToChat(selectedChat, { from: "host", text: draft }, { allowDevFallback: false });
+      setDraft("");
+      setMessageError("");
+      await refreshChats();
+    } catch (err) {
+      setMessageError(getApiErrorMessage(err, "Не удалось отправить сообщение"));
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -498,13 +848,16 @@ function MessagesPage() {
       <aside className="host-inbox-panel">
         <div className="host-section-head compact">
           <div>
-            <span>Входящие</span>
+            <span>{usingOfflineFallback ? "Входящие · DEV offline fallback" : "Входящие"}</span>
             <h2>Чаты</h2>
+            {messageError ? <small style={{ color: "#dc2626", fontWeight: 800 }}>{messageError}</small> : null}
           </div>
         </div>
         <div className="host-inbox-list">
-          {chats.map((chat) => (
-            <button key={chat.id} type="button" className={chat.id === selectedChat ? "is-active" : ""} onClick={() => setSelectedChat(chat.id)}>
+          {inboxLoading ? (
+            <p style={{ color: "#64748b", fontSize: 14 }}>Загрузка чатов...</p>
+          ) : chats.length > 0 ? chats.map((chat) => (
+            <button key={chat.id} type="button" className={chat.id === selectedChat ? "is-active" : ""} onClick={() => handleSelectChat(chat)}>
               <span>{chat.name.slice(0, 2).toUpperCase()}</span>
               <div>
                 <strong>{chat.name}</strong>
@@ -514,7 +867,9 @@ function MessagesPage() {
               <em>{chat.time}</em>
               {chat.unread ? <i /> : null}
             </button>
-          ))}
+          )) : (
+            <EmptyPanel title="Диалогов по вашим местам нет" text="Сообщения появятся здесь, когда гости напишут по одному из ваших объектов." />
+          )}
         </div>
       </aside>
 
@@ -533,7 +888,7 @@ function MessagesPage() {
             </div>
             <div className="host-chat-body">
               {activeChat.messages.map((message, index) => (
-                <p key={`${message.text}-${index}`} className={`${message.from === "host" ? "is-host" : ""} ${message.isNew ? "msg-pop" : ""}`}>{message.text}</p>
+                <p key={message.id || `${message.text}-${index}`} className={`${getMessageSender(message) === "host" ? "is-host" : ""} ${message.isNew ? "msg-pop" : ""}`}>{message.text}</p>
               ))}
               <div ref={messagesEndRef} />
             </div>
@@ -546,11 +901,13 @@ function MessagesPage() {
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
+                disabled={sending || usingOfflineFallback}
               />
               <button 
                 type="button" 
                 className={`composer-icon-btn send-btn ${draft.trim() ? "active" : ""}`} 
                 onClick={handleSend}
+                disabled={sending || usingOfflineFallback || !draft.trim()}
                 aria-label="Отправить"
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -594,10 +951,10 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
   const fetchTariffs = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8000/api/tariffs/");
+      const res = await api.get("/api/tariffs/");
       setTariffs(res.data?.results || res.data || []);
     } catch (e) {
-      console.warn("Failed to fetch tariffs:", e);
+      showToast(getApiErrorMessage(e, "Не удалось загрузить тарифы."), "error");
     }
     setLoading(false);
   };
@@ -606,33 +963,49 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
     fetchTariffs();
   }, []);
 
-  const handleSubscribe = async (tariff, skipPayment = false) => {
-    if (!tariff.is_free && !skipPayment) {
-      setPaymentTarget(tariff);
+  const handleSubscribe = async (tariff) => {
+    const token = getAccessToken();
+    if (!token) {
+      showToast("Войдите в аккаунт, чтобы выбрать тариф.", "error");
       return;
     }
-
-    const token = localStorage.getItem("joyzone-access");
-    if (!token) return;
     setSubmitting(tariff.id);
+
     try {
-      const res = await axios.post(
-        "http://localhost:8000/api/tariffs/subscribe/",
+      const res = await api.post(
+        "/api/tariffs/subscribe/",
         { tariff_id: tariff.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      showToast(
-        tariff.is_free 
-          ? `Тариф «${tariff.name_ru || tariff.name}» успешно активирован!` 
-          : `Тариф «${tariff.name_ru || tariff.name}» успешно оплачен и активирован!`,
-        "success"
-      );
-      fetchProfile();
+
+      if (res.data?.requires_payment) {
+        if (!res.data?.subscription_id) {
+          throw new Error("Backend не вернул subscription_id для оплаты.");
+        }
+        setPaymentTarget({
+          ...tariff,
+          subscriptionId: res.data?.subscription_id,
+          subscriptionStatus: res.data?.status
+        });
+        return;
+      }
+
+      if (res.data?.status !== "active") {
+        throw new Error("Backend не подтвердил активацию бесплатного тарифа.");
+      }
+
+      const refreshedProfile = await fetchProfile();
+      if (!refreshedProfile) {
+        throw new Error("Тариф активирован, но профиль не удалось обновить.");
+      }
+
+      showToast(`Тариф «${tariff.name_ru || tariff.name}» успешно активирован!`, "success");
     } catch (e) {
-      const errMsg = e.response?.data?.detail || e.message;
+      const errMsg = getApiErrorMessage(e, "Не удалось выбрать тариф");
       showToast(`Ошибка: ${errMsg}`, "error");
+    } finally {
+      setSubmitting(null);
     }
-    setSubmitting(null);
   };
 
   const formatPrice = (t) => {
@@ -781,14 +1154,18 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
           title="Покупка тарифа"
           defaultPhone={profile?.phone_number}
           productDetails={{
+            subscriptionId: paymentTarget.subscriptionId,
             name: paymentTarget.name_ru || paymentTarget.name,
             description: paymentTarget.description_ru || paymentTarget.description,
             limit: paymentTarget.max_places
           }}
-          onSuccess={() => {
+          onSuccess={async () => {
             const t = paymentTarget;
-            setPaymentTarget(null);
-            handleSubscribe(t, true);
+            const refreshedProfile = await fetchProfile();
+            if (!refreshedProfile) {
+              throw new Error("Оплата прошла, но профиль не удалось обновить. Обновите страницу.");
+            }
+            showToast(`Тариф «${t.name_ru || t.name}» успешно оплачен и активирован!`, "success");
           }}
         />
       )}
@@ -799,8 +1176,12 @@ function HostTariffsPage({ showToast, profile, fetchProfile }) {
 function HostDashboard({ page = "today", userState, setUserState }) {
   const normalizedPage = pageMeta[page] ? page : "today";
   const [listings, setListings] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [listingsApiFailed, setListingsApiFailed] = useState(false);
+  const [bookingsApiFailed, setBookingsApiFailed] = useState(false);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [apiErrors, setApiErrors] = useState({ profile: "", listings: "", bookings: "" });
   const [deleteConfirmSpace, setDeleteConfirmSpace] = useState(null);
   const [toast, setToast] = useState({ open: false, message: "", type: "success" });
 
@@ -808,41 +1189,127 @@ function HostDashboard({ page = "today", userState, setUserState }) {
     setToast({ open: true, message: msg, type });
   };
 
-  const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem("joyzone-access");
-    if (!token) return;
-    try {
-      const res = await axios.get("http://localhost:8000/api/auth/profile/", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProfile(res.data);
-    } catch (e) {
-      console.warn("Failed to fetch profile in dashboard:", e);
-    }
+  const setApiError = useCallback((section, message) => {
+    setApiErrors((current) => ({ ...current, [section]: message }));
   }, []);
 
+  const fetchProfile = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const res = await api.get("/api/auth/profile/", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const normalizedProfile = cacheProfile(res.data);
+      setProfile(normalizedProfile);
+      setApiError("profile", "");
+      return normalizedProfile;
+    } catch (e) {
+      setApiError("profile", getApiErrorMessage(e, "Не удалось загрузить профиль партнёра."));
+      return null;
+    }
+  }, [setApiError]);
+
   const fetchListings = useCallback(async () => {
-    const token = localStorage.getItem("joyzone-access");
+    const token = getAccessToken();
     if (!token) return;
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8000/api/places/", {
+      const res = await api.get("/api/places/", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setListings(res.data?.results || res.data || []);
+      const data = res.data?.results || res.data || [];
+      setListings(Array.isArray(data) ? data.map(buildHostListingView) : []);
+      setListingsApiFailed(false);
+      setApiError("listings", "");
     } catch (e) {
-      console.warn("Failed to fetch partner listings:", e);
+      setApiError("listings", getApiErrorMessage(e, "Не удалось загрузить ваши объекты."));
+      setListings([]);
+      setListingsApiFailed(true);
     }
     setLoading(false);
-  }, []);
+  }, [setApiError]);
+
+  const fetchBookings = useCallback(async () => {
+      const token = getAccessToken();
+      if (!token) return;
+      try {
+        const res = await api.get("/api/bookings/", {
+          params: { scope: "host" },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      const data = res.data?.results || res.data || [];
+      setBookings(Array.isArray(data) ? data : []);
+      setBookingsApiFailed(false);
+      setApiError("bookings", "");
+    } catch (e) {
+      setApiError("bookings", getApiErrorMessage(e, "Не удалось загрузить бронирования партнёра."));
+      setBookings([]);
+      setBookingsApiFailed(true);
+    }
+  }, [setApiError]);
 
   useEffect(() => {
     fetchProfile();
     fetchListings();
-  }, [fetchProfile, fetchListings]);
+    fetchBookings();
+  }, [fetchProfile, fetchListings, fetchBookings]);
+
+  useEffect(() => {
+    const refreshAfterPlaceSave = () => {
+      fetchListings();
+      fetchBookings();
+    };
+    window.addEventListener("joyzone-place-saved", refreshAfterPlaceSave);
+    return () => window.removeEventListener("joyzone-place-saved", refreshAfterPlaceSave);
+  }, [fetchListings, fetchBookings]);
+
+  const listingsById = useMemo(() => (
+    new Map(listings.map((item) => [String(item.id), item]))
+  ), [listings]);
+
+  const normalizedBookings = useMemo(
+    () => bookings.map((booking) => buildHostBookingView(booking, listingsById)),
+    [bookings, listingsById]
+  );
+
+  const usingListingsFallback = import.meta.env.DEV && listingsApiFailed;
+  const usingBookingsFallback = import.meta.env.DEV && bookingsApiFailed;
+  const usingFallbackData = usingListingsFallback || usingBookingsFallback;
+  const displayListings = useMemo(
+    () => usingListingsFallback ? FALLBACK_HOST_LISTINGS.map(buildHostListingView) : listings,
+    [listings, usingListingsFallback],
+  );
+  const dashboardError = useMemo(
+    () => Object.values(apiErrors).filter(Boolean).join(" "),
+    [apiErrors],
+  );
+
+  const dashboardStats = useMemo(
+    () => buildPartnerStats(listings, normalizedBookings),
+    [listings, normalizedBookings]
+  );
+
+  const todayItems = useMemo(() => {
+    if (import.meta.env.DEV && usingBookingsFallback) return FALLBACK_TODAY_BOOKINGS;
+    return selectTodayBookings(normalizedBookings);
+  }, [normalizedBookings, usingBookingsFallback]);
+
+  const upcomingItems = useMemo(() => {
+    const source = import.meta.env.DEV && usingBookingsFallback
+      ? FALLBACK_UPCOMING_BOOKINGS
+      : selectUpcomingBookings(normalizedBookings)
+      .map((booking) => ({
+        id: booking.id,
+        date: booking.date,
+        title: booking.space,
+        type: booking.durationLabel,
+      }));
+    return source;
+  }, [normalizedBookings, usingBookingsFallback]);
 
   const handleEdit = (item) => {
-    localStorage.setItem("joyzone-edit-place-id", item.id);
+    setStorageItem(STORAGE_KEYS.workflow.editPlaceId, item.id);
     window.location.hash = "#partner";
   };
 
@@ -851,16 +1318,17 @@ function HostDashboard({ page = "today", userState, setUserState }) {
   };
 
   const performDelete = async (id) => {
-    const token = localStorage.getItem("joyzone-access");
+    const token = getAccessToken();
     try {
-      await axios.delete(`http://localhost:8000/api/places/${id}/`, {
+      await api.delete(`/api/places/${id}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       showToast("Пространство успешно удалено!", "success");
       setDeleteConfirmSpace(null);
       fetchListings();
+      fetchBookings();
     } catch (e) {
-      showToast(e.response?.data?.detail || "Ошибка при удалении объекта", "error");
+      showToast(getApiErrorMessage(e, "Ошибка при удалении объекта"), "error");
       setDeleteConfirmSpace(null);
     }
   };
@@ -870,8 +1338,27 @@ function HostDashboard({ page = "today", userState, setUserState }) {
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={navIndex[normalizedPage]} variant="dashboard" />
       <section className={`host-dashboard-container ${normalizedPage === "messages" ? "is-messages-page" : ""}`}>
         <DashboardHero page={normalizedPage} profile={profile} />
-        {normalizedPage === "today" ? <TodayPage /> : null}
-        {normalizedPage === "calendar" ? <CalendarPage listings={listings} /> : null}
+        {dashboardError ? (
+          <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
+            {dashboardError}
+            {usingFallbackData ? " · DEV fallback data is shown." : ""}
+          </div>
+        ) : null}
+        {normalizedPage === "today" ? (
+          <TodayPage
+            todayBookings={todayItems}
+            upcomingBookings={upcomingItems}
+            stats={dashboardStats}
+            usingFallback={usingBookingsFallback}
+          />
+        ) : null}
+        {normalizedPage === "calendar" ? (
+          <CalendarPage
+            listings={listings}
+            usingFallback={usingListingsFallback}
+            onBookingCreated={fetchBookings}
+          />
+        ) : null}
         {normalizedPage === "listings" ? (
           loading ? (
             <div style={{ textAlign: "center", padding: "80px 20px" }}>
@@ -879,10 +1366,10 @@ function HostDashboard({ page = "today", userState, setUserState }) {
               <p style={{ marginTop: 16, color: "#64748b" }}>Загрузка ваших объявлений...</p>
             </div>
           ) : (
-            <ListingsPage listings={listings} onEdit={handleEdit} onDelete={askDelete} />
+            <ListingsPage listings={displayListings} onEdit={handleEdit} onDelete={askDelete} />
           )
         ) : null}
-        {normalizedPage === "messages" ? <MessagesPage /> : null}
+        {normalizedPage === "messages" ? <MessagesPage listings={displayListings} partnerId={profile?.id} /> : null}
         {normalizedPage === "tariffs" ? <HostTariffsPage showToast={showToast} profile={profile} fetchProfile={fetchProfile} /> : null}
       </section>
 

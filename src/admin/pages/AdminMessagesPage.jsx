@@ -1,28 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { getStoredChats, sendMessageToChat } from '../../utils/chatManager.js';
+import { getMessageSender, getStoredChats, sendMessageToChat, syncChatsWithBackend } from '../../utils/chatManager.js';
 
 export default function AdminMessagesPage() {
   const [chats, setChats] = useState(() => getStoredChats());
   const [active, setActive] = useState(null);
   const [draft, setDraft] = useState('');
 
-  const refreshChats = () => {
-    setChats(getStoredChats());
+  const refreshChats = async () => {
+    const synced = await syncChatsWithBackend({ silent: true });
+    setChats(synced || getStoredChats());
   };
 
   useEffect(() => {
     refreshChats();
     window.addEventListener('joyzone-chat-update', refreshChats);
     window.addEventListener('storage', refreshChats);
+    const poll = setInterval(refreshChats, 7000);
     return () => {
+      clearInterval(poll);
       window.removeEventListener('joyzone-chat-update', refreshChats);
       window.removeEventListener('storage', refreshChats);
     };
   }, []);
 
-  const send = () => {
+  const send = async () => {
     if (!draft.trim() || !active) return;
-    sendMessageToChat(active, { from: 'host', text: draft });
+    await sendMessageToChat(active, { from: 'host', text: draft });
     setDraft('');
     refreshChats();
   };
@@ -59,13 +62,13 @@ export default function AdminMessagesPage() {
               <div 
                 key={i} 
                 style={{ 
-                  alignSelf: m.from === 'host' ? 'flex-end' : 'flex-start', 
+                  alignSelf: getMessageSender(m) === 'host' ? 'flex-end' : 'flex-start',
                   width: 'fit-content',
-                  maxWidth: 'min(62%, 380px)', 
-                  background: m.from === 'host' ? '#294a6d' : '#f6f1ee', 
-                  color: m.from === 'host' ? '#fff' : 'var(--text)', 
-                  padding: '10px 14px', 
-                  borderRadius: m.from === 'host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', 
+                  maxWidth: 'min(62%, 380px)',
+                  background: getMessageSender(m) === 'host' ? '#294a6d' : '#f6f1ee',
+                  color: getMessageSender(m) === 'host' ? '#fff' : 'var(--text)',
+                  padding: '10px 14px',
+                  borderRadius: getMessageSender(m) === 'host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
                   fontSize: 14, 
                   lineHeight: 1.5,
                   overflowWrap: 'anywhere',

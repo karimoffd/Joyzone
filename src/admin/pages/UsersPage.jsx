@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import axios from 'axios';
+import api, { getApiErrorMessage } from '../../api/client.js';
 import logoImage from '../../assets/img/Logo.png';
 
 const ROLE_MAP = {
@@ -11,10 +11,10 @@ const ROLE_MAP = {
 };
 
 const ROLE_OPTIONS = [
-  { id: 'client', label: 'Клиент', desc: 'Аренда пространств и бронирование', icon: '👤', accent: '#2563eb', bg: 'rgba(37, 99, 235, 0.06)', glow: 'rgba(37, 99, 235, 0.15)' },
-  { id: 'partner', label: 'Партнёр', desc: 'Сдача объектов и менеджмент мест', icon: '🏢', accent: '#059669', bg: 'rgba(5, 150, 105, 0.06)', glow: 'rgba(5, 150, 105, 0.15)' },
-  { id: 'moderator', label: 'Модератор', desc: 'Контроль контента и объявлений', icon: '🛡️', accent: '#7c3aed', bg: 'rgba(124, 58, 237, 0.06)', glow: 'rgba(124, 58, 237, 0.15)' },
-  { id: 'admin', label: 'Администратор', desc: 'Полный доступ ко всей системе', icon: '⚡', accent: '#ea580c', bg: 'rgba(234, 88, 12, 0.06)', glow: 'rgba(234, 88, 12, 0.15)' }
+  { id: 'client', label: 'Клиент', desc: 'Аренда пространств и бронирование', icon: 'C', accent: '#2563eb', bg: 'rgba(37, 99, 235, 0.06)', glow: 'rgba(37, 99, 235, 0.15)' },
+  { id: 'partner', label: 'Партнёр', desc: 'Сдача объектов и менеджмент мест', icon: 'P', accent: '#059669', bg: 'rgba(5, 150, 105, 0.06)', glow: 'rgba(5, 150, 105, 0.15)' },
+  { id: 'moderator', label: 'Модератор', desc: 'Контроль контента и объявлений', icon: 'M', accent: '#7c3aed', bg: 'rgba(124, 58, 237, 0.06)', glow: 'rgba(124, 58, 237, 0.15)' },
+  { id: 'admin', label: 'Администратор', desc: 'Полный доступ ко всей системе', icon: 'A', accent: '#ea580c', bg: 'rgba(234, 88, 12, 0.06)', glow: 'rgba(234, 88, 12, 0.15)' }
 ];
 
 const TABS = ['Все', 'client', 'partner', 'moderator', 'admin'];
@@ -47,32 +47,17 @@ function UserEditModal({ user, onClose, onSave }) {
   const [role, setRole] = useState(user.role || 'client');
   const [loading, setLoading] = useState(false);
   const [showWarningConfirm, setShowWarningConfirm] = useState(false);
-  const [placesCount, setPlacesCount] = useState(user.places_count || 1);
-
-  useEffect(() => {
-    if (user.role === 'partner' || user.id) {
-      const getHeaders = () => {
-        const t = localStorage.getItem('joyzone-access');
-        return t ? { Authorization: `Bearer ${t}` } : {};
-      };
-      axios.get(`http://localhost:8000/api/places/?owner=${user.id}`, { headers: getHeaders() })
-        .then(res => {
-          const list = res.data?.results || res.data || [];
-          if (Array.isArray(list) && list.length > 0) {
-            setPlacesCount(list.length);
-          } else {
-            setPlacesCount(user.places_count || 1);
-          }
-        })
-        .catch(() => {
-          setPlacesCount(user.places_count || 1);
-        });
-    }
-  }, [user.id, user.role]);
+  const [saveError, setSaveError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (user.role === 'partner' && role !== 'partner') {
+    if (role === user.role) {
+      onClose();
+      return;
+    }
+    const privilegedChange = ['admin', 'moderator'].includes(user.role)
+      || ['admin', 'moderator'].includes(role);
+    if (privilegedChange || (user.role === 'partner' && role !== 'partner')) {
       setShowWarningConfirm(true);
       return;
     }
@@ -81,8 +66,15 @@ function UserEditModal({ user, onClose, onSave }) {
 
   const executeSave = async () => {
     setLoading(true);
-    await onSave(user.id, { role });
-    setLoading(false);
+    setSaveError('');
+    try {
+      await onSave(user.id, { role });
+    } catch (error) {
+      setShowWarningConfirm(false);
+      setSaveError(getApiErrorMessage(error, 'Не удалось изменить роль пользователя.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fullName = user.first_name || user.last_name 
@@ -144,6 +136,22 @@ function UserEditModal({ user, onClose, onSave }) {
                 <span className="adm-user-detail-label">ID Пользователя</span>
                 <span className="adm-user-detail-val">#{user.id}</span>
               </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Тариф</span>
+                <span className="adm-user-detail-val">{user.tariff_details?.name || user.tariff_details?.name_ru || 'Без тарифа'}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Тариф действует до</span>
+                <span className="adm-user-detail-val">{formatDate(user.tariff_expires_at)}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Баланс</span>
+                <span className="adm-user-detail-val">{formatMoney(user.balance || 0)}</span>
+              </div>
+              <div className="adm-user-detail-item">
+                <span className="adm-user-detail-label">Бронирования</span>
+                <span className="adm-user-detail-val">{user.bookings_count || 0}</span>
+              </div>
             </div>
 
             {/* Role Selection */}
@@ -179,6 +187,12 @@ function UserEditModal({ user, onClose, onSave }) {
               </div>
             </div>
 
+            {saveError ? (
+              <div role="alert" style={{ padding: '10px 12px', borderRadius: 10, background: '#fef2f2', color: '#991b1b', fontSize: 13 }}>
+                {saveError}
+              </div>
+            ) : null}
+
           </div>
 
           {/* Modal Footer */}
@@ -198,29 +212,33 @@ function UserEditModal({ user, onClose, onSave }) {
       {showWarningConfirm && (
         <div className="adm-confirm-overlay" onClick={() => setShowWarningConfirm(false)}>
           <div className="adm-confirm-card" onClick={(e) => e.stopPropagation()}>
-            <div className="adm-confirm-icon-box">⚠️</div>
-            <h3>Внимание! Перевод партнёра в другую роль</h3>
+            <div className="adm-confirm-icon-box">!</div>
+            <h3>Подтвердите изменение роли</h3>
             <p>
-              У пользователя <strong>{fullName}</strong> имеется <strong>{placesCount} {placesCount === 1 ? 'объект' : placesCount < 5 ? 'объекта' : 'объектов'}</strong>.
+              Пользователь <strong>{fullName}</strong>: роль изменится с <strong>{ROLE_MAP[user.role]?.label || user.role}</strong> на <strong>{targetRoleObj?.label || role}</strong>.
             </p>
             <div className="adm-confirm-alert-box">
-              При изменении роли с <strong>"Партнёр"</strong> на <strong>"{targetRoleObj?.label || 'Клиент'}"</strong>, все <strong>{placesCount} {placesCount === 1 ? 'объект' : placesCount < 5 ? 'объекта' : 'объектов'}</strong> будут автоматически отправлены в <strong>архив</strong> и заблокированы для публичного бронирования!
+              {['admin', 'moderator'].includes(role)
+                ? 'Новая роль предоставляет доступ к административным или модерационным операциям. Проверьте пользователя перед подтверждением.'
+                : ['admin', 'moderator'].includes(user.role)
+                  ? 'Пользователь потеряет административные или модерационные права сразу после сохранения.'
+                  : 'Пользователь потеряет доступ к партнёрскому кабинету. Его существующие места не архивируются автоматически и требуют отдельной проверки.'}
             </div>
             <div className="adm-confirm-actions">
               <button 
                 type="button" 
-                className="adm-modal-btn confirm-archive" 
+                className="adm-modal-btn confirm-archive"
                 disabled={loading}
                 onClick={executeSave}
               >
-                {loading ? 'Архивирование...' : 'Да, перевести в архив и изменить роль'}
+                {loading ? 'Сохранение...' : 'Подтвердить изменение роли'}
               </button>
               <button 
                 type="button" 
                 className="adm-modal-btn cancel" 
                 onClick={() => setShowWarningConfirm(false)}
               >
-                Отмена (Сохранить роль)
+                Отмена
               </button>
             </div>
           </div>
@@ -241,21 +259,16 @@ export default function UsersPage() {
   const [sortField, setSortField] = useState('date_joined');
   const [sortAsc, setSortAsc] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
-
-  const getHeaders = () => {
-    const t = localStorage.getItem('joyzone-access');
-    return t ? { Authorization: `Bearer ${t}` } : {};
-  };
+  const [actionMessage, setActionMessage] = useState('');
 
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://localhost:8000/api/auth/users/', { headers: getHeaders() });
+      const res = await api.get('/api/auth/users/');
       setUsers(res.data?.results || res.data || []);
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || err.response?.data?.error || err.message);
+      setError(getApiErrorMessage(err, 'Не удалось загрузить пользователей'));
     }
     setLoading(false);
   };
@@ -265,14 +278,10 @@ export default function UsersPage() {
   }, []);
 
   const handleSave = async (userId, data) => {
-    try {
-      await axios.patch(`http://localhost:8000/api/auth/users/${userId}/`, data, { headers: getHeaders() });
-      setEditTarget(null);
-      fetchUsers();
-    } catch (err) {
-      console.error(err);
-      alert('Ошибка при сохранении: ' + (err.response?.data?.detail || err.message));
-    }
+    await api.patch(`/api/auth/users/${userId}/`, data);
+    await fetchUsers();
+    setEditTarget(null);
+    setActionMessage('Роль пользователя обновлена. Запись добавлена в журнал действий.');
   };
 
   const stats = React.useMemo(() => {
@@ -374,6 +383,16 @@ export default function UsersPage() {
       </div>
 
       {/* Filter and Search actions */}
+      {actionMessage ? (
+        <div style={{ marginBottom: 14, padding: '11px 13px', borderRadius: 8, background: '#f0fdf4', color: '#166534', fontSize: 13 }}>
+          {actionMessage}
+        </div>
+      ) : null}
+      {error ? (
+        <div style={{ marginBottom: 14, padding: '11px 13px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: 13 }}>
+          {error}
+        </div>
+      ) : null}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 20 }}>
         <div style={{ display: 'flex', gap: 8 }}>
           {TABS.map(t => (
@@ -425,20 +444,20 @@ export default function UsersPage() {
         {sorted.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)' }}>Пользователи не найдены</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1080px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
                 <th onClick={() => handleSort('name')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                  Пользователь {getSortIcon('name')}
+                  ID / Пользователь {getSortIcon('name')}
                 </th>
                 <th onClick={() => handleSort('phone_number')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                  Телефон {getSortIcon('phone_number')}
+                  Контакты {getSortIcon('phone_number')}
                 </th>
                 <th onClick={() => handleSort('role')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
                   Роль {getSortIcon('role')}
                 </th>
-                <th onClick={() => handleSort('date_joined')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                  Дата рег. {getSortIcon('date_joined')}
+                <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)' }}>
+                  Тариф / срок
                 </th>
                 <th onClick={() => handleSort('bookings_count')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
                   Брони {getSortIcon('bookings_count')}
@@ -468,16 +487,23 @@ export default function UsersPage() {
                           {u.first_name || u.last_name ? `${u.first_name || ''} ${u.last_name || ''}` : 'Без имени'}
                         </span>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>@{u.username}</span>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>ID #{u.id}</span>
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text-muted)' }}>{u.phone_number || u.username}</td>
+                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text-muted)' }}>
+                    <div>{u.phone_number || 'Телефон не указан'}</div>
+                    <div style={{ fontSize: 11, marginTop: 3, overflowWrap: 'anywhere' }}>{u.email || 'Email не указан'}</div>
+                  </td>
                   <td style={{ padding: '14px 16px' }}>
                     <span style={{ background: ROLE_MAP[u.role]?.bg || 'rgba(0,0,0,0.05)', color: ROLE_MAP[u.role]?.color || '#333', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>
                       {ROLE_MAP[u.role]?.label || u.role}
                     </span>
                   </td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, color: 'var(--text-muted)' }}>{formatDate(u.date_joined)}</td>
+                  <td style={{ padding: '14px 16px', fontSize: 13 }}>
+                    <div style={{ fontWeight: 600 }}>{u.tariff_details?.name || u.tariff_details?.name_ru || 'Без тарифа'}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 3 }}>{u.tariff_expires_at ? `до ${formatDate(u.tariff_expires_at)}` : 'Срок не задан'}</div>
+                  </td>
                   <td style={{ padding: '14px 16px', fontSize: 14, fontWeight: 600 }}>{u.bookings_count}</td>
                   <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 500, color: 'var(--navy)' }}>{formatMoney(u.balance || 0)}</td>
                 </tr>

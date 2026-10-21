@@ -12,21 +12,198 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
+from urllib.parse import parse_qsl, unquote, urlparse
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def env_list(name, default=None):
+    value = os.environ.get(name)
+    if value is None:
+        return default or []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+def env_int(name, default=0):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f'{name} must be an integer.') from exc
+
+
+def env_path(name, default):
+    value = os.environ.get(name)
+    if not value:
+        return Path(default)
+    path = Path(value)
+    return path if path.is_absolute() else BASE_DIR / path
+
+
+def validate_origin_list(setting_name, origins):
+    """Reject wildcard or non-origin values before middleware configuration."""
+    for origin in origins:
+        parsed = urlparse(origin)
+        if (
+            parsed.scheme not in ('http', 'https')
+            or not parsed.netloc
+            or parsed.username
+            or parsed.password
+            or parsed.path
+            or parsed.params
+            or parsed.query
+            or parsed.fragment
+            or '*' in origin
+        ):
+            raise ImproperlyConfigured(
+                f'{setting_name} must contain absolute http(s) origins without '
+                'wildcards, credentials, paths, queries, or fragments.'
+            )
+
+
+def validate_production_host(host):
+    if (
+        not host
+        or '*' in host
+        or '://' in host
+        or '/' in host
+        or any(character.isspace() for character in host)
+    ):
+        raise ImproperlyConfigured(
+            'ALLOWED_HOSTS must contain explicit host names without wildcards, '
+            'schemes, paths, or whitespace when DEBUG=False.'
+        )
+
+
+def database_from_url(database_url):
+    """Build a Django PostgreSQL config from a standard DATABASE_URL."""
+    parsed = urlparse(database_url)
+    if parsed.scheme not in ('postgres', 'postgresql'):
+        raise ImproperlyConfigured(
+            'DATABASE_URL must start with postgres:// or postgresql://.'
+        )
+
+    database_name = unquote(parsed.path.lstrip('/'))
+    if not database_name:
+        raise ImproperlyConfigured('DATABASE_URL must include a database name.')
+
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ImproperlyConfigured('DATABASE_URL contains an invalid port.') from exc
+
+    config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': database_name,
+        'USER': unquote(parsed.username or ''),
+        'PASSWORD': unquote(parsed.password or ''),
+        'HOST': parsed.hostname or '',
+        'PORT': str(port or 5432),
+        'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '60')),
+        'CONN_HEALTH_CHECKS': env_bool('DB_CONN_HEALTH_CHECKS', True),
+    }
+
+    options = {key: value for key, value in parse_qsl(parsed.query) if value}
+    if options:
+        config['OPTIONS'] = options
+
+    return config
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-l+3m&((ixa2!e8n+2r&mkf%kal11^q9a2g6d&loi_(e=8lau8q'
+# SECURITY WARNING: keep DEBUG=False in production.
+DEBUG = env_bool('DEBUG', True)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# The fallback keeps zero-config local development convenient, but production
+# must provide a separate sufficiently long secret through the environment.
+_DEV_SECRET_KEY = 'django-insecure-l+3m&((ixa2!e8n+2r&mkf%kal11^q9a2g6d&loi_(e=8lau8q'
+_env_secret_key = os.environ.get('SECRET_KEY', '').strip()
+if not DEBUG:
+    if not _env_secret_key:
+        raise ImproperlyConfigured('SECRET_KEY is required when DEBUG=False.')
+    if _env_secret_key == _DEV_SECRET_KEY or len(_env_secret_key) < 32:
+        raise ImproperlyConfigured(
+            'SECRET_KEY must be a separate production value with at least 32 characters.'
+        )
+SECRET_KEY = _env_secret_key or _DEV_SECRET_KEY
 
-ALLOWED_HOSTS = ['*']
+# Development authentication shortcuts require both switches. An accidentally
+# enabled DEV_OTP_ENABLED value can never activate them while DEBUG=False.
+DEV_OTP_ENABLED = DEBUG and env_bool('DEV_OTP_ENABLED', False)
+
+# Stored OTP codes are valid strictly before this age. At exactly the TTL the
+# code is expired. Five minutes is the local development/default policy.
+OTP_TTL_SECONDS = env_int('OTP_TTL_SECONDS', 300)
+if OTP_TTL_SECONDS <= 0:
+    raise ImproperlyConfigured('OTP_TTL_SECONDS must be greater than zero.')
+OTP_SEND_ACCOUNT_RATE = os.environ.get('OTP_SEND_ACCOUNT_RATE', '3/minute').strip() or '3/minute'
+OTP_VERIFY_ACCOUNT_RATE = os.environ.get('OTP_VERIFY_ACCOUNT_RATE', '5/minute').strip() or '5/minute'
+DEV_OTP_CONSOLE_LOG_ENABLED = DEBUG and env_bool('DEV_OTP_CONSOLE_LOG_ENABLED', False)
+
+# Public sandbox access is separate from DEBUG and the local OTP bypass. Keep
+# it disabled unless an operator explicitly points the deployment at an
+# isolated demo database and configures dedicated, non-privileged accounts.
+PUBLIC_DEMO_LOGIN_ENABLED = env_bool('PUBLIC_DEMO_LOGIN_ENABLED', False)
+PUBLIC_DEMO_DATA_ISOLATED = env_bool('PUBLIC_DEMO_DATA_ISOLATED', False)
+PUBLIC_DEMO_ACCOUNT_USERNAMES = env_list('PUBLIC_DEMO_ACCOUNT_USERNAMES')
+PUBLIC_DEMO_ACCOUNT_PREFIX = os.environ.get(
+    'PUBLIC_DEMO_ACCOUNT_PREFIX',
+    'public_demo_',
+).strip()
+PUBLIC_DEMO_LOGIN_EXPIRES_AT = os.environ.get('PUBLIC_DEMO_LOGIN_EXPIRES_AT', '').strip()
+PUBLIC_DEMO_SESSION_MINUTES = max(5, min(env_int('PUBLIC_DEMO_SESSION_MINUTES', 30), 120))
+PUBLIC_DEMO_LOGIN_RATE = (
+    os.environ.get('PUBLIC_DEMO_LOGIN_RATE', '5/minute').strip() or '5/minute'
+)
+
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', ['*'] if DEBUG else [])
+if not DEBUG:
+    if not os.environ.get('ALLOWED_HOSTS', '').strip() or not ALLOWED_HOSTS:
+        raise ImproperlyConfigured('ALLOWED_HOSTS is required when DEBUG=False.')
+    for allowed_host in ALLOWED_HOSTS:
+        validate_production_host(allowed_host)
+
+# LocMemCache is a single-process development fallback. Set CACHE_URL to a
+# shared Redis instance for deployments with multiple workers/instances.
+CACHE_URL = os.environ.get('CACHE_URL', '').strip()
+if CACHE_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_URL,
+            'KEY_PREFIX': os.environ.get('CACHE_KEY_PREFIX', 'joyzone'),
+        },
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'joyzone-local-only',
+        },
+    }
+
+# Production security is opt-in through environment variables so local HTTP
+# development keeps working without secure cookies or redirect loops.
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', False)
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', False)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', False)
+SECURE_HSTS_SECONDS = env_int('SECURE_HSTS_SECONDS', 0)
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -42,13 +219,17 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
     'corsheaders',
 
     # Local apps
+    'core',
     'users',
     'places',
     'bookings',
     'tariffs',
+    'payments',
     'content',
     'notifications',
 ]
@@ -87,12 +268,21 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# SQLite is only the local development/demo fallback. Deployed environments
+# should provide a PostgreSQL DATABASE_URL.
+DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+if DATABASE_URL:
+    DATABASES = {'default': database_from_url(DATABASE_URL)}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            # E2E uses SQLITE_PATH to keep destructive fixture setup away from
+            # the developer's normal database. Local dev uses db.sqlite3.
+            'NAME': env_path('SQLITE_PATH', BASE_DIR / 'db.sqlite3'),
+        },
     }
-}
 
 
 # Password validation
@@ -129,33 +319,82 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = os.environ.get('STATIC_URL', '/static/')
+STATIC_ROOT = env_path('STATIC_ROOT', BASE_DIR / 'staticfiles')
+
+# FileSystemStorage remains the zero-config local default. A production object
+# storage backend can be selected later by installing its package and setting
+# these dotted backend paths without changing upload code.
+STORAGES = {
+    'default': {
+        'BACKEND': os.environ.get('MEDIA_STORAGE_BACKEND')
+        or 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': os.environ.get('STATICFILES_STORAGE_BACKEND')
+        or 'django.contrib.staticfiles.storage.StaticFilesStorage',
+    },
+}
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
 # CORS Settings
-CORS_ALLOW_ALL_ORIGINS = True # Allow all for development
+CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+] if DEBUG else [])
+CORS_ALLOW_ALL_ORIGINS = env_bool('CORS_ALLOW_ALL_ORIGINS', DEBUG and not os.environ.get('CORS_ALLOWED_ORIGINS'))
+validate_origin_list('CORS_ALLOWED_ORIGINS', CORS_ALLOWED_ORIGINS)
+validate_origin_list('CSRF_TRUSTED_ORIGINS', CSRF_TRUSTED_ORIGINS)
+if not DEBUG and CORS_ALLOW_ALL_ORIGINS:
+    raise ImproperlyConfigured(
+        'CORS_ALLOW_ALL_ORIGINS must be False when DEBUG=False; configure '
+        'CORS_ALLOWED_ORIGINS explicitly instead.'
+    )
 
 # Django REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_THROTTLE_CLASSES': [], # Disabled globally for local development to prevent 429 errors
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10000/minute',
         'user': '50000/minute',
-        'otp_send': '30/minute',
-        'otp_verify': '50/minute',
+        # View classes also pin these rates directly; keep the scoped fallback
+        # equally strict so a future refactor cannot silently soften OTP limits.
+        'otp_send': '3/minute',
+        'otp_verify': '5/minute',
     },
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Joyzone Backend API',
+    'DESCRIPTION': 'REST API contract for Joyzone frontend and Django backend integration.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SECURITY': [{'jwtAuth': []}],
+}
+
+JWT_ACCESS_TOKEN_MINUTES = env_int('JWT_ACCESS_TOKEN_MINUTES', 15)
+JWT_REFRESH_TOKEN_DAYS = env_int('JWT_REFRESH_TOKEN_DAYS', 7)
+if JWT_ACCESS_TOKEN_MINUTES <= 0:
+    raise ImproperlyConfigured('JWT_ACCESS_TOKEN_MINUTES must be greater than zero.')
+if JWT_REFRESH_TOKEN_DAYS <= 0:
+    raise ImproperlyConfigured('JWT_REFRESH_TOKEN_DAYS must be greater than zero.')
+
+# Refresh tokens rotate on every successful refresh. The consumed token is
+# blacklisted, while an already-issued access token remains valid until its
+# deliberately short expiry. Logout follows the same refresh-token revocation
+# model and therefore does not claim instant access-token revocation.
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
-    'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': False,
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=JWT_ACCESS_TOKEN_MINUTES),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=JWT_REFRESH_TOKEN_DAYS),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
 # Default primary key field type
@@ -164,5 +403,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Media Files Settings for Uploads
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = os.environ.get('MEDIA_URL', '/media/')
+MEDIA_ROOT = env_path('MEDIA_ROOT', BASE_DIR / 'media')
+MAX_IMAGE_UPLOAD_SIZE = env_int('MAX_IMAGE_UPLOAD_SIZE', 5 * 1024 * 1024)
+ALLOWED_IMAGE_CONTENT_TYPES = env_list(
+    'ALLOWED_IMAGE_CONTENT_TYPES',
+    ['image/jpeg', 'image/png', 'image/webp'],
+)
+ALLOWED_IMAGE_EXTENSIONS = env_list(
+    'ALLOWED_IMAGE_EXTENSIONS',
+    ['.jpg', '.jpeg', '.png', '.webp'],
+)

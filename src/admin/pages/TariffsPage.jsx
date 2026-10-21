@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -349,28 +349,39 @@ function TariffModal({ tariff, onSave, onClose }) {
 
 export default function TariffsPage() {
   const [tariffs, setTariffs] = useState([]);
-  const [subscriptions, setSubscriptions] = useState([]);
+  const [pendingSubscriptions, setPendingSubscriptions] = useState([]);
+  const [activeSubscriptions, setActiveSubscriptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
 
-  const token = localStorage.getItem('joyzone-access');
+  const token = getAccessToken();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
   const fetchTariffs = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:8000/api/tariffs/');
+      const res = await api.get('/api/tariffs/');
       setTariffs(res.data?.results || res.data || []);
-    } catch (e) { console.error(e); }
+      setError("");
+    } catch (e) {
+      setError(getApiErrorMessage(e, "Не удалось загрузить тарифы."));
+    }
     setLoading(false);
   };
 
   const fetchSubscriptions = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/tariffs/admin/subscriptions/?status=pending', { headers });
-      setSubscriptions(res.data?.results || res.data || []);
-    } catch (e) {}
+      const [pendingRes, activeRes] = await Promise.all([
+        api.get('/api/tariffs/admin/subscriptions/?status=pending,pending_payment', { headers }),
+        api.get('/api/tariffs/admin/subscriptions/?status=active', { headers }),
+      ]);
+      setPendingSubscriptions(pendingRes.data?.results || pendingRes.data || []);
+      setActiveSubscriptions(activeRes.data?.results || activeRes.data || []);
+    } catch (e) {
+      setError(getApiErrorMessage(e, "Не удалось загрузить подписки."));
+    }
   };
 
   useEffect(() => {
@@ -381,32 +392,31 @@ export default function TariffsPage() {
   const handleSave = async (form) => {
     try {
       if (editTarget?.id) {
-        await axios.put(`http://localhost:8000/api/tariffs/${editTarget.id}/`, form, { headers });
+        await api.put(`/api/tariffs/${editTarget.id}/`, form, { headers });
       } else {
-        await axios.post('http://localhost:8000/api/tariffs/create/', form, { headers });
+        await api.post('/api/tariffs/create/', form, { headers });
       }
       setModalOpen(false);
       setEditTarget(null);
       fetchTariffs();
     } catch (e) {
-      console.error(e);
-      const detail = e.response?.data?.detail || (e.response?.data ? JSON.stringify(e.response.data) : e.message);
+      const detail = getApiErrorMessage(e, "Не удалось сохранить тариф.");
       alert(`Error saving tariff: ${detail}`);
     }
   };
 
   const handleToggle = async (tariff) => {
     try {
-      await axios.patch(`http://localhost:8000/api/tariffs/${tariff.id}/`, { is_active: !tariff.is_active }, { headers });
+      await api.patch(`/api/tariffs/${tariff.id}/`, { is_active: !tariff.is_active }, { headers });
       fetchTariffs();
-    } catch (e) { alert('Error updating tariff'); }
+    } catch (e) { alert(getApiErrorMessage(e, 'Error updating tariff')); }
   };
 
   const handleActivateSub = async (subId) => {
     try {
-      await axios.post(`http://localhost:8000/api/tariffs/admin/subscriptions/${subId}/activate/`, {}, { headers });
+      await api.post(`/api/tariffs/admin/subscriptions/${subId}/activate/`, {}, { headers });
       fetchSubscriptions();
-    } catch (e) { alert('Error activating subscription'); }
+    } catch (e) { alert(getApiErrorMessage(e, 'Error activating subscription')); }
   };
 
   const formatPrice = (price) => {
@@ -432,9 +442,11 @@ export default function TariffsPage() {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Загрузка...</div>
         ) : (
-          <div className="tar-grid">
-            {tariffs.map(t => (
-              <div key={t.id} className={`tar-card ${!t.is_active ? 'opacity-50' : ''}`} style={{ opacity: t.is_active ? 1 : 0.5 }}>
+          <>
+            {error ? <div style={{ marginBottom: 12, padding: 10, borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: 13 }}>{error}</div> : null}
+            <div className="tar-grid">
+              {tariffs.map(t => (
+                <div key={t.id} className={`tar-card ${!t.is_active ? 'opacity-50' : ''}`} style={{ opacity: t.is_active ? 1 : 0.5 }}>
                 <div className="tar-card-header">
                   <div>
                     <div className={`tar-slug-badge ${t.slug}`}>{t.slug}</div>
@@ -465,15 +477,16 @@ export default function TariffsPage() {
                     {t.is_active ? 'Отключить' : 'Включить'}
                   </button>
                 </div>
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
-        {/* Pending subscriptions */}
-        {subscriptions.length > 0 && (
+        {/* Pending/manual subscriptions */}
+        {pendingSubscriptions.length > 0 && (
           <div className="subs-section">
-            <div className="subs-title">⏳ Ожидают активации ({subscriptions.length})</div>
+            <div className="subs-title">⏳ Ожидают оплаты / ручной активации ({pendingSubscriptions.length})</div>
             <table className="subs-table">
               <thead>
                 <tr>
@@ -485,7 +498,7 @@ export default function TariffsPage() {
                 </tr>
               </thead>
               <tbody>
-                {subscriptions.map(sub => (
+                {pendingSubscriptions.map(sub => (
                   <tr key={sub.id}>
                     <td>
                       <strong>{sub.partner_name}</strong>
@@ -503,6 +516,42 @@ export default function TariffsPage() {
                         ✓ Активировать
                       </button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Paid/active subscriptions */}
+        {activeSubscriptions.length > 0 && (
+          <div className="subs-section">
+            <div className="subs-title">✅ Оплачены / активны ({activeSubscriptions.length})</div>
+            <table className="subs-table">
+              <thead>
+                <tr>
+                  <th>Партнёр</th>
+                  <th>Тариф</th>
+                  <th>Статус</th>
+                  <th>Дата</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeSubscriptions.map(sub => (
+                  <tr key={sub.id}>
+                    <td>
+                      <strong>{sub.partner_name}</strong>
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>{sub.partner_phone}</div>
+                    </td>
+                    <td>{sub.tariff_name}</td>
+                    <td>
+                      <span className={`sub-status ${sub.status}`}>{sub.status}</span>
+                    </td>
+                    <td style={{ fontSize: 12, color: '#94a3b8' }}>
+                      {new Date(sub.created_at).toLocaleDateString('ru-RU')}
+                    </td>
+                    <td style={{ fontSize: 12, color: '#94a3b8' }}>Активна</td>
                   </tr>
                 ))}
               </tbody>

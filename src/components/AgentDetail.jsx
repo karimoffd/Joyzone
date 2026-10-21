@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import { partnerAgents, propertyCards } from "../data/content.js";
+import api from "../api/client.js";
+import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import "./AgentDetail.css";
 
 const slugify = (text) =>
@@ -223,9 +225,33 @@ function AgentDetail({ route, userState, setUserState }) {
   const { agent, index } = useMemo(() => findAgentByRoute(route), [route]);
   const extra = profileExtras[index % profileExtras.length];
   const image = agentPhotos[index % agentPhotos.length];
-  const agentSpaces = useMemo(() => {
-    const selected = propertyCards.filter((_, cardIndex) => (cardIndex + index) % 2 === 0);
-    return (selected.length >= 3 ? selected : propertyCards).slice(0, 4);
+  const [agentSpaces, setAgentSpaces] = useState([]);
+  const [usingDevFallback, setUsingDevFallback] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/api/places/", { skipAuth: true })
+      .then((res) => {
+        if (cancelled) return;
+        const spaces = getPlacesFromApiResponse(res.data).map(normalizePlace);
+        setAgentSpaces(spaces.slice(0, 4));
+        setUsingDevFallback(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (import.meta.env.DEV) {
+          // Dev fallback keeps legacy agent pages populated while backend places are unavailable.
+          const selected = propertyCards.filter((_, cardIndex) => (cardIndex + index) % 2 === 0);
+          setAgentSpaces((selected.length >= 3 ? selected : propertyCards).map(normalizePlace).slice(0, 4));
+          setUsingDevFallback(true);
+        } else {
+          setAgentSpaces([]);
+          setUsingDevFallback(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [index]);
   const reviews = useMemo(
     () => reviewBank.map((review, reviewIndex) => ({ ...review, rating: reviewIndex % 2 === index % 2 ? agent.rating : review.rating })),
@@ -295,13 +321,18 @@ function AgentDetail({ route, userState, setUserState }) {
             <div>
               <span>E'lonlar</span>
               <h2>Bu agent joylari</h2>
+              {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
             </div>
             <a className="agent-section-link" href="#filter">Barchasini ko'rish</a>
           </div>
           <div className="agent-listings-grid">
-            {agentSpaces.map((item, cardIndex) => (
-              <PropertyCard key={`${agent.name}-${item.title}`} item={item} index={cardIndex} />
-            ))}
+            {agentSpaces.length > 0 ? (
+              agentSpaces.map((item, cardIndex) => (
+                <PropertyCard key={`${agent.name}-${item.id || item.title}`} item={item} index={cardIndex} href={item.href} />
+              ))
+            ) : (
+              <p style={{ color: "#64748b", fontWeight: 700 }}>Bu agent uchun hozircha joylar topilmadi.</p>
+            )}
           </div>
         </section>
 

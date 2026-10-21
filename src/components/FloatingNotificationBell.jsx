@@ -1,35 +1,113 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getStoredChats } from "../utils/chatManager.js";
+import { getMessageSender, getStoredChats } from "../utils/chatManager.js";
+import {
+  canUseBackendNotifications,
+  fetchNotifications,
+  fetchUnreadNotificationsCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+  openNotificationTarget
+} from "../utils/notificationsManager.js";
 import "./FloatingNotificationBell.css";
 
+function typeLabel(type) {
+  const labels = {
+    place_approved: "Модерация",
+    place_rejected: "Модерация",
+    place_submitted: "Новая заявка",
+    booking_created: "Бронирование",
+    booking_paid: "Оплата",
+    booking_confirmed: "Подтверждение",
+    booking_cancelled: "Отмена",
+    booking_blocked: "Календарь",
+    tariff_activated: "Тариф",
+    system: "Система"
+  };
+  return labels[type] || "Уведомление";
+}
+
 export function FloatingNotificationBell({ onOpenChat }) {
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [chats, setChats] = useState(() => getStoredChats());
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState("");
+  const [authEnabled, setAuthEnabled] = useState(() => canUseBackendNotifications());
   const dropdownRef = useRef(null);
 
-  const refreshChats = () => {
+  const unreadChats = chats.filter((c) => {
+    const lastMsg = c.messages?.[c.messages.length - 1];
+    return lastMsg && getMessageSender(lastMsg) === "host";
+  });
+
+  const refreshNotifications = useCallback(async () => {
+    if (!canUseBackendNotifications()) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const [items, count] = await Promise.all([
+        fetchNotifications(),
+        fetchUnreadNotificationsCount()
+      ]);
+      setNotifications(items);
+      setUnreadCount(count);
+      setNotificationError("");
+    } catch (err) {
+      console.warn("Failed to load backend notifications:", err);
+      setNotifications([]);
+      setUnreadCount(0);
+      setNotificationError("Не удалось загрузить системные уведомления.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const refreshChats = useCallback(() => {
     setChats(getStoredChats());
-  };
+  }, []);
 
   useEffect(() => {
+    const refreshAuth = () => {
+      const enabled = canUseBackendNotifications();
+      setAuthEnabled(enabled);
+      if (enabled) {
+        refreshNotifications();
+      } else {
+        setIsOpen(false);
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    };
+
+    refreshNotifications();
     refreshChats();
+
+    window.addEventListener("joyzone-auth-update", refreshAuth);
     window.addEventListener("joyzone-chat-update", refreshChats);
     window.addEventListener("storage", refreshChats);
     return () => {
+      window.removeEventListener("joyzone-auth-update", refreshAuth);
       window.removeEventListener("joyzone-chat-update", refreshChats);
       window.removeEventListener("storage", refreshChats);
     };
-  }, []);
+  }, [refreshChats, refreshNotifications]);
 
-  // Compute unread host messages
-  const unreadChats = chats.filter((c) => {
-    const lastMsg = c.messages?.[c.messages.length - 1];
-    return lastMsg && lastMsg.from === "host";
-  });
+  useEffect(() => {
+    if (isOpen) refreshNotifications();
+  }, [isOpen, refreshNotifications]);
 
-  const unreadCount = unreadChats.length;
+  useEffect(() => {
+    if (!authEnabled) return undefined;
+    const timer = window.setInterval(refreshNotifications, 30000);
+    return () => window.clearInterval(timer);
+  }, [authEnabled, refreshNotifications]);
 
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
@@ -57,15 +135,46 @@ export function FloatingNotificationBell({ onOpenChat }) {
     };
   }, [isOpen]);
 
+  const handleNotificationClick = async (notification) => {
+    if (!notification) return;
+
+    setNotifications((current) => current.map((item) => (
+      item.id === notification.id ? { ...item, isRead: true } : item
+    )));
+    if (!notification.isRead) {
+      setUnreadCount((current) => Math.max(0, current - 1));
+      await markNotificationRead(notification.id).catch((err) => {
+        console.warn("Failed to mark notification as read:", err);
+        setNotificationError("Не удалось отметить уведомление прочитанным.");
+        refreshNotifications();
+      });
+    }
+
+    setIsOpen(false);
+    openNotificationTarget(notification);
+  };
+
+  const handleReadAll = async () => {
+    setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
+    setUnreadCount(0);
+    await markAllNotificationsRead().catch((err) => {
+      console.warn("Failed to mark all notifications as read:", err);
+      setNotificationError("Не удалось отметить уведомления прочитанными.");
+      refreshNotifications();
+    });
+  };
+
+  if (!authEnabled) return null;
+
   return createPortal(
     <div className="fnb-container">
-      {/* Floating Bell Icon Button */}
       <button
         type="button"
+        data-testid="notification-bell"
         className={`fnb-bell-btn ${unreadCount > 0 ? "has-unread" : ""}`}
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Uvedomleniyalar"
-        title="Uvedomleniyalar"
+        aria-label="Уведомления"
+        title="Уведомления"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -74,44 +183,90 @@ export function FloatingNotificationBell({ onOpenChat }) {
         {unreadCount > 0 && <span className="fnb-badge-count">{unreadCount}</span>}
       </button>
 
-      {/* Notifications Dropdown Drawer */}
       {isOpen && (
         <div className="fnb-dropdown" ref={dropdownRef}>
           <div className="fnb-dropdown-header">
-            <h3>Uvedomleniyalar</h3>
-            <span className="fnb-unread-tag">{unreadCount} yangi</span>
+            <h3>Уведомления</h3>
+            <span className="fnb-unread-tag">{unreadCount} новых</span>
+          </div>
+
+          <div className="fnb-actions-row">
+            <span>Системные уведомления</span>
+            <button type="button" onClick={handleReadAll} disabled={unreadCount === 0}>
+              Прочитать все
+            </button>
           </div>
 
           <div className="fnb-notifications-list">
-            {chats.length === 0 ? (
-              <div className="fnb-empty">Yangi bildirishnomalar yo'q</div>
+            {notificationError ? (
+              <div className="fnb-empty">
+                <div>{notificationError}</div>
+                <button type="button" className="fnb-retry-btn" onClick={refreshNotifications}>Повторить</button>
+              </div>
+            ) : loading && notifications.length === 0 ? (
+              <div className="fnb-empty">Загрузка...</div>
+            ) : notifications.length === 0 ? (
+              <div className="fnb-empty">Новых системных уведомлений нет</div>
             ) : (
-              chats.map((chat) => {
-                const lastMsg = chat.messages?.[chat.messages.length - 1];
-                const isHostReply = lastMsg?.from === "host";
-                return (
-                  <div
-                    key={chat.id}
-                    className={`fnb-item ${isHostReply ? "is-unread" : ""}`}
-                    onClick={() => {
-                      setIsOpen(false);
-                      if (onOpenChat) onOpenChat(chat.id);
-                    }}
-                  >
-                    <div className="fnb-item-avatar" style={{ background: chat.color || "#e46630" }}>
-                      {chat.name?.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="fnb-item-info">
-                      <div className="fnb-item-top">
-                        <strong>{chat.name}</strong>
-                        <small>{chat.time || "Hozir"}</small>
-                      </div>
-                      <p>{lastMsg?.text || chat.preview || "Chat ochilgan"}</p>
-                    </div>
+              notifications.map((notification) => (
+                <button
+                  key={notification.id}
+                  type="button"
+                  data-testid={`notification-${notification.type}-${notification.id}`}
+                  className={`fnb-item ${notification.isRead ? "" : "is-unread"}`}
+                  onClick={() => handleNotificationClick(notification)}
+                >
+                  <div className="fnb-item-avatar">
+                    {typeLabel(notification.type).slice(0, 2).toUpperCase()}
                   </div>
-                );
-              })
+                  <div className="fnb-item-info">
+                    <div className="fnb-item-top">
+                      <strong>{notification.title}</strong>
+                      <small>{notification.time}</small>
+                    </div>
+                    <p>{notification.message || typeLabel(notification.type)}</p>
+                  </div>
+                </button>
+              ))
             )}
+          </div>
+
+          <div className="fnb-chat-section">
+            <div className="fnb-actions-row">
+              <span>Сообщения чата</span>
+              <small>{unreadChats.length} новых</small>
+            </div>
+            <div className="fnb-notifications-list">
+              {unreadChats.length === 0 ? (
+                <div className="fnb-empty">Новых сообщений нет</div>
+              ) : (
+                unreadChats.map((chat) => {
+                  const lastMsg = chat.messages?.[chat.messages.length - 1];
+                  return (
+                    <button
+                      key={chat.id}
+                      type="button"
+                      className="fnb-item is-chat"
+                      onClick={() => {
+                        setIsOpen(false);
+                        if (onOpenChat) onOpenChat(chat.id);
+                      }}
+                    >
+                      <div className="fnb-item-avatar" style={{ background: chat.color || "#e46630" }}>
+                        {chat.name?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="fnb-item-info">
+                        <div className="fnb-item-top">
+                          <strong>{chat.name}</strong>
+                          <small>{chat.time || "Hozir"}</small>
+                        </div>
+                        <p>{lastMsg?.text || chat.preview || "Chat ochilgan"}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       )}

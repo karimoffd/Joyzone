@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
 import { sendClientAction } from "../socket.js";
-import { LanguageContext } from "../App.jsx";
+import { LanguageContext } from "../context/LanguageContext.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { HeartIcon } from "./ui/Shared.jsx";
@@ -11,7 +11,19 @@ import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import { DirectChatDrawer } from "./DirectChatDrawer.jsx";
 import { startOrGetChatForSpace } from "../utils/chatManager.js";
 import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
+import { createBookingDraft, saveBookingDraft } from "../utils/bookingDraft.js";
+import {
+  fetchPlaceAvailability,
+  getAvailabilityDay,
+  getAvailabilitySlotStatus,
+  getCalendarAvailabilityRange,
+  isAvailabilityDateCovered,
+  isAvailabilityDayUnavailable,
+  isAvailabilityStatusBlocked
+} from "../utils/availability.js";
+import { parseMoneyValue } from "../utils/placePricing.js";
 import { propertyCards } from "../data/content.js";
+import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import "./ListingsSection.css";
 import "./SpaceDetail.css";
 
@@ -64,19 +76,89 @@ function slugify(text) {
     .replace(/^-+|-+$/g, "");
 }
 
-function resolveSpace(route) {
-  const value = (route || "").replace(/^space-/, "");
-  const index = Number(value);
+const EMPTY_PLACE = {
+  id: "",
+  title: "Joyzone",
+  category: "",
+  location: "",
+  price: "0 UZS",
+  priceValue: 0,
+  prices: {},
+  currency: "UZS",
+  people: 1,
+  area: 0,
+  images: [],
+  amenities: [],
+  characteristics: {},
+  discounts: [],
+  discount_ids: [],
+};
 
-  if (Number.isInteger(index) && index >= 0 && index < propertyCards.length) {
-    return propertyCards[index];
+function getPlaceRouteValue(route) {
+  try {
+    return decodeURIComponent(String(route || "").replace(/^space-/, "")).trim();
+  } catch (error) {
+    return String(route || "").replace(/^space-/, "").trim();
   }
-
-  return propertyCards.find((item) => slugify(item.title) === value) || propertyCards[0];
 }
 
-function parsePrice(price) {
-  return Number(price.replace(/\D/g, "")) || 0;
+function resolveDevSpace(route) {
+  if (import.meta.env.DEV) {
+    const value = (route || "").replace(/^space-/, "");
+    const index = Number(value);
+
+    if (Number.isInteger(index) && index >= 0 && index < propertyCards.length) {
+      return propertyCards[index];
+    }
+
+    return propertyCards.find((item) => slugify(item.title) === value) || propertyCards[0];
+  }
+  return EMPTY_PLACE;
+}
+
+async function fetchPlaceForRoute(route) {
+  const value = getPlaceRouteValue(route);
+  if (!value) return null;
+
+  if (/^\d+$/.test(value)) {
+    try {
+      const response = await api.get(`/api/places/${value}/`, { skipAuth: true });
+      return response.data || null;
+    } catch (error) {
+      if (error?.response?.status !== 404) throw error;
+    }
+  }
+
+  const words = value.split("-").filter(Boolean);
+  const searchTerms = [...new Set([
+    words.join(" "),
+    words.slice(-2).join(" "),
+    words.at(-1),
+  ].filter(Boolean))];
+
+  for (const search of searchTerms) {
+    const response = await api.get("/api/places/", {
+      params: { search },
+      skipAuth: true,
+    });
+    const exactMatch = getPlacesFromApiResponse(response.data).find((item) => (
+      slugify(item?.title || item?.name || "") === value
+    ));
+    if (exactMatch) return exactMatch;
+  }
+
+  // Final backend-only compatibility pass for old hashes whose title changed punctuation.
+  const response = await api.get("/api/places/", { skipAuth: true });
+  const places = getPlacesFromApiResponse(response.data);
+  const exactMatch = places.find((item) => slugify(item?.title || item?.name || "") === value);
+  if (exactMatch) return exactMatch;
+
+  const legacyIndex = Number(value);
+  if (Number.isInteger(legacyIndex) && legacyIndex >= 0 && legacyIndex < places.length) {
+    return places[legacyIndex];
+  }
+
+  return null;
 }
 
 function formatMoney(value) {
@@ -165,8 +247,38 @@ function formatShortDate(dateKey) {
   return `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+function formatReviewDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("uz-UZ", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function normalizeReview(review = {}) {
+  const rating = Number(review.rating ?? review.stars ?? 5);
+  const name = review.user_name || review.name || review.user?.name || review.user?.username || "Foydalanuvchi";
+  return {
+    ...review,
+    id: review.id || `${name}-${review.created_at || review.date || Math.random()}`,
+    name,
+    role: review.role || "Joyzone mehmoni",
+    date: formatReviewDate(review.created_at || review.date) || "Yaqinda",
+    rating: Number.isFinite(rating) ? rating : 5,
+    text: review.comment || review.text || ""
+  };
+}
+
+function getReviewFallback() {
+  return import.meta.env.DEV ? reviewList.map(normalizeReview) : [];
+}
+
 function isBlockingBooking(booking) {
-  return booking && ["booked", "closed", "Paid", "Pending"].includes(booking.status);
+  const status = String(booking?.status || "").toLowerCase();
+  return ["booked", "closed", "paid", "pending", "confirmed", "blocked"].includes(status);
 }
 
 function Icon({ type, className = "" }) {
@@ -231,65 +343,184 @@ function Stars({ value = 5 }) {
 
 export default function SpaceDetail({ route, userState, setUserState }) {
   const { lang } = useContext(LanguageContext);
-  const fallbackSpace = useMemo(() => resolveSpace(route), [route]);
-  const [space, setSpace] = useState(fallbackSpace);
+  const fallbackSpace = useMemo(
+    () => normalizePlace(import.meta.env.DEV ? resolveDevSpace(route) : EMPTY_PLACE),
+    [route],
+  );
+  const [space, setSpace] = useState(() => normalizePlace(EMPTY_PLACE));
+  const [placeLoading, setPlaceLoading] = useState(true);
+  const [placeEmpty, setPlaceEmpty] = useState(false);
+  const [placeError, setPlaceError] = useState("");
+  const [relatedSpaces, setRelatedSpaces] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
+  const [relatedError, setRelatedError] = useState("");
+  const [usingDevPlaceFallback, setUsingDevPlaceFallback] = useState(false);
+  const [usingDevRelatedFallback, setUsingDevRelatedFallback] = useState(false);
   const [allParameters, setAllParameters] = useState([]);
   const [allDiscounts, setAllDiscounts] = useState([]);
+  const [parametersError, setParametersError] = useState("");
+  const [discountError, setDiscountError] = useState("");
+  const [detailError, setDetailError] = useState("");
+  const placeId = space?.id || space?._id;
 
-  // Fetch parameters and discounts
+  // Parameters are presentation metadata; the place remains usable if they fail.
   useEffect(() => {
-    axios.get("http://localhost:8000/api/parameters/")
-      .then(res => setAllParameters(res.data?.results || res.data || []))
-      .catch(err => console.log("Failed to load parameters:", err));
-
-    axios.get("http://localhost:8000/api/discounts/")
-      .then(res => setAllDiscounts(res.data?.results || res.data || []))
-      .catch(err => console.log("Failed to load discounts:", err));
+    api.get("/api/parameters/", { skipAuth: true })
+      .then((res) => {
+        setAllParameters(res.data?.results || res.data || []);
+        setParametersError("");
+      })
+      .catch((err) => setParametersError(getApiErrorMessage(err, "Не удалось загрузить параметры места.")));
   }, []);
 
-  // Fetch from REST API to align route with real database objects
+  // Resolve canonical id routes directly and keep old title hashes through backend search.
   useEffect(() => {
-    axios.get("http://localhost:8000/api/places/")
-      .then((res) => {
-        let results = res.data?.results || res.data || [];
-        if (results.length > 0) {
-          const value = (route || "").replace(/^space-/, "");
-          const index = Number(value);
-          let dbSpace;
-          
-          if (Number.isInteger(index) && index >= 0 && index < results.length) {
-            dbSpace = results[index];
-          } else {
-            dbSpace = results.find((item) => {
-              if (!item) return false;
-              const titleSlug = slugify(item.title || item.name || "");
-              return (titleSlug && titleSlug === value) || String(item.id || item._id) === value;
-            });
-          }
-          
-          if (dbSpace) {
-            setSpace({
-              ...dbSpace,
-              category: dbSpace.subcategory_info?.category?.name_ru || dbSpace.category,
-              subcategoryId: dbSpace.subcategory_info?.id,
-              price: dbSpace.price || "0 so'm"
-            });
-          }
+    let cancelled = false;
+    setPlaceLoading(true);
+    setPlaceEmpty(false);
+    setPlaceError("");
+    setDetailError("");
+
+    fetchPlaceForRoute(route)
+      .then((backendPlace) => {
+        if (cancelled) return;
+        if (backendPlace) {
+          setSpace(normalizePlace(backendPlace));
+          setUsingDevPlaceFallback(false);
+          return;
+        }
+
+        if (import.meta.env.DEV) {
+          // Static cards remain available only while developing old demo routes.
+          setSpace(fallbackSpace);
+          setUsingDevPlaceFallback(true);
+          setPlaceError("Backend не вернул это место. Показаны DEV fallback данные.");
+        } else {
+          setSpace(normalizePlace(EMPTY_PLACE));
+          setUsingDevPlaceFallback(false);
+          setPlaceEmpty(true);
+          setPlaceError("Место не найдено или ещё не опубликовано.");
         }
       })
       .catch((err) => {
-        console.warn("REST API orqali joy tafsilotini yuklab bo'lmadi:", err.message);
+        if (cancelled) return;
+        const message = getApiErrorMessage(err, "Не удалось загрузить место.");
+        if (import.meta.env.DEV) {
+          setSpace(fallbackSpace);
+          setUsingDevPlaceFallback(true);
+          setPlaceError(`${message} Показаны DEV fallback данные.`);
+        } else {
+          setSpace(normalizePlace(EMPTY_PLACE));
+          setUsingDevPlaceFallback(false);
+          setPlaceEmpty(true);
+          setPlaceError(message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPlaceLoading(false);
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [route, fallbackSpace]);
+
+  useEffect(() => {
+    if (!placeId) {
+      setRelatedSpaces([]);
+      setRelatedLoading(false);
+      setRelatedError("");
+      setUsingDevRelatedFallback(false);
+      return;
+    }
+
+    const params = {};
+    if (space.subcategoryId) params.subcategory = space.subcategoryId;
+    else if (space.categoryId) params.category = space.categoryId;
+
+    setRelatedLoading(true);
+    setRelatedError("");
+    setUsingDevRelatedFallback(false);
+
+    const loadRelated = async () => {
+      const response = await api.get("/api/places/", { params, skipAuth: true });
+      let candidates = getPlacesFromApiResponse(response.data);
+
+      if (candidates.filter((item) => String(item.id) !== String(placeId)).length === 0 && space.categoryId && params.subcategory) {
+        const categoryResponse = await api.get("/api/places/", {
+          params: { category: space.categoryId },
+          skipAuth: true,
+        });
+        candidates = getPlacesFromApiResponse(categoryResponse.data);
+      }
+
+      return candidates
+          .filter((item) => String(item.id) !== String(space.id))
+          .map(normalizePlace)
+          .slice(0, 3);
+    };
+
+    loadRelated()
+      .then((related) => {
+        setRelatedSpaces(related);
+        setRelatedError("");
+        setUsingDevRelatedFallback(false);
+      })
+      .catch((err) => {
+        if (import.meta.env.DEV) {
+          // Dev fallback keeps related cards visible for old static demo routes.
+          setRelatedSpaces(propertyCards.filter((item) => item.title !== space.title).map(normalizePlace).slice(0, 3));
+          setUsingDevRelatedFallback(true);
+          setRelatedError(`${getApiErrorMessage(err, "Не удалось загрузить похожие места.")} Показан DEV fallback.`);
+        } else {
+          setRelatedSpaces([]);
+          setUsingDevRelatedFallback(false);
+          setRelatedError(getApiErrorMessage(err, "Не удалось загрузить похожие места."));
+        }
+      })
+      .finally(() => setRelatedLoading(false));
+  }, [placeId, space?.subcategoryId, space?.categoryId, space?.title]);
+
+  useEffect(() => {
+    if (!placeId) {
+      setAllDiscounts([]);
+      setDiscountError("");
+      return;
+    }
+
+    const linkedIds = new Set(
+      [...(space.discount_ids || []), ...(space.discounts || [])]
+        .map((item) => (typeof item === "object" && item !== null ? item.id : item))
+        .filter((id) => id !== null && id !== undefined)
+        .map(String)
+    );
+
+    api.get("/api/discounts/", { skipAuth: true })
+      .then((res) => {
+        const discounts = res.data?.results || res.data || [];
+        const applicable = Array.isArray(discounts)
+          ? discounts.filter((discount) => (
+            discount?.is_active
+            && (discount.applicable_to === "all" || linkedIds.has(String(discount.id)))
+          ))
+          : [];
+        setAllDiscounts(applicable);
+        setDiscountError("");
+      })
+      .catch((err) => {
+        setAllDiscounts([]);
+        setDiscountError(getApiErrorMessage(err, "Не удалось загрузить скидки."));
+      });
+  }, [placeId, space?.discount_ids, space?.discounts]);
 
   // Price formatting helper
   const formatPriceValue = (val, mode) => {
     if (!val) return "";
-    const cleanNum = Number(String(val).replace(/\D/g, ""));
-    if (isNaN(cleanNum)) return val;
+    const cleanNum = parseMoneyValue(val);
+    if (cleanNum === null) return val;
     const formatted = new Intl.NumberFormat("uz-UZ").format(cleanNum);
     const label = mode === "soatlik" ? "Soatiga" : mode === "kunlik" ? "Kuniga" : mode === "haftalik" ? "Haftasiga" : "Oyiga";
-    return `${label} ${formatted} UZS`;
+    return `${label} ${formatted} ${space?.currency || "UZS"}`;
   };
 
   // Selected amenities mapped to backend parameters
@@ -312,6 +543,8 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   const [activeImage, setActiveImage] = useState(0);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [liked, setLiked] = useState(() => isPlaceFavorited(space.id));
+  const [favoritePending, setFavoritePending] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
   const likeBtnRef = useRef(null);
   const [showAmenitiesModal, setShowAmenitiesModal] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -325,43 +558,89 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     return () => window.removeEventListener("joyzone-favorites-update", handleUpdate);
   }, [space.id]);
 
-  const handleLikeToggle = () => {
-    toggleFavoritePlace(space);
-    setLiked(!liked);
+  const handleLikeToggle = async () => {
+    if (favoritePending) return;
+    setFavoritePending(true);
+    setFavoriteError("");
     gsap.fromTo(
       likeBtnRef.current,
       { scale: 0.8 },
       { scale: 1, duration: 0.5, ease: "elastic.out(1.2, 0.4)" }
     );
+    try {
+      const favorites = await toggleFavoritePlace(space);
+      setLiked(favorites.some((favorite) => String(favorite.id) === String(space.id)));
+    } catch (error) {
+      setFavoriteError(getApiErrorMessage(error, "Не удалось обновить избранное"));
+      setLiked(isPlaceFavorited(space.id));
+    } finally {
+      setFavoritePending(false);
+    }
   };
 
   const [days, setDays] = useState(1);
   const [guests, setGuests] = useState(Math.min(space.people || 4, 4));
   const [allBookings, setAllBookings] = useState([]);
+  const [availability, setAvailability] = useState(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [bookingError, setBookingError] = useState("");
+  const availabilityRequestRef = useRef(0);
   const [calYear, setCalYear] = useState(() => fromDateKey(getDefaultBookingDate()).getUTCFullYear());
   const [calMonth, setCalMonth] = useState(() => fromDateKey(getDefaultBookingDate()).getUTCMonth());
   const [checkInDate, setCheckInDate] = useState(() => getDefaultBookingDate());
   const [checkOutDate, setCheckOutDate] = useState(() => getDefaultBookingDate());
   const [hourPanelDate, setHourPanelDate] = useState(null);
   const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
+  const loadAvailability = useCallback(async () => {
+    const requestId = ++availabilityRequestRef.current;
+    if (!placeId) {
+      setAvailability(null);
+      setAllBookings([]);
+      setAvailabilityLoading(false);
+      return;
+    }
+
+    try {
+      setAvailabilityLoading(true);
+      const calendarRange = getCalendarAvailabilityRange(calYear, calMonth, 1);
+      const dateCandidates = [calendarRange.date_from, checkInDate].filter(Boolean).sort();
+      const endCandidates = [calendarRange.date_to, checkOutDate || checkInDate].filter(Boolean).sort();
+      const range = {
+        date_from: dateCandidates[0],
+        date_to: endCandidates[endCandidates.length - 1],
+      };
+      const data = await fetchPlaceAvailability({ placeId, ...range, skipAuth: true });
+      if (requestId !== availabilityRequestRef.current) return;
+      setAvailability(data);
+      setAllBookings(data?.bookings || []);
+      setAvailabilityError("");
+    } catch (err) {
+      if (requestId !== availabilityRequestRef.current) return;
+      setAvailabilityError(getApiErrorMessage(err, "Не удалось загрузить календарь занятости."));
+      setAvailability(null);
+      setAllBookings([]);
+    } finally {
+      if (requestId === availabilityRequestRef.current) setAvailabilityLoading(false);
+    }
+  }, [placeId, calYear, calMonth, checkInDate, checkOutDate]);
 
   useEffect(() => {
-    axios.get("http://localhost:8000/api/bookings/")
-      .then(res => {
-        if (res.data) setAllBookings(res.data);
-      })
-      .catch(err => console.warn("Failed to fetch bookings inside space detail:", err));
-  }, [space]);
+    loadAvailability();
+  }, [loadAvailability]);
 
   const spaceBookings = useMemo(() => {
-    if (!space || !Array.isArray(allBookings)) return [];
+    const source = availability?.bookings || allBookings;
+    if (!space || !Array.isArray(source)) return [];
     const targetId = space.id || space._id;
-    return allBookings.filter(b => {
+    return source.filter(b => {
       if (!b) return false;
-      const spaceId = typeof b.space_id === 'object' && b.space_id !== null ? b.space_id?.id || b.space_id?._id : b.space_id;
+      const spaceId = typeof b.space_id === 'object' && b.space_id !== null
+        ? b.space_id?.id || b.space_id?._id
+        : b.space_id || b.place_id || b.place || b.place_details?.id || b.place_details?._id;
       return spaceId && spaceId === targetId;
     });
-  }, [allBookings, space]);
+  }, [allBookings, availability, space]);
 
   const calendarDays = useMemo(() => buildCalendarDays(calYear, calMonth), [calYear, calMonth]);
   const nextCalendar = useMemo(() => getMonthOffset(calYear, calMonth, 1), [calYear, calMonth]);
@@ -417,10 +696,20 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   // Compute active discount applied to booking details
   const activeAppliedDiscount = useMemo(() => {
-    if (!space.discounts || !Array.isArray(space.discounts) || allDiscounts.length === 0) return null;
-    
-    // Filter discounts linked to this place
-    const spaceDiscounts = allDiscounts.filter(d => space.discounts.includes(d.id) && d.is_active);
+    if (allDiscounts.length === 0) return null;
+
+    const linkedDiscountIds = new Set(
+      [...(space.discount_ids || []), ...(space.discounts || [])]
+        .map(item => (typeof item === "object" && item !== null ? item.id : item))
+        .map(Number)
+        .filter(Boolean)
+    );
+
+    const spaceDiscounts = allDiscounts.filter(d => {
+      if (!d.is_active) return false;
+      if (linkedDiscountIds.has(Number(d.id))) return true;
+      return d.applicable_to === "all";
+    });
     if (spaceDiscounts.length === 0) return null;
     
     let bestDiscount = null;
@@ -451,13 +740,13 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     });
     
     return bestDiscount;
-  }, [space.discounts, allDiscounts, bookingDuration, days, checkInDate]);
+  }, [space.discount_ids, space.discounts, allDiscounts, bookingDuration, days, checkInDate]);
 
   const parsedBasePrice = useMemo(() => {
     const selectedOption = availableDurations.find(d => d.id === bookingDuration);
     const priceStr = selectedOption ? selectedOption.price : space?.price;
     if (!priceStr) return 0;
-    return Number(String(priceStr).replace(/\D/g, "")) || 0;
+    return parseMoneyValue(priceStr) || 0;
   }, [availableDurations, bookingDuration, space]);
 
 
@@ -477,30 +766,54 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   const selectedDateSet = useMemo(() => new Set(selectedRange), [selectedRange]);
 
-  const isDateBooked = (dateStr) => spaceBookings.some((booking) => {
-    if (!booking || !booking.start_date || !booking.end_date || !isBlockingBooking(booking)) return false;
-    const bStart = String(booking.start_date).split("T")[0];
-    const bEnd = String(booking.end_date).split("T")[0];
-    return dateStr >= bStart && dateStr <= bEnd;
-  });
+  const isDateBooked = (dateStr, { hourly = false } = {}) => {
+    if (isAvailabilityDayUnavailable(availability, dateStr, { hourly })) {
+      return true;
+    }
+    if (getAvailabilityDay(availability, dateStr)) {
+      return false;
+    }
+
+    return spaceBookings.some((booking) => {
+      const start = booking?.start_date || booking?.start_time;
+      const end = booking?.end_date || booking?.end_time;
+      if (!booking || !start || !end || !isBlockingBooking(booking)) return false;
+      const bStart = String(start).split("T")[0];
+      const bEnd = String(end).split("T")[0];
+      return dateStr >= bStart && dateStr <= bEnd;
+    });
+  };
 
   const getSlotStatus = (dateStr, slot) => {
     if (!dateStr) return "free";
-    if (isDateBooked(dateStr)) return "booked";
-    const day = Number(dateStr.slice(-2));
-    const hour = Number(slot.split(":")[0]);
-    return (day + hour) % 5 === 0 || (day % 2 === 0 && hour === 14) ? "booked" : "free";
+    if (!isAvailabilityDateCovered(availability, dateStr)) return "unavailable";
+    const availabilityStatus = getAvailabilitySlotStatus(availability, dateStr, slot);
+    if (isAvailabilityStatusBlocked(availabilityStatus)) return availabilityStatus;
+    if (isDateBooked(dateStr, { hourly: true })) return "booked";
+    return "free";
   };
+
+  useEffect(() => {
+    if (bookingDuration !== "soatlik" || !checkInDate) return;
+    setSelectedTimeSlots((current) => {
+      const availableSlots = current.filter((slot) => getSlotStatus(checkInDate, slot) === "free");
+      if (availableSlots.length !== current.length && !availabilityLoading) {
+        setBookingError("Tanlangan vaqt band bo'lib qoldi. Boshqa vaqtni tanlang.");
+      }
+      return availableSlots;
+    });
+  }, [availability, bookingDuration, checkInDate]);
 
   const { totalPrice, hasBlockedDay, dailyRatesBreakdown } = useMemo(() => {
     if (!checkInDate) return { totalPrice: 0, hasBlockedDay: false, dailyRatesBreakdown: [] };
 
     if (bookingDuration === "soatlik") {
       const safeSlots = selectedTimeSlots.filter((slot) => getSlotStatus(checkInDate, slot) === "free");
+      const hasUnavailableSlot = selectedTimeSlots.some((slot) => isAvailabilityStatusBlocked(getSlotStatus(checkInDate, slot)));
       const total = parsedBasePrice * safeSlots.length;
       return {
         totalPrice: total,
-        hasBlockedDay: isDateBooked(checkInDate),
+        hasBlockedDay: isDateBooked(checkInDate, { hourly: true }) || hasUnavailableSlot,
         dailyRatesBreakdown: safeSlots.length > 1
           ? [{ date: `${formatShortDate(checkInDate)} (${safeSlots.length} soat)`, rate: total }]
           : safeSlots.map((slot) => ({ date: `${formatShortDate(checkInDate)} ${slot}`, rate: parsedBasePrice }))
@@ -542,7 +855,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     }
 
     return { totalPrice: sum, hasBlockedDay: blocked, dailyRatesBreakdown: breakdown };
-  }, [checkInDate, checkOutDate, days, selectedRange, selectedTimeSlots, bookingDuration, spaceBookings, space, parsedBasePrice]);
+  }, [checkInDate, checkOutDate, days, selectedRange, selectedTimeSlots, bookingDuration, spaceBookings, space, parsedBasePrice, availability]);
 
   const discountAmount = useMemo(() => {
     if (!activeAppliedDiscount || totalPrice <= 0) return 0;
@@ -596,12 +909,46 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   };
 
   const handleDurationChange = (durationId) => {
+    setBookingError("");
     setBookingDuration(durationId);
     syncRangeForMode(durationId, checkInDate || getDefaultBookingDate(), 1);
   };
 
+  const getDateSelectionRange = (dateStr) => {
+    if (bookingDuration === "haftalik") return buildDateRange(dateStr, addDays(dateStr, 6));
+    if (bookingDuration === "oylik") return buildDateRange(dateStr, addDays(addMonths(dateStr, 1), -1));
+    if (bookingDuration === "kunlik" && checkInDate && !checkOutDate && dateStr >= checkInDate) {
+      return buildDateRange(checkInDate, dateStr);
+    }
+    return [dateStr];
+  };
+
+  const getRangeAvailabilityError = (range, { hourly = false } = {}) => {
+    if (!availability || availabilityLoading || availabilityError) {
+      return "Kalendar ma'lumotlari yuklanmadi. Bron qilishdan oldin qayta urinib ko'ring.";
+    }
+    if (range.some((dateStr) => !isAvailabilityDateCovered(availability, dateStr))) {
+      return "Tanlangan davr uchun bandlik ma'lumotlari hali yuklanmagan. Kalendar oyini almashtirib qayta urinib ko'ring.";
+    }
+    if (range.some((dateStr) => isDateBooked(dateStr, { hourly }))) {
+      return hourly
+        ? "Bu kun to'liq band. Boshqa sanani tanlang."
+        : "Tanlangan davrda band yoki yopiq kun bor. Boshqa sanalarni tanlang.";
+    }
+    return "";
+  };
+
   const handleCalendarDateClick = (dateStr) => {
-    if (!dateStr || isDateBooked(dateStr)) return;
+    if (!dateStr) return;
+    const selectionError = getRangeAvailabilityError(
+      getDateSelectionRange(dateStr),
+      { hourly: bookingDuration === "soatlik" }
+    );
+    if (selectionError) {
+      setBookingError(selectionError);
+      return;
+    }
+    setBookingError("");
 
     if (bookingDuration === "soatlik") {
       const previousDate = checkInDate;
@@ -632,7 +979,18 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   };
 
   const handleTimeSlotToggle = (slot) => {
-    if (getSlotStatus(checkInDate, slot) === "booked") return;
+    const status = getSlotStatus(checkInDate, slot);
+    if (isAvailabilityStatusBlocked(status)) {
+      setBookingError(
+        status === "unavailable"
+          ? "Bu vaqt uchun bandlik ma'lumotlari yuklanmagan. Qayta urinib ko'ring."
+          : status === "blocked"
+            ? "Bu vaqt joy egasi tomonidan yopilgan. Boshqa vaqtni tanlang."
+            : "Bu vaqt allaqachon band. Boshqa vaqtni tanlang."
+      );
+      return;
+    }
+    setBookingError("");
     setSelectedTimeSlots((current) => (
       current.includes(slot)
         ? current.filter((item) => item !== slot)
@@ -654,69 +1012,113 @@ export default function SpaceDetail({ route, userState, setUserState }) {
       ? `${formatShortDate(checkInDate)} - ${formatShortDate(checkOutDate)}`
       : formatShortDate(checkInDate);
 
-  const handleBooking = async () => {
-    if (hasBlockedDay) {
-      alert("Kechirasiz, tanlangan sanalarda band qilingan kunlar bor. Boshqa sanalarni tanlang.");
-      return;
+  const getCheckoutAvailabilityError = () => {
+    if (!checkInDate) return "Bron qilish uchun sanani tanlang.";
+    const rangeError = getRangeAvailabilityError(selectedRange, { hourly: bookingDuration === "soatlik" });
+    if (rangeError) return rangeError;
+    if (bookingDuration === "soatlik") {
+      if (selectedTimeSlots.length === 0) return "Soatlik bron uchun kamida bitta vaqt oralig'ini tanlang.";
+      const unavailableSlot = selectedTimeSlots.find((slot) => isAvailabilityStatusBlocked(getSlotStatus(checkInDate, slot)));
+      if (unavailableSlot) return `${unavailableSlot} vaqti band yoki mavjud emas. Boshqa vaqtni tanlang.`;
     }
-
-    try {
-      const bookingData = {
-        user_id: userState.isAuthed ? userState.email : "anonymous_client",
-        space_id: space.id || space._id,
-        start_date: checkInDate,
-        end_date: checkOutDate || checkInDate,
-        total_price: finalTotal,
-        status: "Pending"
-      };
-
-      const res = await axios.post("http://localhost:8000/api/bookings/", bookingData, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('joyzone_access_token')}` }
-      });
-      
-      if (res.status === 201) {
-        sendClientAction("booking", {
-          spaceName: space.title || space.name,
-          price: formatMoney(finalTotal)
-        });
-        alert(`Muvaffaqiyatli band qilindi! Jami to'lov: ${formatMoney(finalTotal)}. So'rov kutilmoqda (Pending)`);
-        
-        const bookingsRes = await axios.get("http://localhost:8000/api/bookings/");
-        if (bookingsRes.data) setAllBookings(bookingsRes.data);
-      }
-    } catch (err) {
-      console.error("Booking failed, running simulation:", err);
-      sendClientAction("booking", {
-        spaceName: space.title || space.name,
-        price: formatMoney(finalTotal)
-      });
-      alert(`Bron so'rovi yuborildi (Simulyatsiya)! Jami to'lov: ${formatMoney(finalTotal)}.`);
-    }
+    return "";
   };
+
+  const checkoutAvailabilityError = getCheckoutAvailabilityError();
 
   const monthNames = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
 
-  const [reviews, setReviews] = useState(reviewList);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState("");
+  const [usingMockReviews, setUsingMockReviews] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewEligibility, setReviewEligibility] = useState({
+    loading: false,
+    allowed: false,
+    reason: "",
+  });
   const [helpfulCounts, setHelpfulCounts] = useState({});
 
-  // Fetch reviews from backend API on mount or space change
-  useEffect(() => {
-    if (space) {
-      const spaceId = space.id || space._id || "648312e0f40a1b2c3d4e5f67";
-      axios.get(`http://localhost:8000/api/reviews/space/${spaceId}/`)
-        .then(res => {
-          if (res.data && res.data.length > 0) {
-            setReviews(res.data);
-          } else {
-            setReviews(reviewList);
-          }
-        })
-        .catch(err => {
-          console.warn("Fikrlar yuklashda xatolik, mock ma'lumotlardan foydalaniladi:", err);
-          setReviews(reviewList);
-        });
+  const loadReviews = useCallback(async ({ allowDevFallback = true } = {}) => {
+    if (!placeId) {
+      setReviews([]);
+      setUsingMockReviews(false);
+      setReviewsLoading(false);
+      setReviewsError("");
+      return [];
     }
-  }, [space]);
+
+    setReviewsLoading(true);
+    setReviewsError("");
+    try {
+      const response = await api.get("/api/reviews/", { params: { place: placeId }, skipAuth: true });
+      const data = response.data?.results || response.data || [];
+      const backendReviews = Array.isArray(data) ? data.map(normalizeReview) : [];
+      setReviews(backendReviews);
+      setUsingMockReviews(false);
+      return backendReviews;
+    } catch (error) {
+      if (import.meta.env.DEV && allowDevFallback) {
+        // Mock reviews are an explicit offline development aid, never production content.
+        const fallback = getReviewFallback();
+        setReviews(fallback);
+        setUsingMockReviews(fallback.length > 0);
+        setReviewsError(`${getApiErrorMessage(error, "Не удалось загрузить отзывы.")} Показан DEV fallback.`);
+        return fallback;
+      }
+
+      setReviews([]);
+      setUsingMockReviews(false);
+      setReviewsError(getApiErrorMessage(error, "Не удалось загрузить отзывы."));
+      throw error;
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [placeId]);
+
+  // Fetch reviews from backend API on mount or space change.
+  useEffect(() => {
+    loadReviews().catch(() => {});
+  }, [loadReviews]);
+
+  useEffect(() => {
+    setShowReviewForm(false);
+    setReviewError("");
+
+    if (!placeId || !userState?.isAuthed || !getAccessToken()) {
+      setReviewEligibility({ loading: false, allowed: false, reason: "" });
+      return;
+    }
+
+    let cancelled = false;
+    setReviewEligibility({ loading: true, allowed: false, reason: "" });
+    api.get("/api/reviews/eligibility/", { params: { place: placeId } })
+      .then((response) => {
+        if (cancelled) return;
+        setReviewEligibility({
+          loading: false,
+          allowed: Boolean(response.data?.allowed),
+          reason: response.data?.reason || "",
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setReviewEligibility({
+          loading: false,
+          allowed: false,
+          reason: getApiErrorMessage(err, "Не удалось проверить право на отзыв."),
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [placeId, userState?.isAuthed]);
 
   const handleHelpful = (name) => {
     setHelpfulCounts(prev => ({
@@ -726,17 +1128,67 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   };
 
   const averageRating = useMemo(() => {
-    if (reviews.length === 0) return "5.0";
-    const sum = reviews.reduce((acc, item) => acc + item.rating, 0);
-    return (sum / reviews.length).toFixed(1);
-  }, [reviews]);
+    if (!usingMockReviews) return Number(space?.rating_avg || 0).toFixed(1);
+    if (reviews.length === 0) return "0.0";
+    return (reviews.reduce((acc, item) => acc + item.rating, 0) / reviews.length).toFixed(1);
+  }, [reviews, space?.rating_avg, space?.reviews_count, usingMockReviews]);
+
+  const reviewsCount = usingMockReviews ? reviews.length : Number(space?.reviews_count || 0);
+  const overallRatingPercent = Math.max(0, Math.min(100, Math.round((Number(averageRating) / 5) * 100)));
+
+  const handleReviewSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!userState?.isAuthed || !getAccessToken()) {
+      window.location.hash = "#login";
+      return;
+    }
+
+    if (!reviewEligibility.allowed) {
+      setReviewError(reviewEligibility.reason || "Отзыв доступен после подтверждённого или завершённого бронирования.");
+      return;
+    }
+
+    const comment = reviewComment.trim();
+    if (!comment) {
+      setReviewError("Sharh matnini yozing.");
+      return;
+    }
+
+    try {
+      setReviewSubmitting(true);
+      setReviewError("");
+      await api.post("/api/reviews/", {
+        place: placeId,
+        rating: Number(reviewRating),
+        comment
+      });
+      setReviewComment("");
+      setReviewRating(5);
+      setShowReviewForm(false);
+
+      const [reviewsResult, placeResult] = await Promise.allSettled([
+        loadReviews({ allowDevFallback: false }),
+        api.get(`/api/places/${placeId}/`, { skipAuth: true }),
+      ]);
+
+      if (placeResult.status === "fulfilled") {
+        setSpace(normalizePlace(placeResult.value.data));
+      }
+      if (reviewsResult.status === "rejected" || placeResult.status === "rejected") {
+        setReviewError("Отзыв сохранён, но обновить рейтинг не удалось. Обновите страницу.");
+      }
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Sharh yuborilmadi. Tasdiqlangan bron kerak bo'lishi mumkin.");
+      setReviewError(message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
 
   const similarSpaces = useMemo(() => {
-    const sameCategory = propertyCards.filter((item) => item.title !== space.title && item.category === space.category);
-    const fallback = propertyCards.filter((item) => item.title !== space.title);
-    const merged = [...sameCategory, ...fallback.filter((item) => !sameCategory.includes(item))];
-    return merged.slice(0, 3);
-  }, [space]);
+    return relatedSpaces;
+  }, [relatedSpaces]);
 
   useEffect(() => {
     setActiveImage(0);
@@ -745,60 +1197,68 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   }, [space]);
 
   useEffect(() => {
+    if (placeLoading || placeEmpty || !placeId) return undefined;
+
     const ctx = gsap.context(() => {
+      const animate = (selector, from, to) => {
+        const targets = document.querySelectorAll(selector);
+        if (targets.length > 0) gsap.fromTo(targets, from, to);
+      };
+
       // Hero elements cascade
-      gsap.fromTo(
+      animate(
         ".sd-hero-copy > *",
         { y: 24, opacity: 0, filter: "blur(6px)" },
         { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.7, stagger: 0.08, ease: "power3.out" }
       );
 
       // Gallery fade-in slide
-      gsap.fromTo(
+      animate(
         ".sd-gallery",
         { x: 30, opacity: 0, filter: "blur(8px)" },
         { x: 0, opacity: 1, filter: "blur(0px)", duration: 0.8, ease: "power3.out", delay: 0.1 }
       );
 
       // Stats stagger cards
-      gsap.fromTo(
+      animate(
         ".sd-stat",
         { y: 25, opacity: 0, scale: 0.96 },
         { y: 0, opacity: 1, scale: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.15)", delay: 0.2 }
       );
 
       // Booking card float-up
-      gsap.fromTo(
+      animate(
         ".sd-booking-card",
         { y: 40, opacity: 0, scale: 0.97 },
         { y: 0, opacity: 1, scale: 1, duration: 0.85, ease: "power3.out", delay: 0.25 }
       );
 
       // Amenities fade-in list
-      gsap.fromTo(
+      animate(
         ".sd-amenities span",
         { y: 15, opacity: 0, scale: 0.96 },
         { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.04, ease: "power2.out", delay: 0.3 }
       );
 
       // Reviews fade-in
-      gsap.fromTo(
+      animate(
         ".sd-reviews-panel > *",
         { y: 25, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.75, stagger: 0.1, ease: "power2.out", delay: 0.35 }
       );
 
       // Similar spaces grid
-      gsap.fromTo(
+      animate(
         ".sd-similar .property-card",
         { y: 35, opacity: 0, scale: 0.98 },
         { y: 0, opacity: 1, scale: 1, duration: 0.75, stagger: 0.08, ease: "power3.out", delay: 0.4 }
       );
     });
     return () => ctx.revert();
-  }, [space]);
+  }, [space, placeId, placeLoading, placeEmpty, relatedSpaces.length]);
 
   const todayKey = toDateKey(new Date());
+  const availabilityReady = Boolean(availability) && !availabilityLoading && !availabilityError;
 
   const renderCalendarMonth = (year, month, monthDays, isNext = false) => (
     <div className={`sd-calendar-card ${isNext ? "is-next" : "is-current"}`}>
@@ -832,7 +1292,10 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           if (day.isMuted) return <span key={`muted-${year}-${month}-${index}`} className="sd-calendar-day is-empty" />;
 
           const dateStr = day.dateStr;
-          const booked = isDateBooked(dateStr);
+          const booked = Boolean(getRangeAvailabilityError(
+            getDateSelectionRange(dateStr),
+            { hourly: bookingDuration === "soatlik" }
+          ));
           const selected = selectedDateSet.has(dateStr);
           const isStart = dateStr === checkInDate;
           const isEnd = dateStr === checkOutDate && checkOutDate !== checkInDate;
@@ -852,9 +1315,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               key={dateStr}
               type="button"
               className={className}
-              disabled={booked}
+              data-unavailable={booked ? "true" : undefined}
               onClick={() => handleCalendarDateClick(dateStr)}
-              title={booked ? "Band qilingan" : dateStr}
+              title={!availabilityReady ? "Kalendar hali yuklanmagan" : booked ? "Band qilingan" : dateStr}
             >
               <span>{day.label}</span>
             </button>
@@ -864,15 +1327,53 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     </div>
   );
 
+  if (placeLoading) {
+    return (
+      <main className="space-detail-shell">
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+        <section className="sd-section" style={{ maxWidth: 1180, margin: "40px auto", padding: "28px" }}>
+          <div className="sd-section-head">
+            <p>Joyzone</p>
+            <h2>Joy ma'lumotlari yuklanmoqda...</h2>
+          </div>
+        </section>
+        <JoyFooter />
+      </main>
+    );
+  }
+
+  if (placeEmpty) {
+    return (
+      <main className="space-detail-shell">
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+        <section className="sd-section" style={{ maxWidth: 1180, margin: "40px auto", padding: "28px" }}>
+          <div className="sd-section-head">
+            <p>Joy topilmadi</p>
+            <h2>{placeError || "Место не найдено или ещё не опубликовано."}</h2>
+          </div>
+          <a className="sd-primary-btn" href="#spaces">Barcha joylarni ko'rish</a>
+        </section>
+        <JoyFooter />
+      </main>
+    );
+  }
+
   return (
     <main className="space-detail-shell">
       <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+
+      {[placeError, parametersError, discountError, detailError].filter(Boolean).map((message) => (
+        <div key={message} style={{ margin: "18px auto 0", maxWidth: 1180, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
+          {message}
+        </div>
+      ))}
 
       <section className="sd-hero">
         <div className="sd-hero-copy sd-animate">
           <div className="sd-kicker">
             <span>{space.category}</span>
             {space.promoted ? <b>Top joy</b> : null}
+            {usingDevPlaceFallback ? <b style={{ background: "#fee2e2", color: "#991b1b" }}>DEV fallback</b> : null}
           </div>
           <h1>{space.title}</h1>
           <p>
@@ -908,9 +1409,12 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               onClick={handleLikeToggle}
               aria-label={liked ? "Yoqtirildi" : "Yoqtirish"}
               aria-pressed={liked}
+              aria-busy={favoritePending}
+              disabled={favoritePending}
             >
               <HeartIcon filled={liked} />
             </button>
+            {favoriteError ? <span className="sd-favorite-error" role="alert">{favoriteError}</span> : null}
             <button type="button" className="sd-share" aria-label="Ulashish" onClick={() => { if(navigator.share) navigator.share({ url: window.location.href }); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3"></circle>
@@ -1039,42 +1543,103 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           <section className="sd-section sd-animate">
             <div className="sd-section-head sd-review-head">
               <div>
-                <p>Sharhlar ({reviews.length})</p>
+                <p>Sharhlar ({reviewsCount})</p>
                 <h2>Mehmonlar fikri</h2>
               </div>
+              {userState?.isAuthed && reviewEligibility.allowed ? (
+                <button
+                  type="button"
+                  className={`sd-write-review-btn ${showReviewForm ? "is-active" : ""}`}
+                  onClick={() => setShowReviewForm((current) => !current)}
+                >
+                  {showReviewForm ? "Bekor qilish" : "Sharh qoldirish"}
+                </button>
+              ) : null}
             </div>
 
+            {userState?.isAuthed && reviewEligibility.loading ? (
+              <div className="sd-booking-warning">Отзыв huquqi tekshirilmoqda...</div>
+            ) : null}
+
+            {userState?.isAuthed && !reviewEligibility.loading && !reviewEligibility.allowed && reviewEligibility.reason ? (
+              <div className="sd-booking-warning">{reviewEligibility.reason}</div>
+            ) : null}
+
+            {reviewError ? <div className="sd-booking-warning">{reviewError}</div> : null}
+            {reviewsError ? <div className="sd-booking-warning">{reviewsError}</div> : null}
+
+            {userState?.isAuthed && reviewEligibility.allowed && showReviewForm ? (
+              <form className="sd-review-form" onSubmit={handleReviewSubmit}>
+                <h3>Sharh qoldirish</h3>
+                <label className="sd-form-label">
+                  <span>Fikringiz</span>
+                  <textarea
+                    rows="4"
+                    value={reviewComment}
+                    onChange={(event) => setReviewComment(event.target.value)}
+                    placeholder="Joy, xizmat va bron tajribangiz haqida yozing"
+                  />
+                </label>
+                <div className="sd-rating-select-row">
+                  <span>Reyting</span>
+                  <div className="sd-rating-stars-input">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className="sd-star-input-btn"
+                        onClick={() => setReviewRating(value)}
+                        aria-label={`${value} reyting`}
+                      >
+                        <svg viewBox="0 0 24 24" fill={value <= reviewRating ? "#ffbd22" : "none"} stroke="#ffbd22" strokeWidth="2" style={{ width: 24, height: 24 }}>
+                          <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9 6.6 19.8l1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button type="submit" className="sd-submit-review-btn" disabled={reviewSubmitting}>
+                  {reviewSubmitting ? "Yuborilmoqda..." : "Sharhni yuborish"}
+                </button>
+              </form>
+            ) : null}
+
             <div className="sd-reviews-panel">
-              <aside className="sd-review-score">
-                <div className="sd-score-big-circle">
-                  <span>{averageRating}</span>
-                  <small>5.0 dan</small>
+              {usingMockReviews ? (
+                <div style={{ gridColumn: "1 / -1", marginBottom: 10, padding: "8px 10px", borderRadius: 10, background: "#fff7ed", color: "#9a3412", fontSize: 12 }}>
+                  DEV fallback reviews
                 </div>
-                <div className="sd-score-meta">
-                  <Stars value={Math.round(Number(averageRating))} />
-                  <strong>96% mehmon tavsiya qiladi</strong>
-                  <p>Tozalik, lokatsiya, aloqa va jihozlar bo'yicha eng yuqori baholangan joylardan biri.</p>
-                </div>
-                <div className="sd-score-bars" aria-label="Reyting taqsimoti">
-                  {[
-                    ["Tozalik", "98%"],
-                    ["Aloqa", "94%"],
-                    ["Lokatsiya", "90%"]
-                  ].map(([label, value]) => (
-                    <div key={label} className="sd-score-bar-row">
-                      <span>{label}</span>
+              ) : null}
+              {reviews.length > 0 ? (
+                <aside className="sd-review-score">
+                  <div className="sd-score-big-circle">
+                    <span>{averageRating}</span>
+                    <small>5.0 dan</small>
+                  </div>
+                  <div className="sd-score-meta">
+                    <Stars value={Math.round(Number(averageRating))} />
+                    <strong>{reviewsCount} ta sharh asosida</strong>
+                    <p>Umumiy reyting backend orqali saqlangan foydalanuvchi sharhlaridan hisoblangan.</p>
+                  </div>
+                  <div className="sd-score-bars" aria-label="Umumiy reyting">
+                    <div className="sd-score-bar-row">
+                      <span>Umumiy</span>
                       <div className="sd-progress-track">
-                        <b style={{ "--score": value }} />
+                        <b style={{ "--score": `${overallRatingPercent}%` }} />
                       </div>
-                      <strong>{value}</strong>
+                      <strong>{overallRatingPercent}%</strong>
                     </div>
-                  ))}
-                </div>
-              </aside>
+                  </div>
+                </aside>
+              ) : null}
 
               <div className="sd-reviews-list-container">
                 <div className="sd-reviews">
-                  {reviews.length === 0 ? (
+                  {reviewsLoading ? (
+                    <div className="sd-no-reviews">
+                      <p>Sharhlar yuklanmoqda...</p>
+                    </div>
+                  ) : reviews.length === 0 ? (
                     <div className="sd-no-reviews">
                       <p>Hozircha sharhlar yo'q.</p>
                     </div>
@@ -1089,7 +1654,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                       ][i % 5];
                       
                       return (
-                        <article key={review.name + i} className="sd-review-card">
+                        <article key={review.id || review.name + i} className="sd-review-card">
                           <div className="sd-review-header-row">
                             <div className="sd-review-user-info">
                               <div className="sd-review-avatar" style={{ background: avatarGrad }}>
@@ -1104,7 +1669,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                               <svg viewBox="0 0 24 24" fill="#ffbd22" style={{ width: "14px", height: "14px", marginRight: "4px" }}>
                                 <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 16.9 6.6 19.8l1-6.1-4.4-4.3 6.1-.9L12 3Z" />
                               </svg>
-                              <span>{review.rating.toFixed(1)}</span>
+                              <span>{Number(review.rating || 0).toFixed(1)}</span>
                             </div>
                           </div>
 
@@ -1150,7 +1715,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               </div>
               <span className="sd-rating">
                 <Icon type="star" />
-                4.9
+                {averageRating}
               </span>
             </div>
 
@@ -1197,16 +1762,17 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                     {hourlySlots.map((slot) => {
                       const status = getSlotStatus(hourPanelDate, slot);
                       const selected = selectedTimeSlots.includes(slot);
+                      const unavailable = isAvailabilityStatusBlocked(status) || !availabilityReady;
                       return (
                         <button
                           key={slot}
                           type="button"
-                          className={`sd-hour-slot ${status === "booked" ? "is-booked" : ""} ${selected ? "is-selected" : ""}`}
-                          disabled={status === "booked"}
+                          className={`sd-hour-slot ${unavailable ? "is-booked" : ""} ${selected ? "is-selected" : ""}`}
+                          data-unavailable={unavailable ? "true" : undefined}
                           onClick={() => handleTimeSlotToggle(slot)}
                         >
                           <strong>{slot}</strong>
-                          <span>{status === "booked" ? "Band" : selected ? "Tanlandi" : "Bo'sh"}</span>
+                          <span>{unavailable ? (status === "unavailable" ? "Yuklanmagan" : status === "blocked" ? "Yopiq" : "Band") : selected ? "Tanlandi" : "Bo'sh"}</span>
                         </button>
                       );
                     })}
@@ -1227,6 +1793,16 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </div>
 
             <div className="sd-total-box">
+              {availabilityLoading ? (
+                <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
+                  Kalendar yuklanmoqda...
+                </div>
+              ) : null}
+              {availabilityError ? (
+                <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
+                  {availabilityError}
+                </div>
+              ) : null}
               <div className="sd-rate-breakdown">
                 <span>
                   {bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} narxlar hisobi
@@ -1264,6 +1840,11 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                   {lang === 'uz' ? "Diqqat: Tanlangan davr ichida band qilingan kunlar bor." : "Внимание: В выбранный период есть занятые дни."}
                 </div>
               )}
+              {bookingError ? (
+                <div className="sd-booking-warning">
+                  {bookingError}
+                </div>
+              ) : null}
               <strong>
                 <span>{lang === 'uz' ? "Jami" : "Итого"}</span>
                 <b>{formatMoney(finalTotal)}</b>
@@ -1271,23 +1852,41 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             </div>
 
             <a
-              href={`#book-space-${slugify(space.title)}`}
-              className={`sd-primary-btn ${hasBlockedDay || (bookingDuration === "soatlik" && selectedTimeSlots.length === 0) ? "is-disabled" : ""}`}
-              onClick={() => {
+              href={`#book-space-${space.id || slugify(space.title)}`}
+              className={`sd-primary-btn ${checkoutAvailabilityError || hasBlockedDay ? "is-disabled" : ""}`}
+              onClick={(event) => {
+                const latestAvailabilityError = getCheckoutAvailabilityError();
+                if (latestAvailabilityError || hasBlockedDay) {
+                  event.preventDefault();
+                  setBookingError(latestAvailabilityError || "Tanlangan davr band. Boshqa sana yoki vaqtni tanlang.");
+                  return;
+                }
+                setBookingError("");
                 try {
-                  localStorage.setItem("joyzone-pending-booking", JSON.stringify({
-                    spaceTitle: space.title || space.name,
-                    duration: bookingDuration,
-                    startDate: checkInDate,
-                    endDate: checkOutDate || checkInDate,
-                    slots: selectedTimeSlots,
-                    guests,
-                    total: finalTotal,
-                    discount: discountAmount,
-                    discountName: activeAppliedDiscount ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : null
-                  }));
+                  const checkoutTax = Math.round(finalTotal * 0.12);
+                  const draft = createBookingDraft({
+                    place: normalizePlace(space),
+                    selection: {
+                      duration_type: bookingDuration,
+                      startDate: checkInDate,
+                      endDate: checkOutDate || checkInDate,
+                      slots: selectedTimeSlots,
+                      guests,
+                      subtotal: finalTotal,
+                      tax: checkoutTax,
+                      amount: finalTotal + checkoutTax,
+                      currency: "UZS",
+                      discount: discountAmount,
+                      discountName: activeAppliedDiscount ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : null,
+                    },
+                    user: userState,
+                  });
+                  if (!saveBookingDraft(draft)) {
+                    throw new Error("Bron ma'lumotlarini saqlab bo'lmadi.");
+                  }
                 } catch (error) {
-                  // Checkout still opens if storage is unavailable.
+                  event.preventDefault();
+                  setBookingError(error?.message || "Bron ma'lumotlarini tayyorlab bo'lmadi.");
                 }
               }}
             >
@@ -1301,11 +1900,16 @@ export default function SpaceDetail({ route, userState, setUserState }) {
             <button
               type="button"
               className="sd-secondary-btn sd-chat-btn"
-              onClick={() => {
-                const targetChat = startOrGetChatForSpace({
+              onClick={async () => {
+                const targetChat = await startOrGetChatForSpace({
+                  spaceId: space.id,
                   spaceTitle: space.title,
                   hostName: space.hostName || "Bekzod Tursunov"
                 });
+                if (!targetChat) {
+                  setDetailError("Не удалось открыть чат. Попробуйте позже.");
+                  return;
+                }
                 setActiveChatId(targetChat.id);
               }}
             >
@@ -1332,10 +1936,20 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           <p>Yana ko'ring</p>
           <h2>O'xshash joylar</h2>
         </div>
+        {usingDevRelatedFallback ? (
+          <div className="sd-booking-warning">DEV fallback related places</div>
+        ) : null}
+        {relatedError ? <div className="sd-booking-warning">{relatedError}</div> : null}
         <div className="property-grid">
-          {similarSpaces.map((item, index) => (
-            <PropertyCard key={item.title} item={item} index={index} />
-          ))}
+          {relatedLoading ? (
+            <div className="sd-no-reviews"><p>O'xshash joylar yuklanmoqda...</p></div>
+          ) : similarSpaces.length === 0 ? (
+            <div className="sd-no-reviews"><p>Hozircha o'xshash joylar topilmadi.</p></div>
+          ) : (
+            similarSpaces.map((item, index) => (
+              <PropertyCard key={item.id || item.title} item={item} index={index} />
+            ))
+          )}
         </div>
       </section>
 

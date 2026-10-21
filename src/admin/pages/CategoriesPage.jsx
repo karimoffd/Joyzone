@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
-const API = "http://localhost:8000/api";
+const API = "/api";
 
 const getHeaders = () => {
-  const token = localStorage.getItem("joyzone-access");
+  const token = getAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -90,14 +90,14 @@ function CategoryModal({ initial, onSave, onClose }) {
     setSaving(true);
     try {
       if (isEdit) {
-        await axios.put(`${API}/categories/${initial.id}/`, form, { headers: getHeaders() });
+        await api.put(`${API}/categories/${initial.id}/`, form, { headers: getHeaders() });
       } else {
-        await axios.post(`${API}/categories/`, form, { headers: getHeaders() });
+        await api.post(`${API}/categories/`, form, { headers: getHeaders() });
       }
       onSave();
       onClose();
     } catch (e) {
-      setErr(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Ошибка при сохранении");
+      setErr(getApiErrorMessage(e, "Ошибка при сохранении"));
     }
     setSaving(false);
   };
@@ -151,7 +151,9 @@ function SubCategoryModal({ initial, categoryId, categoryName, onSave, onClose }
   const [parameterGroups, setParameterGroups] = useState([]);
 
   useEffect(() => {
-    axios.get(`${API}/parameter-groups/`).then(res => setParameterGroups(res.data.results || res.data)).catch(console.error);
+    api.get(`${API}/parameter-groups/`)
+      .then(res => setParameterGroups(res.data.results || res.data))
+      .catch(e => setErr(getApiErrorMessage(e, "Не удалось загрузить группы параметров")));
   }, []);
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -169,14 +171,14 @@ function SubCategoryModal({ initial, categoryId, categoryName, onSave, onClose }
     try {
       const payload = { ...form, parameter_ids: form.parameters };
       if (isEdit) {
-        await axios.put(`${API}/subcategories/${initial.id}/`, payload, { headers: getHeaders() });
+        await api.put(`${API}/subcategories/${initial.id}/`, payload, { headers: getHeaders() });
       } else {
-        await axios.post(`${API}/subcategories/`, payload, { headers: getHeaders() });
+        await api.post(`${API}/subcategories/`, payload, { headers: getHeaders() });
       }
       onSave();
       onClose();
     } catch (e) {
-      setErr(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Ошибка при сохранении");
+      setErr(getApiErrorMessage(e, "Ошибка при сохранении"));
     }
     setSaving(false);
   };
@@ -303,8 +305,8 @@ function CategoryCard({ cat, onEdit, onDelete, onRefresh }) {
                   </button>
                   <button onClick={async () => {
                     if (!window.confirm(`Удалить подкатегорию «${sub.name_ru}»?`)) return;
-                    try { await axios.delete(`${API}/subcategories/${sub.id}/`, { headers: getHeaders() }); onRefresh(); }
-                    catch (e) { alert("Ошибка удаления: " + (e.response?.data?.detail || e.message)); }
+                    try { await api.delete(`${API}/subcategories/${sub.id}/`, { headers: getHeaders() }); onRefresh(); }
+                    catch (e) { alert("Ошибка удаления: " + getApiErrorMessage(e, "Не удалось удалить подкатегорию")); }
                   }} style={{ padding: "4px 10px", borderRadius: 6, border: "1.5px solid #fecaca", background: "#fef2f2", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#ef4444" }}>
                     Удалить
                   </button>
@@ -336,14 +338,16 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [catModal, setCatModal] = useState(null); // null | 'create' | cat-object
+  const [pageError, setPageError] = useState("");
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/categories/`);
+      const res = await api.get(`${API}/categories/`);
       setCategories(res.data?.results || res.data || []);
+      setPageError("");
     } catch (e) {
-      console.error(e);
+      setPageError(getApiErrorMessage(e, "Не удалось загрузить категории"));
     }
     setLoading(false);
   }, []);
@@ -353,10 +357,10 @@ export default function CategoriesPage() {
   const handleDelete = async (cat) => {
     if (!window.confirm(`Удалить категорию «${cat.name_ru}» и ВСЕ её подкатегории?`)) return;
     try {
-      await axios.delete(`${API}/categories/${cat.id}/`, { headers: getHeaders() });
+      await api.delete(`${API}/categories/${cat.id}/`, { headers: getHeaders() });
       fetchCategories();
     } catch (e) {
-      alert("Ошибка удаления: " + (e.response?.data?.detail || e.message));
+      alert("Ошибка удаления: " + getApiErrorMessage(e, "Не удалось удалить категорию"));
     }
   };
 
@@ -379,6 +383,7 @@ export default function CategoriesPage() {
               </div>
             ))}
           </div>
+          {pageError ? <div style={{ color: "#dc2626", marginTop: 10, fontSize: 13, fontWeight: 700 }}>{pageError}</div> : null}
         </div>
         <button onClick={() => setCatModal("create")} style={{
           display: "flex", alignItems: "center", gap: 8, padding: "12px 22px",

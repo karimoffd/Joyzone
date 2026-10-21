@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
-const API = "http://localhost:8000/api";
+const API = "/api";
 const getHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("joyzone-access")}`
+  Authorization: `Bearer ${getAccessToken()}`
 });
 
 function IconPlus() {
@@ -72,14 +72,14 @@ function GroupModal({ initial, onSave, onClose }) {
     setSaving(true);
     try {
       if (isEdit) {
-        await axios.put(`${API}/parameter-groups/${initial.id}/`, data, { headers: getHeaders() });
+        await api.put(`${API}/parameter-groups/${initial.id}/`, data, { headers: getHeaders() });
       } else {
-        await axios.post(`${API}/parameter-groups/`, data, { headers: getHeaders() });
+        await api.post(`${API}/parameter-groups/`, data, { headers: getHeaders() });
       }
       onSave();
       onClose();
     } catch (e) {
-      setErr(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Ошибка при сохранении");
+      setErr(getApiErrorMessage(e, "Ошибка при сохранении"));
     }
     setSaving(false);
   };
@@ -141,14 +141,14 @@ function ParameterModal({ initial, groupId, groupName, onSave, onClose }) {
     setSaving(true);
     try {
       if (isEdit) {
-        await axios.put(`${API}/parameters/${initial.id}/`, form, { headers: getHeaders() });
+        await api.put(`${API}/parameters/${initial.id}/`, form, { headers: getHeaders() });
       } else {
-        await axios.post(`${API}/parameters/`, form, { headers: getHeaders() });
+        await api.post(`${API}/parameters/`, form, { headers: getHeaders() });
       }
       onSave();
       onClose();
     } catch (e) {
-      setErr(e.response?.data?.detail || JSON.stringify(e.response?.data) || "Ошибка при сохранении");
+      setErr(getApiErrorMessage(e, "Ошибка при сохранении"));
     }
     setSaving(false);
   };
@@ -265,8 +265,8 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
                   <button onClick={() => setParamModal(param)} className="param-btn-small">Изменить</button>
                   <button onClick={async () => {
                     if (!window.confirm(`Удалить параметр «${param.name_ru}»?`)) return;
-                    try { await axios.delete(`${API}/parameters/${param.id}/`, { headers: getHeaders() }); onRefresh(); }
-                    catch (e) { alert("Ошибка удаления: " + (e.response?.data?.detail || e.message)); }
+                    try { await api.delete(`${API}/parameters/${param.id}/`, { headers: getHeaders() }); onRefresh(); }
+                    catch (e) { alert("Ошибка удаления: " + getApiErrorMessage(e, "Не удалось удалить параметр")); }
                   }} className="param-btn-small-danger">Удалить</button>
                 </div>
               </div>
@@ -296,14 +296,16 @@ export default function AmenitiesPage() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupModal, setGroupModal] = useState(null);
+  const [pageError, setPageError] = useState("");
 
   const fetchGroups = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/parameter-groups/`, { headers: getHeaders() });
+      const res = await api.get(`${API}/parameter-groups/`, { headers: getHeaders() });
       setGroups((res.data?.results || res.data || []).filter(g => g.slug.startsWith("amenit")));
+      setPageError("");
     } catch (e) {
-      console.error(e);
+      setPageError(getApiErrorMessage(e, "Не удалось загрузить удобства"));
     }
     setLoading(false);
   }, []);
@@ -313,10 +315,10 @@ export default function AmenitiesPage() {
   const handleDelete = async (group) => {
     if (!window.confirm(`Удалить группу «${group.name_ru}» и ВСЕ её параметры?`)) return;
     try {
-      await axios.delete(`${API}/parameter-groups/${group.id}/`, { headers: getHeaders() });
+      await api.delete(`${API}/parameter-groups/${group.id}/`, { headers: getHeaders() });
       fetchGroups();
     } catch (e) {
-      alert("Ошибка удаления: " + (e.response?.data?.detail || e.message));
+      alert("Ошибка удаления: " + getApiErrorMessage(e, "Не удалось удалить группу"));
     }
   };
 
@@ -329,6 +331,7 @@ export default function AmenitiesPage() {
         <div>
           <h2 style={{ margin: "0 0 2px", fontSize: 24, fontWeight: 800, color: "#1a1a2e" }}>Список удобств</h2>
           <p style={{ margin: "0 0 2px", fontSize: 13, color: "#64748b" }}>Создавайте группы и списки удобств для пространств</p>
+          {pageError ? <div style={{ color: "#dc2626", marginTop: 10, fontSize: 13, fontWeight: 700 }}>{pageError}</div> : null}
           <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
             {[
               { label: "Групп", val: groups.length },

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
-import axios from "axios";
+import api, { getApiErrorMessage, isRequestCanceled } from "../api/client.js";
 import { sendClientAction } from "../socket.js";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import BottomSheet from "./ui/BottomSheet.jsx";
 import { propertyCards } from "../data/content.js";
+import { getPlacePriceValues } from "../utils/placePricing.js";
+import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import "./FilterPage.css";
 import "./ListingsSection.css";
 
@@ -79,10 +81,89 @@ function SortDropdown({ selected, onSelect }) {
   );
 }
 
-const locationOptions = [...new Set(propertyCards.map((item) => item.location))];
 const priceOptions = ["Byudjet < 500 000 so'm", "500 000-2 000 000 so'm", "2 000 000-8 000 000 so'm", "8 000 000+ so'm"];
 const capacityOptions = ["1-5 kishi", "6-12 kishi", "13-24 kishi", "25+ kishi"];
 const extraOptions = ["Tavsiya etilgan", "Katta maydon", "Kichik jamoa uchun"];
+const MAX_PRICE_LIMIT = 10000000;
+const CAPACITY_MIN_BY_OPTION = {
+  "1-5 kishi": 1,
+  "6-12 kishi": 6,
+  "13-24 kishi": 13,
+  "25+ kishi": 25
+};
+const EXTRA_AMENITY_SLUGS = {
+  "Mebel bor": "furniture",
+  "Internet bor": "wifi",
+  "Avtoturargoh": "parking",
+  "Wi-Fi": "wifi",
+  "Printer": "printer",
+  "Kofe burchagi": "coffee_tea",
+  "Proyektor": "projector",
+  "Mikrofon": "microphone",
+  "Keytering": "catering",
+  "Vitrina bor": "storefront",
+  "Mebellanmagan": "unfurnished",
+  "Qisman mebellanmagan": "partly_furnished",
+  "To'liq mebellanmagan": "furnished",
+};
+
+function useDebouncedValue(value, delay = 350) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+function getAmenityLabel(amenity) {
+  return amenity?.name_ru || amenity?.name_uz || amenity?.name_en || amenity?.slug || "";
+}
+
+function getBackendMinPeople(filters) {
+  if (filters.exactCapacity > 0) return filters.exactCapacity;
+  const selectedMins = filters.capacity
+    .map((option) => CAPACITY_MIN_BY_OPTION[option])
+    .filter(Boolean);
+  return selectedMins.length ? Math.min(...selectedMins) : null;
+}
+
+function buildPlaceFilterParams({ filters, selectedCategory, selectedSubCat, amenitySlugByLabel }) {
+  const params = new URLSearchParams();
+  const search = filters.search.trim();
+  if (search) params.set("search", search);
+  if (selectedCategory) params.set("category", selectedCategory);
+  if (selectedSubCat) params.set("subcategory", selectedSubCat);
+
+  filters.location.forEach((location) => {
+    if (location) params.append("location", location);
+  });
+
+  const minPeople = getBackendMinPeople(filters);
+  if (minPeople) params.set("min_people", String(minPeople));
+
+  if (filters.price.length === 2) {
+    params.set("min_price", String(filters.price[0]));
+    if (filters.price[1] < MAX_PRICE_LIMIT) {
+      params.set("max_price", String(filters.price[1]));
+    }
+  }
+
+  const amenitySlugs = [...new Set([
+    ...filters.amenities.map((label) => amenitySlugByLabel[label] || label),
+    ...filters.extra.map((label) => amenitySlugByLabel[label] || EXTRA_AMENITY_SLUGS[label]),
+  ].filter(Boolean))];
+  if (amenitySlugs.length) params.set("amenities", amenitySlugs.join(","));
+
+  if (filters.extra.includes("Tavsiya etilgan")) {
+    params.set("promoted", "true");
+  }
+
+  return params;
+}
+
 const durationOptions = [
   {
     id: "soatlik", label: "Soatlik",
@@ -578,24 +659,53 @@ function ProductSkeletonGrid() {
 
 export default function FilterPage({ userState, setUserState }) {
   const [categories, setCategories] = useState([]);
-  const [allAmenities, setAllAmenities] = useState([]);
+  const [allAmenityParams, setAllAmenityParams] = useState([]);
+  const [lookupError, setLookupError] = useState("");
+  const allAmenities = useMemo(
+    () => allAmenityParams.map(getAmenityLabel).filter(Boolean),
+    [allAmenityParams]
+  );
+  const amenitySlugByLabel = useMemo(() => {
+    return allAmenityParams.reduce((acc, amenity) => {
+      const slug = amenity.slug || getAmenityLabel(amenity);
+      [amenity.name_ru, amenity.name_uz, amenity.name_en, amenity.slug]
+        .filter(Boolean)
+        .forEach((label) => {
+          acc[label] = slug;
+        });
+      return acc;
+    }, {});
+  }, [allAmenityParams]);
   
   useEffect(() => {
-    axios.get('http://localhost:8000/api/categories/')
-      .then(res => setCategories(res.data?.results || res.data || []))
-      .catch(console.error);
+    const controller = new AbortController();
+    const requestConfig = { skipAuth: true, signal: controller.signal };
 
-    axios.get('http://localhost:8000/api/parameter-groups/')
+    api.get('/api/categories/', requestConfig)
+      .then(res => {
+        setCategories(res.data?.results || res.data || []);
+        setLookupError("");
+      })
+      .catch((err) => {
+        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, "Не удалось загрузить категории."));
+      });
+
+    api.get('/api/parameter-groups/', requestConfig)
       .then(res => {
          const groups = res.data?.results || res.data || [];
          const amenityGroups = groups.filter(g => g.slug.startsWith("amenit"));
-         const params = amenityGroups.flatMap(g => g.parameters.map(p => p.name_ru));
-         setAllAmenities(params);
+         const params = amenityGroups.flatMap(g => g.parameters || []);
+         setAllAmenityParams(params);
       })
-      .catch(console.error);
+      .catch((err) => {
+        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, "Не удалось загрузить фильтры удобств."));
+      });
+    return () => controller.abort();
   }, []);
 
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+  const [usingMockFallback, setUsingMockFallback] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [sortOption, setSortOption] = useState("Relevans");
   
@@ -603,34 +713,71 @@ export default function FilterPage({ userState, setUserState }) {
   const [selectedSubCat, setSelectedSubCat] = useState("");
   const [selectedDuration, setSelectedDuration] = useState("");
   const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
-  const [spaces, setSpaces] = useState(propertyCards);
+  const debouncedSearch = useDebouncedValue(filters.search, 350);
+  const [spaces, setSpaces] = useState([]);
+  const requestQuery = useMemo(() => {
+    const backendFilters = { ...filters, search: debouncedSearch };
+    return buildPlaceFilterParams({
+      filters: backendFilters,
+      selectedCategory,
+      selectedSubCat,
+      amenitySlugByLabel,
+    }).toString();
+  }, [
+    debouncedSearch,
+    filters.location,
+    filters.price,
+    filters.capacity,
+    filters.exactCapacity,
+    filters.extra,
+    filters.amenities,
+    selectedCategory,
+    selectedSubCat,
+    amenitySlugByLabel,
+  ]);
+  const searchDebouncing = filters.search !== debouncedSearch;
+  const locationOptions = useMemo(
+    () => [...new Set(spaces.map((item) => item.location).filter(Boolean))],
+    [spaces]
+  );
 
   // Reset subcategory when category changes
   useEffect(() => {
     setSelectedSubCat("");
   }, [selectedCategory]);
 
-  // Fetch spaces from API on mount
+  // Django is the source of truth for every filter it supports.
   useEffect(() => {
-    axios.get("http://localhost:8000/api/places/")
+    const controller = new AbortController();
+    const params = new URLSearchParams(requestQuery);
+    setLoading(true);
+
+    api.get("/api/places/", { params, skipAuth: true, signal: controller.signal })
       .then((res) => {
-        let results = res.data?.results || res.data || [];
-        if (results.length > 0) {
-          // Map backend place fields to frontend propertyCard properties if needed
-          const mappedSpaces = results.map(place => ({
-            ...place,
-            category: place.subcategory_info?.category?.name_ru || place.category,
-            categoryId: place.subcategory_info?.category?.id,
-            subcategoryId: place.subcategory_info?.id,
-            price: place.price || "0 so'm"
-          }));
-          setSpaces(mappedSpaces);
-        }
+        const mappedSpaces = getPlacesFromApiResponse(res.data).map((place, index) => normalizePlace(place, { index }));
+        setSpaces(mappedSpaces);
+        setApiError("");
+        setUsingMockFallback(false);
       })
       .catch((err) => {
-        console.warn("REST API orqali joylarni yuklab bo'lmadi, mock ma'lumotlar ishlatilmoqda:", err.message);
+        if (isRequestCanceled(err)) return;
+        const message = getApiErrorMessage(err, "Не удалось загрузить места.");
+        setApiError(message);
+        if (import.meta.env.DEV) {
+          // DEV-only offline source; production never replaces backend results with demo places.
+          setSpaces(propertyCards.map((place, index) => normalizePlace(place, { index })));
+          setUsingMockFallback(true);
+        } else {
+          setSpaces([]);
+          setUsingMockFallback(false);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
-  }, []);
+
+    return () => controller.abort();
+  }, [requestQuery]);
 
   // Send search action log to WebSocket server when filters change (debounced)
   useEffect(() => {
@@ -650,36 +797,67 @@ export default function FilterPage({ userState, setUserState }) {
     return () => clearTimeout(delayDebounce);
   }, [filters.search, filters.location, filters.price, selectedCategory, selectedSubCat]);
 
-  useEffect(() => {
-    setLoading(true);
-    const timer = window.setTimeout(() => setLoading(false), 520);
-    return () => window.clearTimeout(timer);
-  }, [filters, selectedCategory, selectedSubCat]);
-
   const filteredCards = useMemo(() => {
     return spaces.filter((item) => {
+      if (!usingMockFallback) {
+        // Django only has min_people, so range upper bounds remain a UI refinement.
+        if (filters.capacity.length) {
+          const count = Number(item.people || 0);
+          const matchesCapacityRange = filters.capacity.some((range) => {
+            if (range === "1-5 kishi") return count <= 5;
+            if (range === "6-12 kishi") return count >= 6 && count <= 12;
+            if (range === "13-24 kishi") return count >= 13 && count <= 24;
+            if (range === "25+ kishi") return count >= 25;
+            return false;
+          });
+          if (!matchesCapacityRange) return false;
+        }
+
+        const clientOnlyExtras = filters.extra.filter((option) => (
+          option === "Katta maydon"
+          || option === "Kichik jamoa uchun"
+          || option === "1-qavat"
+        ));
+        if (clientOnlyExtras.length) {
+          const matchesRefinements = clientOnlyExtras.every((option) => {
+            if (option === "Katta maydon") return Number(item.area || 0) >= 100;
+            if (option === "Kichik jamoa uchun") return Number(item.people || 0) <= 12;
+            if (option === "1-qavat") return Number(item.characteristics?.floor ?? item.floor) === 1;
+            return true;
+          });
+          if (!matchesRefinements) return false;
+        }
+
+        return true;
+      }
+
+      // Full client filtering is reserved for the explicit DEV offline fallback.
       const searchTerm = filters.search.trim().toLowerCase();
       if (searchTerm) {
         const itemTitle = item.title || item.name || "";
         const itemCategory = item.category || item.type || "";
-        const matchText = [itemTitle, item.location, itemCategory, item.price].join(" ").toLowerCase();
+        const matchText = [itemTitle, item.location, itemCategory, item.price, item.description_ru, item.description_uz].join(" ").toLowerCase();
         if (!matchText.includes(searchTerm)) return false;
       }
 
       // Category filter (using Django ID)
       if (selectedCategory) {
-        if (item.categoryId !== selectedCategory) return false;
+        if (String(item.categoryId) !== String(selectedCategory)) return false;
       }
       
       // SubCategory filter (using Django ID)
       if (selectedSubCat) {
-        if (item.subcategoryId !== selectedSubCat) return false;
+        if (String(item.subcategoryId) !== String(selectedSubCat)) return false;
       }
 
-      if (filters.location.length && !filters.location.includes(item.location)) return false;
+      if (filters.location.length) {
+        const itemLocation = String(item.location || "").toLowerCase();
+        const matchesLocation = filters.location.some((location) => itemLocation.includes(String(location).toLowerCase()));
+        if (!matchesLocation) return false;
+      }
 
       if (filters.capacity.length || filters.exactCapacity > 0) {
-        const count = item.people;
+        const count = Number(item.people || 0);
         const matchesExact = filters.exactCapacity > 0 ? count >= filters.exactCapacity : true;
         
         let matchesCapacity = true;
@@ -695,24 +873,41 @@ export default function FilterPage({ userState, setUserState }) {
         if (!matchesExact || !matchesCapacity) return false;
       }
       if (filters.extra.length) {
-        const matchesExtra = filters.extra.some((option) => {
+        const itemAmenities = Array.isArray(item.amenities)
+          ? item.amenities.map((amenity) => String(amenity).toLowerCase())
+          : [];
+        const matchesExtra = filters.extra.every((option) => {
           if (option === "Tavsiya etilgan") return Boolean(item.promoted);
           if (option === "Katta maydon") return item.area >= 100;
           if (option === "Kichik jamoa uchun") return item.people <= 12;
-          return false;
+          if (option === "1-qavat") return Number(item.characteristics?.floor ?? item.floor) === 1;
+          const amenitySlug = amenitySlugByLabel[option] || EXTRA_AMENITY_SLUGS[option];
+          return amenitySlug ? itemAmenities.includes(String(amenitySlug).toLowerCase()) : true;
         });
         if (!matchesExtra) return false;
       }
+      if (filters.amenities.length) {
+        const selectedAmenitySlugs = filters.amenities
+          .map((label) => amenitySlugByLabel[label] || label)
+          .map((slug) => String(slug).toLowerCase());
+        const itemAmenities = Array.isArray(item.amenities)
+          ? item.amenities.map((amenity) => String(amenity).toLowerCase())
+          : [];
+        if (!selectedAmenitySlugs.every((slug) => itemAmenities.includes(slug))) return false;
+      }
       if (filters.price.length === 2) {
-        const priceValue = Number(item.price.replace(/\D/g, ""));
         const minPrice = filters.price[0];
         const maxPrice = filters.price[1];
-        if (priceValue < minPrice) return false;
-        if (maxPrice < 10000000 && priceValue > maxPrice) return false;
+        const priceValues = getPlacePriceValues(item);
+        if (priceValues.length === 0) return false;
+        const matchesPrice = priceValues.some((priceValue) => (
+          priceValue >= minPrice && (maxPrice >= MAX_PRICE_LIMIT || priceValue <= maxPrice)
+        ));
+        if (!matchesPrice) return false;
       }
       return true;
     });
-  }, [filters, spaces, selectedCategory, selectedSubCat]);
+  }, [filters, spaces, selectedCategory, selectedSubCat, amenitySlugByLabel, usingMockFallback]);
 
   const clearFilters = () => {
     setFilters({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
@@ -732,9 +927,13 @@ export default function FilterPage({ userState, setUserState }) {
 
 
   // Category-specific extra options (add to the "extra" filter)
-  const activeExtraOptions = selectedCategory
-    ? [...extraOptions, ...(CATEGORY_EXTRA_OPTIONS[selectedCategory] || [])]
+  const selectedCategorySlug = categories.find((category) => (
+    String(category.id) === String(selectedCategory)
+  ))?.slug || "";
+  const activeExtraOptions = selectedCategorySlug
+    ? [...extraOptions, ...(CATEGORY_EXTRA_OPTIONS[selectedCategorySlug] || [])]
     : extraOptions;
+  const resultsLoading = loading || searchDebouncing;
 
   return (
     <main className="filter-shell">
@@ -819,7 +1018,10 @@ export default function FilterPage({ userState, setUserState }) {
 
       <section className="filter-results">
         <div className="results-top">
-          <p>{loading ? "Загрузка..." : `${filteredCards.length} ta natija topildi`}</p>
+          <p>
+            {resultsLoading ? "Загрузка..." : `${filteredCards.length} ta natija topildi`}
+            {usingMockFallback ? <span style={{ marginLeft: 8, fontSize: 12, color: "#dc2626" }}>DEV fallback</span> : null}
+          </p>
           <div className="results-actions">
             <button type="button" className="rt-icon-btn" onClick={() => setViewMode(v => v === "list" ? "grid" : "list")}>
               {viewMode === "list" ? (
@@ -840,13 +1042,24 @@ export default function FilterPage({ userState, setUserState }) {
             <SortDropdown selected={sortOption} onSelect={setSortOption} />
           </div>
         </div>
-        {loading ? (
+        {(apiError || lookupError) ? (
+          <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
+            {apiError || lookupError}
+          </div>
+        ) : null}
+        {resultsLoading ? (
           <ProductSkeletonGrid />
         ) : (
           <div className={`property-grid ${viewMode === "list" ? "is-list-view" : ""}`}>
-            {filteredCards.map((item, index) => (
-              <PropertyCard key={item.title} item={item} index={index} selectedDuration={selectedDuration} viewMode={viewMode} />
-            ))}
+            {filteredCards.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", padding: "38px 16px", textAlign: "center", color: "#64748b", fontWeight: 700 }}>
+                Ничего не найдено
+              </div>
+            ) : (
+              filteredCards.map((item, index) => (
+                <PropertyCard key={item.id || item.title} item={item} index={index} selectedDuration={selectedDuration} viewMode={viewMode} />
+              ))
+            )}
           </div>
         )}
       </section>

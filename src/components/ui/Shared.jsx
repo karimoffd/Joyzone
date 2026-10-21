@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { getStorageItem, getStoredLanguage, setStorageItem, setStoredLanguage, STORAGE_KEYS } from "../../utils/storageKeys.js";
 
 export function Logo() {
   return (
@@ -70,7 +71,7 @@ export function NoteIcon({ filled = false }) {
 export function LangButton() {
   const getInitialLanguage = () => {
     try {
-      return localStorage.getItem("joyzone-language") || "UZ";
+      return getStoredLanguage("uz").toUpperCase();
     } catch (error) {
       return "UZ";
     }
@@ -101,7 +102,7 @@ export function LangButton() {
   const chooseLanguage = (code) => {
     setLanguage(code);
     try {
-      localStorage.setItem("joyzone-language", code);
+      setStoredLanguage(code);
     } catch (error) {
       // The control still works if storage is unavailable.
     }
@@ -176,8 +177,8 @@ export function useUserState() {
   const readState = () => {
     try {
       return {
-        isAuthed: localStorage.getItem("joyzone-auth") === "true",
-        isPartner: localStorage.getItem("joyzone-role") === "partner"
+        isAuthed: Boolean(getStorageItem(STORAGE_KEYS.auth.access)),
+        isPartner: getStorageItem(STORAGE_KEYS.profile.role) === "partner"
       };
     } catch (error) {
       return { isAuthed: false, isPartner: false };
@@ -189,8 +190,8 @@ export function useUserState() {
   const updateState = (nextState) => {
     setState(nextState);
     try {
-      localStorage.setItem("joyzone-auth", nextState.isAuthed ? "true" : "false");
-      localStorage.setItem("joyzone-role", nextState.isPartner ? "partner" : "client");
+      setStorageItem(STORAGE_KEYS.auth.authenticated, nextState.isAuthed ? "true" : "false");
+      setStorageItem(STORAGE_KEYS.profile.role, nextState.isPartner ? "partner" : "client");
     } catch (error) {
       // UI still updates if storage is not available.
     }

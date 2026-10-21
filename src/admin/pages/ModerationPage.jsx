@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
 
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -200,9 +200,11 @@ const styles = `
 
 /* Place Detail Modal */
 .detail-modal {
-  max-width: 800px;
+  max-width: 980px;
   width: 90%;
   padding: 28px;
+  max-height: 92vh;
+  overflow-y: auto;
 }
 .detail-modal-header {
   display: flex;
@@ -283,6 +285,10 @@ const styles = `
 .detail-modal-amenities {
   margin-top: 20px;
 }
+.detail-modal-section {
+  margin-top: 18px;
+}
+.detail-modal-section h4,
 .detail-modal-amenities h4 {
   margin: 0 0 8px;
   font-size: 13px;
@@ -290,18 +296,36 @@ const styles = `
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.detail-modal-amenity-tags {
+.detail-modal-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 }
-.detail-modal-amenity-tag {
+.detail-modal-tag {
   font-size: 11px;
   background: #f1f5f9;
   padding: 4px 10px;
   border-radius: 6px;
   color: #475569;
   font-weight: 600;
+}
+.detail-modal-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.detail-modal-kv div {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  font-size: 12px;
+}
+.detail-modal-kv span {
+  display: block;
+  color: #64748b;
+  font-weight: 700;
+  margin-bottom: 2px;
 }
 .detail-modal-desc {
   border-top: 1px solid #e2e8f0;
@@ -322,6 +346,71 @@ const styles = `
   cursor: pointer;
 }
 `;
+
+const priceLabels = {
+  price_hourly: 'Почасовая',
+  price_daily: 'Дневная',
+  price_weekly: 'Недельная',
+  price_monthly: 'Месячная',
+  soatlik: 'Почасовая',
+  hourly: 'Почасовая',
+  hour: 'Почасовая',
+  kunlik: 'Дневная',
+  daily: 'Дневная',
+  day: 'Дневная',
+  haftalik: 'Недельная',
+  weekly: 'Недельная',
+  week: 'Недельная',
+  oylik: 'Месячная',
+  monthly: 'Месячная',
+  month: 'Месячная',
+};
+
+function formatMoney(value, currency = 'UZS') {
+  if (value === null || value === undefined || value === '') return '';
+  const numeric = Number(value);
+  if (!Number.isNaN(numeric)) {
+    return `${new Intl.NumberFormat('ru-RU').format(numeric)} ${currency}`;
+  }
+  return String(value);
+}
+
+function getPriceDetails(place = {}) {
+  const rows = [];
+  ['price_hourly', 'price_daily', 'price_weekly', 'price_monthly'].forEach((key) => {
+    if (place[key] !== null && place[key] !== undefined && place[key] !== '') {
+      rows.push({ label: priceLabels[key], value: formatMoney(place[key], place.currency || 'UZS') });
+    }
+  });
+  if (place.prices && typeof place.prices === 'object' && !Array.isArray(place.prices)) {
+    Object.entries(place.prices).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        rows.push({ label: priceLabels[key] || key, value: formatMoney(value, place.currency || 'UZS') });
+      }
+    });
+  }
+  if (rows.length === 0 && place.price) {
+    rows.push({ label: 'Основная', value: place.price });
+  }
+  return rows;
+}
+
+function getObjectEntries(value = {}) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value).filter(([, item]) => item !== null && item !== undefined && item !== '');
+}
+
+function getAmenityItems(place = {}, allParameters = []) {
+  const amenitySlugs = Array.isArray(place.amenities) ? place.amenities : [];
+  const bySlug = new Map(allParameters.map((param) => [param.slug, param]));
+  return amenitySlugs.map((slug) => {
+    const param = bySlug.get(slug);
+    return {
+      slug,
+      label: param?.name_ru || param?.name_uz || param?.name_en || slug,
+    };
+  });
+}
 
 function RejectModal({ place, onConfirm, onCancel }) {
   const [note, setNote] = useState('');
@@ -347,13 +436,13 @@ function RejectModal({ place, onConfirm, onCancel }) {
 function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allParameters = [] }) {
   const [activeImage, setActiveImage] = useState(place.images?.[0] || '');
 
-  const selectedAmenities = React.useMemo(() => {
-    if (!place.amenities || !Array.isArray(place.amenities)) return [];
-    if (allParameters.length > 0) {
-      return allParameters.filter(p => p.type === 'boolean' && place.amenities.includes(p.slug));
-    }
-    return [];
-  }, [place.amenities, allParameters]);
+  const selectedAmenities = React.useMemo(
+    () => getAmenityItems(place, allParameters),
+    [place, allParameters]
+  );
+  const priceDetails = React.useMemo(() => getPriceDetails(place), [place]);
+  const characteristicRows = React.useMemo(() => getObjectEntries(place.characteristics), [place.characteristics]);
+  const moderationLogs = Array.isArray(place.moderation_logs) ? place.moderation_logs : [];
 
   return (
     <div className="mod-modal-overlay">
@@ -369,7 +458,13 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
           {/* Photos */}
           <div>
             <div className="detail-modal-main-img">
-              <img src={activeImage} alt={place.title} />
+              {activeImage ? (
+                <img src={activeImage} alt={place.title} />
+              ) : (
+                <div style={{ height: '100%', display: 'grid', placeItems: 'center', color: '#94a3b8', fontWeight: 700 }}>
+                  Нет фото
+                </div>
+              )}
             </div>
             {place.images && place.images.length > 1 && (
               <div className="detail-modal-thumbs">
@@ -402,7 +497,15 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
                 </div>
                 <div className="detail-modal-grid-item">
                   <span className="label">Владелец:</span>
-                  <span>{place.owner_info?.first_name ? `${place.owner_info.first_name} ${place.owner_info.last_name}` : (place.owner_name || 'Неизвестно')}</span>
+                  <span>{place.owner_name || 'Неизвестно'} {place.owner ? `#${place.owner}` : ''}</span>
+                </div>
+                <div className="detail-modal-grid-item">
+                  <span className="label">Телефон:</span>
+                  <span>{place.owner_phone || 'Не указан'}</span>
+                </div>
+                <div className="detail-modal-grid-item">
+                  <span className="label">Email:</span>
+                  <span>{place.owner_email || 'Не указан'}</span>
                 </div>
                 <div className="detail-modal-grid-item">
                   <span className="label">Адрес:</span>
@@ -424,17 +527,45 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
 
               <div className="detail-modal-amenities">
                 <h4>Удобства и Оборудование</h4>
-                <div className="detail-modal-amenity-tags">
+                <div className="detail-modal-tags">
                   {selectedAmenities.length === 0 ? (
                     <span style={{ color: "#94a3b8", fontSize: "12px" }}>Не указаны</span>
                   ) : (
                     selectedAmenities.map(a => (
-                      <span key={a.slug} className="detail-modal-amenity-tag">
-                        {a.name_ru || a.name_uz || a.slug}
+                      <span key={a.slug} className="detail-modal-tag">
+                        {a.label}
                       </span>
                     ))
                   )}
                 </div>
+              </div>
+
+              <div className="detail-modal-section">
+                <h4>Цены</h4>
+                <div className="detail-modal-kv">
+                  {priceDetails.map((row, index) => (
+                    <div key={`${row.label}-${index}`}>
+                      <span>{row.label}</span>
+                      {row.value}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="detail-modal-section">
+                <h4>Характеристики</h4>
+                {characteristicRows.length === 0 ? (
+                  <span style={{ color: "#94a3b8", fontSize: "12px" }}>Не указаны</span>
+                ) : (
+                  <div className="detail-modal-kv">
+                    {characteristicRows.map(([key, value]) => (
+                      <div key={key}>
+                        <span>{key}</span>
+                        {String(value)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -462,6 +593,21 @@ function PlaceDetailModal({ place, onClose, onApprove, onReject, activeTab, allP
         <div className="detail-modal-desc">
           <strong>Описание:</strong> {place.description_ru || place.description_uz || place.description_en || 'Описание отсутствует.'}
         </div>
+
+        {moderationLogs.length > 0 && (
+          <div className="detail-modal-section">
+            <h4>История модерации</h4>
+            <div className="detail-modal-kv">
+              {moderationLogs.slice(0, 4).map((log) => (
+                <div key={log.id}>
+                  <span>{log.action} · {log.actor_name || 'system'}</span>
+                  {log.from_status || '-'} → {log.to_status || '-'}
+                  {log.note ? ` · ${log.note}` : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -475,25 +621,27 @@ export default function ModerationPage() {
   const [detailTarget, setDetailTarget] = useState(null);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const [allParameters, setAllParameters] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:8000/api/parameters/")
+    api.get("/api/parameters/")
       .then(res => setAllParameters(res.data?.results || res.data || []))
       .catch(err => console.log("Failed to load parameters:", err));
   }, []);
 
   const getHeaders = () => {
-    const t = localStorage.getItem('joyzone-access');
+    const t = getAccessToken();
     return t ? { Authorization: `Bearer ${t}` } : {};
   };
 
   const fetchPlaces = async (status) => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8000/api/places/?status=${status}`, { headers: getHeaders() });
+      const res = await api.get(`/api/places/?status=${status}`, { headers: getHeaders() });
       setPlaces(res.data?.results || res.data || []);
+      setError("");
     } catch (e) {
-      console.error(e);
+      setError(getApiErrorMessage(e, "Не удалось загрузить места для модерации"));
     }
     setLoading(false);
   };
@@ -502,9 +650,9 @@ export default function ModerationPage() {
     try {
       const hdrs = getHeaders();
       const [p, a, r] = await Promise.all([
-        axios.get('http://localhost:8000/api/places/?status=pending', { headers: hdrs }),
-        axios.get('http://localhost:8000/api/places/?status=approved', { headers: hdrs }),
-        axios.get('http://localhost:8000/api/places/?status=rejected', { headers: hdrs }),
+        api.get('/api/places/?status=pending', { headers: hdrs }),
+        api.get('/api/places/?status=approved', { headers: hdrs }),
+        api.get('/api/places/?status=rejected', { headers: hdrs }),
       ]);
       const count = d => (d.data?.count ?? (d.data?.results ?? d.data)?.length ?? 0);
       setStats({ pending: count(p), approved: count(a), rejected: count(r) });
@@ -518,23 +666,23 @@ export default function ModerationPage() {
 
   const handleApprove = async (placeId) => {
     try {
-      await axios.post(`http://localhost:8000/api/places/${placeId}/approve/`, {}, { headers: getHeaders() });
+      await api.post(`/api/places/${placeId}/approve/`, {}, { headers: getHeaders() });
       fetchPlaces(activeTab);
       fetchStats();
     } catch (e) {
-      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message;
+      const errMsg = getApiErrorMessage(e, "Не удалось одобрить место");
       alert(`Ошибка при одобрении: ${errMsg}`);
     }
   };
 
   const handleReject = async (note) => {
     try {
-      await axios.post(`http://localhost:8000/api/places/${rejectTarget.id}/reject/`, { note }, { headers: getHeaders() });
+      await api.post(`/api/places/${rejectTarget.id}/reject/`, { note }, { headers: getHeaders() });
       setRejectTarget(null);
       fetchPlaces(activeTab);
       fetchStats();
     } catch (e) {
-      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message;
+      const errMsg = getApiErrorMessage(e, "Не удалось отклонить место");
       alert(`Ошибка при отклонении: ${errMsg}`);
     }
   };
@@ -573,6 +721,12 @@ export default function ModerationPage() {
           <div className="stat-chip"><strong>{stats.pending + stats.approved + stats.rejected}</strong>Всего</div>
         </div>
 
+        {error ? (
+          <div style={{ margin: "0 0 16px", padding: "12px 14px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontWeight: 700 }}>
+            {error}
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="mod-empty">Загрузка...</div>
         ) : places.length === 0 ? (
@@ -586,7 +740,7 @@ export default function ModerationPage() {
         ) : (
           <div className="mod-list">
             {places.map(place => (
-              <div key={place.id} className="mod-card">
+              <div key={place.id} data-testid={`moderation-place-${place.id}`} className="mod-card">
                 <div className={`mod-card-status status-${place.status}`} />
                 {place.images && place.images.length > 0 && (
                   <div className="mod-card-preview" onClick={() => setDetailTarget(place)} title="Посмотреть подробную информацию">
@@ -601,11 +755,14 @@ export default function ModerationPage() {
                   <div className="mod-card-meta-grid">
                     <div className="meta-item"><span className="meta-label">Категория:</span><span className="meta-val">{place.category_name}</span></div>
                     <div className="meta-item"><span className="meta-label">Подкатегория:</span><span className="meta-val">{place.subcategory_name || 'Не указана'}</span></div>
-                    <div className="meta-item"><span className="meta-label">Владелец:</span><span className="meta-val">{place.owner_name || 'Неизвестно'}</span></div>
+                    <div className="meta-item"><span className="meta-label">Владелец:</span><span className="meta-val">{place.owner_name || 'Неизвестно'} {place.owner_phone ? `· ${place.owner_phone}` : ''}</span></div>
                     <div className="meta-item"><span className="meta-label">Адрес:</span><span className="meta-val">{place.location}</span></div>
-                    <div className="meta-item"><span className="meta-label">Цена:</span><span className="meta-val">{place.price}</span></div>
+                    <div className="meta-item"><span className="meta-label">Цена:</span><span className="meta-val">{getPriceDetails(place).map(row => row.value).join(' / ') || place.price}</span></div>
                     <div className="meta-item"><span className="meta-label">Площадь:</span><span className="meta-val">{place.area} м²</span></div>
                     <div className="meta-item"><span className="meta-label">Вместимость:</span><span className="meta-val">{place.people} чел.</span></div>
+                    <div className="meta-item"><span className="meta-label">Фото:</span><span className="meta-val">{Array.isArray(place.images) ? place.images.length : 0}</span></div>
+                    <div className="meta-item"><span className="meta-label">Удобства:</span><span className="meta-val">{Array.isArray(place.amenities) ? place.amenities.length : 0}</span></div>
+                    <div className="meta-item"><span className="meta-label">Характеристики:</span><span className="meta-val">{getObjectEntries(place.characteristics).length}</span></div>
                   </div>
                   {place.moderator_note && (
                     <div className={`mod-card-note ${place.status}`}>
@@ -617,7 +774,7 @@ export default function ModerationPage() {
                 </div>
                 {activeTab === 'pending' && (
                   <div className="mod-actions">
-                    <button className="btn-approve" onClick={() => handleApprove(place.id)}>
+                    <button data-testid={`moderation-approve-${place.id}`} className="btn-approve" onClick={() => handleApprove(place.id)}>
                       ✓ Одобрить
                     </button>
                     <button className="btn-reject" onClick={() => setRejectTarget(place)}>

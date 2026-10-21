@@ -1,14 +1,9 @@
-import React, { useEffect, useState, createContext } from "react";
-import axios from "axios";
+import React, { useCallback, useEffect, useState } from "react";
+import api from "./api/client.js";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
-
-export const LanguageContext = createContext({
-  lang: 'uz',
-  setLang: () => {},
-  content: null,
-  isEditMode: false,
-});
+import { LanguageContext } from "./context/LanguageContext.jsx";
+import { mergeSiteContent } from "./utils/content.js";
 import FilterPage from "./components/FilterPage.jsx";
 import PartnerOnboarding from "./components/PartnerOnboarding.jsx";
 import JoySlider from "./components/JoySlider.jsx";
@@ -19,11 +14,10 @@ import AccountSettings from "./components/AccountSettings.jsx";
 import HostDashboard from "./components/HostDashboard.jsx";
 import CardVariants from "./components/CardVariants.jsx";
 import AdminDashboardIntegration from "../admin-dashboard-example/admin-integration.jsx";
-import AdminApp from "./admin/AdminApp.jsx";
+import AdminRouteGuard from "./admin/AdminRouteGuard.jsx";
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import MobileInfoPage from "./components/MobileInfoPage.jsx";
 import { AuthForm, LoginForm, ForgotPasswordForm, VerifyCodeForm } from "./components/AuthScreens.jsx";
-import { propertyCards } from "./data/content.js";
 import JoyLoader from "./components/JoyLoader.jsx";
 import BookingCheckout from "./components/BookingCheckout.jsx";
 import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
@@ -31,6 +25,19 @@ import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
 import { FloatingNotificationBell } from "./components/FloatingNotificationBell.jsx";
 import { DirectChatDrawer } from "./components/DirectChatDrawer.jsx";
 import { syncChatsWithBackend } from "./utils/chatManager.js";
+import { mergeAnonymousFavorites } from "./utils/favoritesManager.js";
+import { cacheProfile, profileToUserState } from "./utils/profileMapper.js";
+import {
+  clearAccountStorage,
+  getStorageItem,
+  getStoredLanguage,
+  readJsonStorage,
+  removeStorageItem,
+  setStorageItem,
+  setStoredLanguage,
+  STORAGE_KEYS,
+  writeJsonStorage,
+} from "./utils/storageKeys.js";
 import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
 
@@ -58,13 +65,13 @@ function useUserState() {
   const readState = () => {
     try {
       return {
-        isAuthed: localStorage.getItem("joyzone-auth") === "true",
-        isPartner: localStorage.getItem("joyzone-role") === "partner",
-        name: localStorage.getItem("joyzone-name") || "Mehmon",
-        email: localStorage.getItem("joyzone-email") || "",
-        phone: localStorage.getItem("joyzone-phone") || "",
-        avatar: localStorage.getItem("joyzone-avatar") || null,
-        activeBooking: JSON.parse(localStorage.getItem("joyzone-booking") || "null")
+        isAuthed: Boolean(getStorageItem(STORAGE_KEYS.auth.access)),
+        isPartner: getStorageItem(STORAGE_KEYS.profile.role) === "partner",
+        name: getStorageItem(STORAGE_KEYS.profile.name, "Mehmon"),
+        email: getStorageItem(STORAGE_KEYS.profile.email, ""),
+        phone: getStorageItem(STORAGE_KEYS.profile.phone, ""),
+        avatar: getStorageItem(STORAGE_KEYS.profile.avatar),
+        activeBooking: readJsonStorage(STORAGE_KEYS.booking.active)
       };
     } catch (error) {
       return { isAuthed: false, isPartner: false, name: "Mehmon", email: "", phone: "", avatar: null, activeBooking: null };
@@ -73,39 +80,128 @@ function useUserState() {
 
   const [state, setState] = useState(readState);
 
+  useEffect(() => {
+    const handleSessionExpired = () => setState(readState());
+    const handleProfileUpdate = (event) => {
+      const profile = event.detail;
+      if (!profile) return;
+      setState((current) => ({
+        ...current,
+        id: profile.id ?? current.id,
+        isAuthed: true,
+        isPartner: profile.role === "partner",
+        name: profile.full_name || profile.name || current.name,
+        email: profile.email || "",
+        phone: profile.phone_number || "",
+        avatar: profile.avatar || null,
+      }));
+    };
+    const handleStorage = (event) => {
+      const watchedKeys = new Set([
+        ...Object.values(STORAGE_KEYS.auth),
+        ...Object.values(STORAGE_KEYS.profile),
+        STORAGE_KEYS.booking.active,
+      ]);
+      if (!watchedKeys.has(event.key)) return;
+
+      const nextState = readState();
+      setState(nextState);
+      if (event.key === STORAGE_KEYS.auth.generation && !nextState.isAuthed) {
+        window.dispatchEvent(new CustomEvent("joyzone-session-expired", {
+          detail: { reason: "remote_logout" },
+        }));
+        const protectedRoute = /^(#(?:profile|profile-edit|settings|book-|host-|admin))/.test(
+          window.location.hash || ""
+        );
+        if (protectedRoute) window.location.hash = "#login";
+      }
+    };
+    window.addEventListener("joyzone-session-expired", handleSessionExpired);
+    window.addEventListener("joyzone-profile-update", handleProfileUpdate);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("joyzone-session-expired", handleSessionExpired);
+      window.removeEventListener("joyzone-profile-update", handleProfileUpdate);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   const updateState = (nextState) => {
     setState(nextState);
     try {
-      localStorage.setItem("joyzone-auth", nextState.isAuthed ? "true" : "false");
-      localStorage.setItem("joyzone-role", nextState.isPartner ? "partner" : "client");
       if (nextState.isAuthed) {
-        if (nextState.name) localStorage.setItem("joyzone-name", nextState.name);
-        if (nextState.email) localStorage.setItem("joyzone-email", nextState.email);
-        if (nextState.phone) localStorage.setItem("joyzone-phone", nextState.phone);
+        setStorageItem(STORAGE_KEYS.auth.authenticated, "true");
+        setStorageItem(STORAGE_KEYS.profile.role, nextState.isPartner ? "partner" : "client");
+        if (nextState.name) setStorageItem(STORAGE_KEYS.profile.name, nextState.name);
+        setStorageItem(STORAGE_KEYS.profile.email, nextState.email || "");
+        setStorageItem(STORAGE_KEYS.profile.phone, nextState.phone || "");
         if (nextState.avatar) {
-          localStorage.setItem("joyzone-avatar", nextState.avatar);
+          setStorageItem(STORAGE_KEYS.profile.avatar, nextState.avatar);
         } else if (nextState.avatar === null) {
-          localStorage.removeItem("joyzone-avatar");
+          removeStorageItem(STORAGE_KEYS.profile.avatar);
         }
       } else {
-        localStorage.removeItem("joyzone-name");
-        localStorage.removeItem("joyzone-email");
-        localStorage.removeItem("joyzone-phone");
-        localStorage.removeItem("joyzone-avatar");
-        localStorage.removeItem("joyzone-access");
-        localStorage.removeItem("joyzone-refresh");
+        clearAccountStorage();
       }
-      if (nextState.activeBooking) {
-        localStorage.setItem("joyzone-booking", JSON.stringify(nextState.activeBooking));
+      if (nextState.isAuthed && nextState.activeBooking) {
+        writeJsonStorage(STORAGE_KEYS.booking.active, nextState.activeBooking);
       } else {
-        localStorage.removeItem("joyzone-booking");
+        removeStorageItem(STORAGE_KEYS.booking.active);
       }
+      window.dispatchEvent(new Event("joyzone-auth-update"));
     } catch (error) {
       // UI still updates if storage is unavailable.
     }
   };
 
   return [state, updateState];
+}
+
+function SessionExpiredNotice({ message, onClose }) {
+  if (!message) return null;
+  return (
+    <div
+      role="status"
+      data-testid="session-notice"
+      style={{
+        position: "fixed",
+        left: "50%",
+        top: 18,
+        transform: "translateX(-50%)",
+        zIndex: 10000,
+        maxWidth: "calc(100vw - 32px)",
+        padding: "12px 16px",
+        borderRadius: 14,
+        background: "#fff7ed",
+        color: "#9a3412",
+        boxShadow: "0 18px 60px rgba(15, 23, 42, 0.18)",
+        border: "1px solid rgba(234, 88, 12, 0.22)",
+        fontSize: 14,
+        fontWeight: 800,
+        display: "flex",
+        alignItems: "center",
+        gap: 12
+      }}
+    >
+      <span>{message}</span>
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          border: 0,
+          background: "transparent",
+          color: "#9a3412",
+          cursor: "pointer",
+          fontWeight: 900,
+          fontSize: 16,
+          lineHeight: 1
+        }}
+        aria-label="Закрыть сообщение"
+      >
+        ×
+      </button>
+    </div>
+  );
 }
 
 function AppContent() {
@@ -227,15 +323,14 @@ function AppContent() {
   }, [displayedRoute, bootLoading]);
 
   useEffect(() => {
-    const token = localStorage.getItem("joyzone-access");
+    const token = getStorageItem(STORAGE_KEYS.auth.access);
     if (token) {
-      fetch("/api/auth/profile/", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then((res) => (res.ok ? res.json() : null))
+      api.get("/api/auth/profile/")
+        .then((res) => res.data)
         .then((profile) => {
           if (profile) {
-            handleAuthSuccess(profile);
+            const normalized = cacheProfile(profile);
+            setUserState(profileToUserState(normalized, userState));
           }
         })
         .catch((err) => console.warn("Failed to sync profile:", err));
@@ -243,32 +338,14 @@ function AppContent() {
   }, []);
 
   const handleAuthSuccess = (profile) => {
-    const fullName = profile?.first_name 
-      ? `${profile.first_name} ${profile.last_name || ""}`.trim() 
-      : (profile?.name || profile?.username || "Foydalanuvchi");
-    const phoneStr = profile?.phone_number || profile?.phone || profile?.username || "";
-    const emailStr = profile?.email || "";
-    const avatarStr = profile?.avatar || userState.avatar || null;
-
-    localStorage.setItem("joyzone-auth", "true");
-    localStorage.setItem("joyzone-name", fullName);
-    if (phoneStr) localStorage.setItem("joyzone-phone", phoneStr);
-    if (emailStr) localStorage.setItem("joyzone-email", emailStr);
-    if (avatarStr) localStorage.setItem("joyzone-avatar", avatarStr);
-
-    setUserState({ 
-      isAuthed: true, 
-      isPartner: profile?.role === "partner", 
-      name: fullName, 
-      email: emailStr,
-      phone: phoneStr,
-      avatar: avatarStr
-    });
+    const normalized = cacheProfile(profile);
+    setUserState(profileToUserState(normalized, userState));
+    mergeAnonymousFavorites().catch((err) => console.warn("Failed to merge favorites after login:", err));
     window.location.hash = "#home";
   };
 
   if (displayedRoute === "admin") {
-    return <AdminApp />;
+    return <AdminRouteGuard />;
   }
 
   if (displayedRoute === "home") {
@@ -367,7 +444,7 @@ function AppContent() {
     return (
       <>
         <div className="route-screen route-screen-settings app-route-shell">
-          <AccountSettings />
+          <AccountSettings userState={userState} setUserState={setUserState} />
         </div>
         <JoyLoader active={bootLoading} />
       </>
@@ -494,11 +571,14 @@ if (displayedRoute === "admin") {
 }
 
 export default function App() {
-  const [lang, setLang] = useState(localStorage.getItem('joyzone-lang') || 'uz');
+  const [lang, setLang] = useState(() => getStoredLanguage('uz'));
   const [content, setContent] = useState(defaultContent);
+  const [contentLoading, setContentLoading] = useState(true);
+  const [contentError, setContentError] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [placesLoaded, setPlacesLoaded] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [sessionMessage, setSessionMessage] = useState("");
 
   useEffect(() => {
     // Determine if we are inside an iframe
@@ -509,7 +589,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('joyzone-lang', lang);
+    setStoredLanguage(lang);
   }, [lang]);
 
   useEffect(() => {
@@ -517,44 +597,8 @@ export default function App() {
       setPlacesLoaded(true);
     }, 1200);
 
-    axios.get("http://localhost:8000/api/places/")
-      .then((res) => {
-        try {
-          const fetchedData = Array.isArray(res.data) ? res.data : (res.data?.results || []);
-          if (Array.isArray(fetchedData) && fetchedData.length > 0) {
-            const backendPlaces = fetchedData.map((place) => {
-              const priceStr = String(place?.price || "");
-              return {
-                id: place.id || Math.random(),
-                title: place.title || "Joyzone",
-                category: place.category || "Dacha",
-                location: place.location || "Toshkent",
-                price: place.price || "1,500,000 so'm/kun",
-                prices: {
-                  soatlik: priceStr.toLowerCase().includes("soat") ? priceStr : null,
-                  kunlik: priceStr.toLowerCase().includes("kun") ? priceStr : priceStr,
-                  haftalik: priceStr.toLowerCase().includes("hafta") ? priceStr : null,
-                  oylik: priceStr.toLowerCase().includes("oy") ? priceStr : null
-                },
-                people: place.people || 6,
-                area: place.area || 120,
-                images: Array.isArray(place.images) && place.images.length > 0 ? place.images : [
-                  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80"
-                ],
-                promoted: Boolean(place.promoted)
-              };
-            });
-            if (backendPlaces.length > 0) {
-              propertyCards.splice(0, propertyCards.length, ...backendPlaces);
-            }
-          }
-        } catch (e) {
-          console.error("Error parsing backend places:", e);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to fetch places", err);
-      })
+    api.get("/api/places/", { skipAuth: true })
+      .catch(() => undefined)
       .finally(() => {
         clearTimeout(safetyTimer);
         setPlacesLoaded(true);
@@ -563,26 +607,26 @@ export default function App() {
     return () => clearTimeout(safetyTimer);
   }, []);
 
-  useEffect(() => {
-    axios.get("http://localhost:8000/api/content/")
-      .then((res) => {
-        const fetched = res.data || {};
-        let dataToMerge = fetched;
-        if (fetched.data) dataToMerge = fetched.data;
-
-        const merged = { ...defaultContent };
-        ['uz', 'ru', 'en'].forEach(l => {
-          if (dataToMerge[l]) {
-            merged[l] = { ...merged[l], ...dataToMerge[l] };
-          }
-        });
-        setContent(merged);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch content", err);
-        setContent(defaultContent);
-      });
+  const loadSiteContent = useCallback(async () => {
+    setContentLoading(true);
+    try {
+      const response = await api.get("/api/content/", { skipAuth: true });
+      setContent(mergeSiteContent(response.data));
+      setContentError("");
+    } catch (error) {
+      console.error("Failed to fetch content", error);
+      setContent(mergeSiteContent());
+      setContentError("CMS content is unavailable; default content is shown.");
+    } finally {
+      setContentLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadSiteContent();
+    window.addEventListener("joyzone-content-updated", loadSiteContent);
+    return () => window.removeEventListener("joyzone-content-updated", loadSiteContent);
+  }, [loadSiteContent]);
 
   useEffect(() => {
     const handleMessage = (e) => {
@@ -592,12 +636,38 @@ export default function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  useEffect(() => {
+    let noticeTimer;
+    const showSessionMessage = (message) => {
+      window.clearTimeout(noticeTimer);
+      setSessionMessage(message);
+      noticeTimer = window.setTimeout(() => setSessionMessage(""), 6000);
+    };
+    const handleSessionExpired = () => {
+      showSessionMessage("Сессия истекла, войдите снова.");
+    };
+    const handleSessionError = (event) => {
+      showSessionMessage(
+        event.detail?.message
+        || "Не удалось обновить сессию. Проверьте соединение и повторите действие."
+      );
+    };
+    window.addEventListener("joyzone-session-expired", handleSessionExpired);
+    window.addEventListener("joyzone-session-error", handleSessionError);
+    return () => {
+      window.clearTimeout(noticeTimer);
+      window.removeEventListener("joyzone-session-expired", handleSessionExpired);
+      window.removeEventListener("joyzone-session-error", handleSessionError);
+    };
+  }, []);
+
   if (!placesLoaded) {
     return <JoyLoader active={true} />;
   }
 
   return (
-    <LanguageContext.Provider value={{ lang, setLang, content, isEditMode }}>
+    <LanguageContext.Provider value={{ lang, setLang, content, contentLoading, contentError, isEditMode }}>
+      <SessionExpiredNotice message={sessionMessage} onClose={() => setSessionMessage("")} />
       <AppContent />
       <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />
       <ChatNotificationToast onOpenChat={(id) => setActiveChatId(id)} />

@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
-import axios from "axios";
-import { LanguageContext } from "../App.jsx";
+import api, { getApiErrorMessage, logoutSession } from "../api/client.js";
+import { LanguageContext } from "../context/LanguageContext.jsx";
 import BottomSheet from "./ui/BottomSheet.jsx";
+import { getStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
@@ -17,6 +18,7 @@ function useIsMobile() {
 import JoySlider from "./JoySlider.jsx";
 import ListingsSection from "./ListingsSection.jsx";
 import { propertyCards } from "../data/content.js";
+import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import logoImage from "../assets/img/Logo.png";
 import kvIcon from "../assets/img/kv.svg";
 import "./HomeHero.css";
@@ -36,17 +38,6 @@ const dashboardNavLinks = [
   { href: "#host-messages", label: "Xabarlar" },
   { href: "#host-tariffs", label: "Tariflar" }
 ];
-
-
-// Sub-categories per main category
-const subCategories = {
-  barchasi: [],
-  ofis: ["Xususiy kabinet", "Open space", "Virtual ofis"],
-  kovorking: ["Belgilangan joy", "Erkin joy (hot desk)"],
-  zal: ["Konferensiya zali", "Trening / seminar zali", "Banket / tantana zali"],
-  tijorat: ["Do'kon / savdo", "Showroom", "Ombor"],
-  turarjoy: ["Kvartira", "Xona", "Uy / Kottej"]
-};
 
 
 function MenuIcon({ open = false }) {
@@ -186,7 +177,11 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
     gsap.fromTo(headerRef.current, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" });
   }, []);
 
-  const statusLabel = isDashboard ? "Home" : userState.isAuthed ? (userState.isPartner ? "Partner" : "Profil") : "Kirish";
+  const statusLabel = isDashboard
+    ? "Home"
+    : userState.isAuthed
+      ? (userState.isPartner ? "Partner" : (db.nav_profile || "Profil"))
+      : (db.nav_login || "Kirish");
   const statusHref = isDashboard ? "#home" : userState.isAuthed ? (userState.isPartner ? "#partner" : "#profile") : "#login";
 
   return (
@@ -350,7 +345,8 @@ const mobileQuickActions = [
 ];
 
 function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
-  const { lang, setLang } = useContext(LanguageContext);
+  const { lang, setLang, content } = useContext(LanguageContext);
+  const cms = content?.[lang] || {};
   const overlayRef = useRef(null);
   const bgRef = useRef(null);
   const tlRef = useRef(null);
@@ -364,12 +360,14 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
     setActiveSubmenuId(null);
     onClose();
   };
-  const handleLogout = () => {
-    setUserState({ isAuthed: false, isPartner: false });
-    localStorage.removeItem("joyzone-access");
-    localStorage.removeItem("joyzone-refresh");
+  const handleLogout = async () => {
     closeDrawer();
     window.location.hash = "login";
+    try {
+      await logoutSession();
+    } catch (error) {
+      console.warn("Backend session revocation failed during logout.", error);
+    }
   };
 
   useEffect(() => {
@@ -563,7 +561,7 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                     </div>
                   </div>
                   <a href={userState.isAuthed ? "#profile" : "#login"} className="menu-mobile-profile-link" onClick={closeDrawer}>
-                    {userState.isAuthed ? "Kabinet" : "Kirish"}
+                    {userState.isAuthed ? (cms.nav_profile || "Kabinet") : (cms.nav_login || "Kirish")}
                   </a>
                 </div>
 
@@ -643,8 +641,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                         )}
                       </div>
                       <div className="menu-user-details">
-                        <strong>{userState.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi"}</strong>
-                        <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || ""}</span>
+                        <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
+                        <span>{userState.phone || userState.email || getStorageItem(STORAGE_KEYS.profile.phone) || getStorageItem(STORAGE_KEYS.profile.email) || ""}</span>
                       </div>
                       <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                         <IconUser /> Profile ochish
@@ -661,8 +659,8 @@ function SideDrawer({ open, onClose, userState, setUserState, variant = "default
                           )}
                         </div>
                         <div className="menu-user-details">
-                          <strong>{userState.name || localStorage.getItem("joyzone-name") || "Foydalanuvchi"}</strong>
-                          <span>{userState.phone || userState.email || localStorage.getItem("joyzone-phone") || localStorage.getItem("joyzone-email") || ""}</span>
+                          <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
+                          <span>{userState.phone || userState.email || getStorageItem(STORAGE_KEYS.profile.phone) || getStorageItem(STORAGE_KEYS.profile.email) || ""}</span>
                         </div>
                         <a href="#profile" className="menu-user-profile-btn" onClick={closeDrawer}>
                           <IconUser /> Kabinetga o'tish
@@ -951,15 +949,25 @@ function PriceFilter() {
 }
 
 
-function Banner({ slides }) {
-  const [categories, setCategories] = useState([]);
-  useEffect(() => {
-    axios.get('http://localhost:8000/api/categories/')
-      .then(res => setCategories(res.data?.results || res.data || []))
-      .catch(console.error);
-  }, []);
-
-  const tabs = [{ id: "barchasi", label: "Barchasi" }, ...categories.map(c => ({ id: c.id, label: c.name_ru }))];
+function Banner({
+  slides,
+  categories = [],
+  categoriesLoading = false,
+  categoriesError = "",
+  locationPlaces = [],
+  placesLoading = false,
+  placesError = "",
+  usingDevLocationFallback = false,
+}) {
+  const { lang, content } = useContext(LanguageContext);
+  const categoryNameField = `name_${lang}`;
+  const tabs = [
+    { id: "barchasi", label: content?.[lang]?.tab_all || "Barchasi" },
+    ...categories.map((category) => ({
+      id: category.id,
+      label: category[categoryNameField] || category.name_uz || category.name_ru || category.name_en || category.slug,
+    })),
+  ];
 
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("barchasi");
@@ -982,8 +990,6 @@ function Banner({ slides }) {
   const [heroTitle, setHeroTitle] = useState("O'zbekiston bo'ylab\nqulay");
   const [heroSubtitle, setHeroSubtitle] = useState("Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab");
   const wordsRef = useRef(["ofislar", "kovorking", "zallar", "joylar"]);
-
-  const { lang, content } = useContext(LanguageContext);
 
   useEffect(() => {
     if (content && content[lang]) {
@@ -1078,7 +1084,7 @@ function Banner({ slides }) {
 
   const locationGroups = React.useMemo(() => {
     const groups = {};
-    propertyCards.forEach(item => {
+    locationPlaces.forEach(item => {
       if (!item.location) return;
       const parts = item.location.split(",").map(s => s.trim());
       const region = parts[0];
@@ -1095,7 +1101,7 @@ function Banner({ slides }) {
       if (!groups[r]) groups[r] = [];
     });
     return groups;
-  }, []);
+  }, [locationPlaces]);
 
   const [expandedRegion, setExpandedRegion] = useState(null);
 
@@ -1134,7 +1140,14 @@ function Banner({ slides }) {
                         {tab.label}
                       </button>
                     ))}
+                    {categoriesLoading ? (
+                      <>
+                        <span className="home-category-skeleton" aria-hidden="true" />
+                        <span className="home-category-skeleton" aria-hidden="true" />
+                      </>
+                    ) : null}
                   </div>
+                  {categoriesError ? <small className="home-data-error">{categoriesError}</small> : null}
 
                   {/* Sub-categories */}
                   {activeCategory?.subcategories && activeCategory.subcategories.length > 0 && (
@@ -1146,7 +1159,7 @@ function Banner({ slides }) {
                           className={`subcat-pill ${selectedSubCat === sub.id ? "active" : ""}`}
                           onClick={() => setSelectedSubCat(selectedSubCat === sub.id ? "" : sub.id)}
                         >
-                          {sub.name_ru}
+                          {sub[categoryNameField] || sub.name_uz || sub.name_ru || sub.name_en || sub.slug}
                           {selectedSubCat === sub.id && (
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
                           )}
@@ -1209,6 +1222,7 @@ function Banner({ slides }) {
                       <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
                         <img height="38" src={kvIcon} alt="" />
                         <span>{selectedLocation || "Manzilni tanlang"}</span>
+                        {usingDevLocationFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV</small> : null}
                       </div>
                       {isMobile ? (
                         <BottomSheet isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} title="Manzil">
@@ -1376,7 +1390,7 @@ function Banner({ slides }) {
                         </div>
                       )}
                     </div>
-                    <button className="search-btn btn-shine" type="button">Izlash</button>
+                    <button className="search-btn btn-shine" type="button">{content?.[lang]?.hero_cta || "Hozir boshlash"}</button>
                   </div>
                 </div>
               </div>
@@ -1384,16 +1398,24 @@ function Banner({ slides }) {
 
             <div className="col-lg-6">
               <div className="img-slider">
-                <JoySlider items={slides} interval={4600} />
+                {placesLoading ? (
+                  <div className="home-hero-media-skeleton" aria-label="Joylar yuklanmoqda" />
+                ) : slides.length > 0 ? (
+                  <JoySlider items={slides} interval={4600} />
+                ) : (
+                  <div className="home-hero-media-empty" role="status">
+                    {placesError || "Hozircha ko'rsatish uchun joylar yo'q."}
+                  </div>
+                )}
               </div>
               <div className="infoForReg">
                 <div className="info-text">
-                  <h2 className="title">Joyzone — bu faqat ijara emas.</h2>
+                  <h2 className="title">{content?.[lang]?.home_partner_title || "Joyzone — bu faqat ijara emas."}</h2>
                   <div className="desc">
-                    <p>Bu joyda siz o'zingizning ofisingiz, kovorkingingiz yoki joyingizni joylashtirishingiz mumkin.</p>
+                    <p>{content?.[lang]?.home_partner_text || "Bu joyda siz o'zingizning joyingizni joylashtirishingiz mumkin."}</p>
                   </div>
                 </div>
-                <a href="#partner-guide" className="btn info-btn btn-shine">Batafsil</a>
+                <a href="#partner-guide" className="btn info-btn btn-shine">{content?.[lang]?.home_partner_cta || "Batafsil"}</a>
               </div>
             </div>
           </div>
@@ -1404,6 +1426,92 @@ function Banner({ slides }) {
 }
 
 export default function HomeHero({ userState, setUserState, slides }) {
+  const { lang, content } = useContext(LanguageContext);
+  const [categories, setCategories] = useState([]);
+  const [homePlaces, setHomePlaces] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [placesLoading, setPlacesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
+  const [placesError, setPlacesError] = useState("");
+  const [usingDevFallback, setUsingDevFallback] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCategories = async () => {
+      try {
+        const response = await api.get("/api/categories/", { skipAuth: true });
+        if (cancelled) return;
+        const data = response.data?.results || response.data || [];
+        setCategories(Array.isArray(data) ? data : []);
+        setCategoriesError("");
+      } catch (error) {
+        if (!cancelled) {
+          setCategories([]);
+          setCategoriesError(getApiErrorMessage(error, "Kategoriyalarni yuklab bo'lmadi."));
+        }
+      } finally {
+        if (!cancelled) setCategoriesLoading(false);
+      }
+    };
+
+    const fetchApprovedPlaces = async (params) => {
+      const response = await api.get("/api/places/", { params, skipAuth: true });
+      return getPlacesFromApiResponse(response.data)
+        .map(normalizePlace)
+        .filter((place) => place.status === "approved");
+    };
+
+    const loadPlaces = async () => {
+      try {
+        let promotedPlaces;
+        try {
+          promotedPlaces = await fetchApprovedPlaces({ promoted: "true" });
+        } catch (promotedError) {
+          promotedPlaces = [];
+        }
+
+        const places = promotedPlaces.length > 0
+          ? promotedPlaces
+          : await fetchApprovedPlaces();
+        if (cancelled) return;
+        setHomePlaces(places);
+        setPlacesError("");
+        setUsingDevFallback(false);
+      } catch (error) {
+        if (cancelled) return;
+        setPlacesError(getApiErrorMessage(error, "Joyzone joylarini yuklab bo'lmadi."));
+        if (import.meta.env.DEV) {
+          // Demo places are available only when the backend request fails in development.
+          setHomePlaces(propertyCards.map((place) => normalizePlace({ ...place, status: "approved" })));
+          setUsingDevFallback(true);
+        } else {
+          setHomePlaces([]);
+          setUsingDevFallback(false);
+        }
+      } finally {
+        if (!cancelled) setPlacesLoading(false);
+      }
+    };
+
+    loadCategories();
+    loadPlaces();
+    return () => { cancelled = true; };
+  }, []);
+
+  const backendSlides = homePlaces
+    .filter((place) => Array.isArray(place.images) && place.images.length > 0)
+    .slice(0, 5)
+    .map((place) => ({
+      eyebrow: place.category_name || place.subcategory_name || "Joyzone",
+      title: place.title,
+      image: place.images[0],
+    }));
+  const heroSlides = backendSlides.length > 0
+    ? backendSlides
+    : (usingDevFallback ? slides : []);
+  const cms = content?.[lang] || {};
+
   useEffect(() => {
     gsap.fromTo(".joy-header > .container-fluid, .banner .img-slider", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.72, stagger: 0.06, ease: "power3.out" });
     gsap.fromTo(".banner .info, .infoForReg", { opacity: 0 }, { opacity: 1, duration: 0.72, ease: "power3.out" });
@@ -1496,9 +1604,20 @@ export default function HomeHero({ userState, setUserState, slides }) {
     <main className="home-shell">
       <Header userState={userState} setUserState={setUserState} activeIndex={0} />
       <div className="home-viewport">
-        <Banner slides={slides} />
+        <Banner
+          slides={heroSlides}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          categoriesError={categoriesError}
+          locationPlaces={homePlaces}
+          placesLoading={placesLoading}
+          placesError={placesError}
+          usingDevLocationFallback={usingDevFallback}
+        />
       </div>
-      <ListingsSection />
+      <ListingsSection
+        cms={cms}
+      />
     </main>
   );
 }

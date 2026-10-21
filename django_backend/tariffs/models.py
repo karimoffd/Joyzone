@@ -40,6 +40,7 @@ class TariffPlan(models.Model):
 class TariffSubscription(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('pending_payment', 'Pending payment'),
         ('active', 'Active'),
         ('expired', 'Expired'),
         ('cancelled', 'Cancelled'),

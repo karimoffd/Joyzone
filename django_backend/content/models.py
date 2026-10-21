@@ -4,6 +4,7 @@ class SiteContent(models.Model):
     key = models.CharField(max_length=255, unique=True, verbose_name="Ключ контента")
     value_ru = models.TextField(blank=True, verbose_name="Текст (RU)")
     value_uz = models.TextField(blank=True, verbose_name="Текст (UZ)")
+    value_en = models.TextField(blank=True, verbose_name="Text (EN)")
     
     def __str__(self):
         return self.key

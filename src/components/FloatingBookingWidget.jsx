@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { PropertyCard } from "./ListingsSection.jsx";
-import { propertyCards } from "../data/content.js";
+import { normalizePlace } from "../utils/placeMapper.js";
+import { normalizeBooking } from "../utils/bookingMapper.js";
 import "./FloatingBookingWidget.css";
 
 export default function FloatingBookingWidget({ activeBooking }) {
@@ -66,11 +67,12 @@ export default function FloatingBookingWidget({ activeBooking }) {
   }, [showDetails]);
 
   if (!activeBooking) return null;
+  const booking = normalizeBooking(activeBooking);
 
   // Clean date format
   const formattedDate = (() => {
     try {
-      const d = new Date(activeBooking.timestamp || Date.now());
+      const d = new Date(activeBooking.timestamp || booking.created_at || Date.now());
       const pad = (n) => String(n).padStart(2, "0");
       return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     } catch (e) {
@@ -79,14 +81,22 @@ export default function FloatingBookingWidget({ activeBooking }) {
   })();
 
   // Resolve defaults for missing fields
-  const totalVal = activeBooking.total || 250000;
-  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + " UZS";
-  const guestsCount = activeBooking.guests || 1;
-  const startDateVal = activeBooking.startDate || new Date().toISOString().split("T")[0];
-  const durationVal = activeBooking.duration || "1 kun";
+  const totalVal = booking.total || 250000;
+  const formattedTotal = new Intl.NumberFormat('ru-RU').format(totalVal) + ` ${booking.currency || "UZS"}`;
+  const guestsCount = booking.guests || 1;
+  const startDateVal = booking.startDate || booking.start_date || new Date().toISOString().split("T")[0];
+  const durationVal = activeBooking.duration || booking.durationLabel || "1 kun";
   const methodVal = activeBooking.method || "card";
 
-  const spaceItem = propertyCards.find(item => item.title === activeBooking.spaceTitle) || propertyCards[0];
+  const spaceItem = normalizePlace(booking.place_details || activeBooking.place || {
+    id: booking.placeId || "active-booking-place",
+    title: booking.placeTitle || "Joyzone",
+    location: activeBooking.location || "",
+    price: formattedTotal,
+    images: activeBooking.images || [],
+    people: booking.guests || 1,
+    area: activeBooking.area || 0,
+  });
 
   return (
     <div className={`floating-booking-widget ${showDetails ? 'expanded' : ''}`} ref={widgetRef}>
@@ -106,7 +116,7 @@ export default function FloatingBookingWidget({ activeBooking }) {
           <span className="fbw-mobile-dot" />
         </div>
         <div className="fbw-text">
-          <strong>Aktiv bron: {activeBooking.spaceTitle}</strong>
+          <strong>Aktiv bron: {booking.placeTitle}</strong>
           <span>Tafsilotlarni ko'rish...</span>
         </div>
         <button className="fbw-link-btn" type="button" aria-label="Batafsil">

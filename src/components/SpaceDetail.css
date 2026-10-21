@@ -233,6 +233,27 @@
   transform: translateY(-2px);
 }
 
+.sd-like:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.sd-favorite-error {
+  position: absolute;
+  top: 68px;
+  right: 16px;
+  z-index: 4;
+  max-width: min(260px, calc(100% - 32px));
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+  box-shadow: 0 10px 24px rgba(7, 20, 35, 0.18);
+}
+
 .sd-share {
   position: absolute;
   top: 16px;

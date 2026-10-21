@@ -1,7 +1,61 @@
+# Node / frontend
 node_modules/
 dist/
-.DS_Store
-.vscode/
-*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+env/
+django_backend/venv/
+
+# Local Django runtime data
+django_backend/db.sqlite3
+django_backend/db.sqlite3-*
+django_backend/media/
+django_backend/staticfiles/
+django_backend/check_db.json
+django_backend/out.json
+django_backend/.e2e/
+
+# Browser test artifacts
+playwright-report/
+test-results/
+
+# Local environment files
 .env
+.env.*
+!.env.example
+
+# Editor / OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temporary helper files
+*.log
+*.tmp
+*.bak
+*.orig
 scratch_*
+temp_*
+chunk.txt
+add_*.py
+fix_*.py
+refactor_*.py
+/script.js
+/seed_cats.py

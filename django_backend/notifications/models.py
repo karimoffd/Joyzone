@@ -8,6 +8,12 @@ class Notification(models.Model):
     and for admins/moderators about new pending submissions.
     """
     TYPE_CHOICES = (
+        ('booking_created', 'Booking Created'),
+        ('booking_paid', 'Booking Paid'),
+        ('booking_confirmed', 'Booking Confirmed'),
+        ('booking_cancelled', 'Booking Cancelled'),
+        ('booking_blocked', 'Booking Blocked'),
+        ('tariff_activated', 'Tariff Activated'),
         ('place_approved', 'Place Approved'),
         ('place_rejected', 'Place Rejected'),
         ('place_submitted', 'New Place Submitted'),
@@ -28,6 +34,8 @@ class Notification(models.Model):
 
     # Optional link back to the related place
     related_place_id = models.IntegerField(null=True, blank=True)
+    related_booking_id = models.IntegerField(null=True, blank=True)
+    related_tariff_subscription_id = models.IntegerField(null=True, blank=True)
 
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -44,11 +52,34 @@ class Notification(models.Model):
 
 class ChatThread(models.Model):
     thread_id = models.CharField(max_length=100, unique=True)
+    place = models.ForeignKey(
+        'places.Place',
+        on_delete=models.CASCADE,
+        related_name='chat_threads',
+        null=True,
+        blank=True,
+    )
+    guest = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='guest_chat_threads',
+        null=True,
+        blank=True,
+    )
+    host = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='host_chat_threads',
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
     host_name = models.CharField(max_length=255, default='Ega / Host')
     space_title = models.CharField(max_length=255)
     color = models.CharField(max_length=50, default='#e46630')
     unread = models.BooleanField(default=False)
+    last_read_by_guest = models.DateTimeField(null=True, blank=True)
+    last_read_by_host = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState, useContext } from "react";
-import { LanguageContext } from "../App.jsx";
+import { LanguageContext } from "../context/LanguageContext.jsx";
+import api, { getApiErrorMessage } from "../api/client.js";
+import { beginAuthSession } from "../utils/storageKeys.js";
 import { Logo, GoogleIcon, ChevronIcon, CheckIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
 
@@ -20,13 +22,13 @@ function AuthSubtitle({ children, centered = false }) {
   );
 }
 
-function TextInput({ placeholder, type = "text", autoComplete, value, onChange }) {
-  return <input className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder={placeholder} type={type} autoComplete={autoComplete} value={value} onChange={onChange} />;
+function TextInput({ placeholder, type = "text", autoComplete, value, onChange, ...inputProps }) {
+  return <input {...inputProps} className="form-field w-full rounded-[10px] px-4 text-[12px] font-semibold xl:rounded-[14px] xl:px-5 xl:text-[16px] min-[1400px]:px-6 min-[1400px]:text-[20px]" placeholder={placeholder} type={type} autoComplete={autoComplete} value={value} onChange={onChange} />;
 }
 
-function PrimaryButton({ children, type = "button", onClick }) {
+function PrimaryButton({ children, type = "button", onClick, ...buttonProps }) {
   return (
-    <button type={type} onClick={onClick} className="mt-2 h-[39px] w-full rounded-full bg-joyOrange text-[15px] font-extrabold text-white shadow-[0_15px_32px_rgba(228,102,48,0.25)] transition hover:-translate-y-0.5 hover:bg-[#d75d29] focus:outline-none focus:ring-4 focus:ring-joyOrange/25 xl:mt-3 xl:h-[48px] xl:text-[19px] min-[1400px]:h-[64px] min-[1400px]:text-[24px]">
+    <button {...buttonProps} type={type} onClick={onClick} className="mt-2 h-[39px] w-full rounded-full bg-joyOrange text-[15px] font-extrabold text-white shadow-[0_15px_32px_rgba(228,102,48,0.25)] transition hover:-translate-y-0.5 hover:bg-[#d75d29] focus:outline-none focus:ring-4 focus:ring-joyOrange/25 xl:mt-3 xl:h-[48px] xl:text-[19px] min-[1400px]:h-[64px] min-[1400px]:text-[24px]">
       {children}
     </button>
   );
@@ -94,6 +96,25 @@ export function AuthForm({ onSuccess }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [tokens, setTokens] = useState(null);
+  const [demoAvailable, setDemoAvailable] = useState(false);
+  const [demoAccount, setDemoAccount] = useState("");
+  const [demoPassword, setDemoPassword] = useState("");
+  const [demoError, setDemoError] = useState("");
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    api.get("/api/auth/demo-login/status/", { skipAuth: true })
+      .then((response) => {
+        if (mounted) setDemoAvailable(Boolean(response.data?.enabled));
+      })
+      .catch(() => {
+        if (mounted) setDemoAvailable(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const formatPhone = (val) => {
     if (!val) return "+";
@@ -140,12 +161,7 @@ export function AuthForm({ onSuccess }) {
     const cleanPhone = phone.replace(/\s+/g, "");
     if (cleanPhone.length < 11) return;
     try {
-      const res = await fetch("http://localhost:8000/api/auth/send-otp/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: cleanPhone })
-      });
-      if (!res.ok) throw new Error("Xato");
+      await api.post("/api/auth/send-otp/", { phone_number: cleanPhone }, { skipAuth: true });
       setStep("otp");
     } catch (err) {
       alert("Xatolik yuz berdi!");
@@ -190,16 +206,13 @@ export function AuthForm({ onSuccess }) {
     const cleanPhone = phone.replace(/\s+/g, "");
     if (otpString.length !== 6) return;
     try {
-      const res = await fetch("http://localhost:8000/api/auth/verify-otp/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone_number: cleanPhone, otp_code: otpString })
+      const res = await api.post("/api/auth/verify-otp/", { phone_number: cleanPhone, otp_code: otpString }, {
+        skipAuth: true,
+        sessionGuard: true,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xato");
+      const data = res.data;
       
-      localStorage.setItem("joyzone-access", data.access);
-      localStorage.setItem("joyzone-refresh", data.refresh);
+      beginAuthSession(data.access, data.refresh);
       
       if (data.is_new_user) {
         setTokens({ access: data.access, refresh: data.refresh });
@@ -216,20 +229,95 @@ export function AuthForm({ onSuccess }) {
     e.preventDefault();
     if (!firstName || !lastName) return;
     try {
-      const res = await fetch("http://localhost:8000/api/auth/profile/", {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${tokens.access}`
-        },
-        body: JSON.stringify({ first_name: firstName, last_name: lastName })
+      const res = await api.put("/api/auth/profile/", { first_name: firstName, last_name: lastName }, {
+        headers: { Authorization: `Bearer ${tokens.access}` }
       });
-      const data = await res.json();
+      const data = res.data;
       onSuccess(data);
     } catch (err) {
       alert("Xatolik yuz berdi!");
     }
   };
+
+  const handleDemoSubmit = async (e) => {
+    e.preventDefault();
+    if (!demoAccount.trim() || !demoPassword) return;
+    setDemoLoading(true);
+    setDemoError("");
+    try {
+      const response = await api.post("/api/auth/demo-login/", {
+        account: demoAccount.trim(),
+        password: demoPassword,
+      }, { skipAuth: true, sessionGuard: true });
+      beginAuthSession(response.data.access, response.data.refresh);
+      onSuccess(response.data.profile);
+    } catch (error) {
+      setDemoError(getApiErrorMessage(
+        error,
+        lang === "uz" ? "Demo kirish amalga oshmadi." : "Не удалось войти в демо.",
+      ));
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
+  if (step === "demo") {
+    return (
+      <AuthColumn narrow>
+        <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
+          <AuthTitle
+            title={lang === "uz" ? "Demo kirish" : "Демо-доступ"}
+            compact
+          />
+          <AuthSubtitle>
+            {lang === "uz"
+              ? "Operator bergan demo hisob ma'lumotlarini kiriting."
+              : "Введите данные демо-аккаунта, выданные оператором."}
+          </AuthSubtitle>
+        </div>
+        <form onSubmit={handleDemoSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
+          <TextInput
+            data-testid="demo-account"
+            placeholder={lang === "uz" ? "Demo hisob" : "Демо-аккаунт"}
+            autoComplete="username"
+            value={demoAccount}
+            onChange={(event) => setDemoAccount(event.target.value)}
+            required
+          />
+          <TextInput
+            data-testid="demo-password"
+            placeholder={lang === "uz" ? "Parol" : "Пароль"}
+            type="password"
+            autoComplete="current-password"
+            value={demoPassword}
+            onChange={(event) => setDemoPassword(event.target.value)}
+            required
+          />
+          {demoError ? (
+            <p data-testid="demo-login-error" className="text-[12px] font-semibold text-red-600">
+              {demoError}
+            </p>
+          ) : null}
+          <PrimaryButton data-testid="demo-login-submit" type="submit" disabled={demoLoading}>
+            {demoLoading
+              ? (lang === "uz" ? "Kirilmoqda..." : "Вход...")
+              : (lang === "uz" ? "Demo rejimiga kirish" : "Войти в демо")}
+          </PrimaryButton>
+          <button
+            data-testid="demo-login-back"
+            type="button"
+            className="auth-link mx-auto block pt-2 text-[12px] font-bold"
+            onClick={() => {
+              setDemoError("");
+              setStep("phone");
+            }}
+          >
+            {lang === "uz" ? "Telefon orqali kirish" : "Войти по телефону"}
+          </button>
+        </form>
+      </AuthColumn>
+    );
+  }
 
   if (step === "profile") {
     return (
@@ -239,9 +327,9 @@ export function AuthForm({ onSuccess }) {
           <AuthSubtitle>{regSub}</AuthSubtitle>
         </div>
         <form onSubmit={handleProfileSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
-          <TextInput placeholder="Ismingiz" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-          <TextInput placeholder="Familiyangiz" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-          <PrimaryButton type="submit">Yakunlash</PrimaryButton>
+          <TextInput data-testid="auth-first-name" placeholder="Ismingiz" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          <TextInput data-testid="auth-last-name" placeholder="Familiyangiz" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+          <PrimaryButton data-testid="auth-profile-submit" type="submit">Yakunlash</PrimaryButton>
         </form>
       </AuthColumn>
     );
@@ -260,6 +348,7 @@ export function AuthForm({ onSuccess }) {
               <input
                 key={index}
                 id={`auth-otp-${index}`}
+                data-testid={`auth-otp-${index}`}
                 className="otp-field"
                 type="text"
                 inputMode="numeric"
@@ -272,7 +361,7 @@ export function AuthForm({ onSuccess }) {
               />
             ))}
           </div>
-          <PrimaryButton type="submit">Tasdiqlash</PrimaryButton>
+          <PrimaryButton data-testid="auth-otp-submit" type="submit">Tasdiqlash</PrimaryButton>
         </form>
       </AuthColumn>
     );
@@ -286,6 +375,7 @@ export function AuthForm({ onSuccess }) {
       </div>
       <form onSubmit={handlePhoneSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
         <TextInput
+          data-testid="auth-phone"
           placeholder="+998 90 123 45 67"
           autoComplete="tel"
           value={phone}
@@ -294,7 +384,17 @@ export function AuthForm({ onSuccess }) {
         />
         <Divider />
         <GoogleButton />
-        <PrimaryButton type="submit">Kodni Olish</PrimaryButton>
+        <PrimaryButton data-testid="auth-send-otp" type="submit">Kodni Olish</PrimaryButton>
+        {demoAvailable ? (
+          <button
+            data-testid="demo-login-open"
+            type="button"
+            className="auth-link mx-auto block pt-2 text-[12px] font-bold"
+            onClick={() => setStep("demo")}
+          >
+            {lang === "uz" ? "Demo rejimiga kirish" : "Войти в демо"}
+          </button>
+        ) : null}
       </form>
     </AuthColumn>
   );

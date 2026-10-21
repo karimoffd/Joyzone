@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
-import { LanguageContext } from "../App.jsx";
+import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
+import { LanguageContext, useSiteContent } from "../context/LanguageContext.jsx";
+import { cacheProfile } from "../utils/profileMapper.js";
+import PaymentModal from "./PaymentModal.jsx";
 import logoImage from "../assets/img/Logo.png";
 import "./StaticInfoPages.css";
 
@@ -147,18 +149,15 @@ const footerColumns = [
 ];
 
 function AboutUsPage() {
+  const { cms } = useSiteContent();
   return (
     <main className="static-page static-about-page">
       <BackButton />
       <section className="static-hero">
         <div className="static-hero-copy">
-          <span className="static-kicker">Joyzone haqida</span>
-          <h1>Joy topishni oson qilamiz.</h1>
-          <p>
-            Joyzone ofis, kovorking, uchrashuv xonasi, konferensiya zali va tadbir maydonlarini bitta qulay
-            platformada ko'rsatadi. Mijoz kerakli joyni tez tushunadi, partner esa o'z maydonini ishonchli
-            ko'rinishda taqdim etadi.
-          </p>
+          <span className="static-kicker">{cms.about_page_kicker}</span>
+          <h1>{cms.about_page_title}</h1>
+          <p>{cms.about_page_text}</p>
         </div>
         <div className="about-visual-panel" aria-label="Joyzone platformasi">
           <div className="about-browser-card">
@@ -206,31 +205,25 @@ function AboutUsPage() {
 
       <section className="about-story-section">
         <div>
-          <span className="static-kicker">Nima uchun kerak</span>
-          <h2>Ko'p joy bor, lekin tanlash doim ham oson emas.</h2>
+          <span className="static-kicker">{cms.about_story_kicker}</span>
+          <h2>{cms.about_story_title}</h2>
         </div>
-        <p>
-          Bizning maqsadimiz oddiy: joy haqida asosiy savollarni birinchi ekranda javoblash. Qayerda joylashgan?
-          Necha kishi sig'adi? Narxi qancha? Qanday ko'rinadi? Joyzone shu ma'lumotlarni tartibli karta, filtr va
-          partner profili orqali foydalanuvchiga yaqinlashtiradi.
-        </p>
+        <p>{cms.about_story_text}</p>
       </section>
     </main>
   );
 }
 
 function PartnerGuidePage() {
+  const { cms } = useSiteContent();
   return (
     <main className="static-page partner-guide-page">
       <BackButton />
       <section className="partner-guide-hero">
         <div className="partner-guide-copy">
-          <span className="static-kicker">Partner instruktsiyasi</span>
-          <h1>Joyzone partner qo'llanmasi.</h1>
-          <p>
-            Hamkor bo'lish jarayoni qisqa va nazoratli. Quyida ariza, karta tayyorlash, shartlar, moderatsiya
-            va bron so'rovlari tartibi keltirilgan.
-          </p>
+          <span className="static-kicker">{cms.partner_guide_kicker}</span>
+          <h1>{cms.partner_guide_title}</h1>
+          <p>{cms.partner_guide_text}</p>
           <div className="partner-hero-metrics" aria-label="Partner jarayoni">
             <span><strong>6</strong> qadam</span>
             <span><strong>24 soat</strong> ko'rib chiqish</span>
@@ -291,11 +284,8 @@ function PartnerGuidePage() {
       <section className="partner-terms-section">
         <div className="partner-terms-head">
           <span className="static-kicker">Hamkorlik shartlari</span>
-          <h2>Hamkor bo'lish uchun asosiy qoidalar.</h2>
-          <p>
-            Bu blok kelishuvning qisqa ko'rinishi. Yakuniy shartlar alohida hujjat yoki forma orqali
-            tasdiqlanishi mumkin.
-          </p>
+          <h2>{cms.partner_terms_title}</h2>
+          <p>{cms.partner_terms_text}</p>
         </div>
         <div className="partner-terms-grid">
           {partnerTerms.map((term) => (
@@ -322,7 +312,11 @@ function TariffPlansSection() {
   const [submitting, setSubmitting] = useState(null);
   const [done, setDone] = useState(null);
   const [error, setError] = useState(null);
-  const { lang } = useContext(LanguageContext);
+  const [loadError, setLoadError] = useState("");
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const { lang, content } = useContext(LanguageContext);
+  const cms = content?.[lang] || {};
 
   const FALLBACK = [
     {
@@ -349,26 +343,56 @@ function TariffPlansSection() {
   ];
 
   useEffect(() => {
-    axios.get('http://localhost:8000/api/tariffs/')
-      .then(res => setTariffs(res.data?.results || res.data || []))
-      .catch(() => setTariffs(FALLBACK));
+    api.get('/api/tariffs/', { skipAuth: true })
+      .then(res => {
+        setTariffs(res.data?.results || res.data || []);
+        setLoadError("");
+        setUsingFallback(false);
+      })
+      .catch((err) => {
+        if (import.meta.env.DEV) {
+          setTariffs(FALLBACK);
+          setUsingFallback(true);
+          setLoadError("DEV fallback tariffs");
+        } else {
+          setTariffs([]);
+          setUsingFallback(false);
+          setLoadError(getApiErrorMessage(err, "Tariflarni yuklab bo'lmadi."));
+        }
+      });
   }, []);
 
   const handleSelect = async (tariff) => {
-    const token = localStorage.getItem('joyzone-access');
+    const token = getAccessToken();
     if (!token) { window.location.hash = '#login'; return; }
     setSubmitting(tariff.id);
     try {
-      const res = await axios.post(
-        'http://localhost:8000/api/tariffs/subscribe/',
+      const res = await api.post(
+        '/api/tariffs/subscribe/',
         { tariff_id: tariff.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+      if (res.data?.requires_payment) {
+        if (!res.data?.subscription_id) {
+          throw new Error("Backend не вернул subscription_id для оплаты.");
+        }
+        setPaymentTarget({
+          ...tariff,
+          subscriptionId: res.data.subscription_id,
+        });
+        return;
+      }
+      if (res.data?.status !== "active") {
+        throw new Error("Backend не подтвердил активацию бесплатного тарифа.");
+      }
+      const profileResponse = await api.get('/api/auth/profile/');
+      cacheProfile(profileResponse.data);
       setDone({ tariff, message: res.data.detail });
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || "Xatolik yuz berdi");
+      setError(getApiErrorMessage(e, "Tarifni faollashtirib bo'lmadi."));
+    } finally {
+      setSubmitting(null);
     }
-    setSubmitting(null);
   };
 
   const formatPrice = (tariff) => {
@@ -380,8 +404,8 @@ function TariffPlansSection() {
     <section className="tariff-section">
       <div className="tariff-head">
         <span className="static-kicker">Tariflar</span>
-        <h2>O'zingizga mos tarifni tanlang</h2>
-        <p>Bepul boshlang va biznes o'sishi bilan tarif o'zgartirishingiz mumkin. Istalgan vaqtda o'zgartirish mumkin.</p>
+        <h2>{cms.tariffs_title || "O'zingizga mos tarifni tanlang"}</h2>
+        <p>{cms.tariffs_subtitle || "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring."}</p>
       </div>
 
       {done ? (
@@ -399,12 +423,17 @@ function TariffPlansSection() {
         </div>
       ) : (
         <div className="tariff-grid">
+          {loadError ? (
+            <div style={{ gridColumn: "1 / -1", color: "#dc2626", fontWeight: 800, fontSize: 13 }}>
+              {loadError}
+            </div>
+          ) : null}
           {tariffs.map(tariff => {
             const isPremium = tariff.slug === 'premium';
             const name = (lang === 'ru' ? tariff.name_ru : lang === 'en' ? tariff.name_en : tariff.name) || tariff.name;
             const features = (lang === 'ru' ? tariff.features_ru : lang === 'en' ? tariff.features_en : tariff.features) || tariff.features || [];
             return (
-              <div key={tariff.id} className={`tariff-card${isPremium ? ' tariff-card--premium' : ''}`}>
+              <div key={tariff.id} data-testid={`tariff-card-${tariff.slug || tariff.id}`} className={`tariff-card${isPremium ? ' tariff-card--premium' : ''}`}>
                 {isPremium && <div className="tariff-badge-top">Eng yaxshi tanlov</div>}
 
                 <div className="tariff-card-top">
@@ -434,6 +463,7 @@ function TariffPlansSection() {
 
                 <div className="tariff-card-foot">
                   <button
+                    data-testid={`tariff-select-${tariff.slug || tariff.id}`}
                     className={`tariff-cta${isPremium ? ' tariff-cta--accent' : ''}`}
                     onClick={() => handleSelect(tariff)}
                     disabled={submitting === tariff.id}
@@ -448,6 +478,16 @@ function TariffPlansSection() {
               </div>
             );
           })}
+          {!loadError && tariffs.length === 0 ? (
+            <div style={{ gridColumn: "1 / -1", color: "#64748b", fontWeight: 700 }}>
+              Tariflar hozircha mavjud emas.
+            </div>
+          ) : null}
+          {usingFallback ? (
+            <div style={{ gridColumn: "1 / -1", color: "#dc2626", fontWeight: 800, fontSize: 12 }}>
+              DEV fallback
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -464,6 +504,28 @@ function TariffPlansSection() {
             <button className="tariff-error-btn" onClick={() => setError(null)}>Yopish</button>
           </div>
         </div>
+      )}
+
+      {paymentTarget && (
+        <PaymentModal
+          isOpen={!!paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          amount={`${formatPrice(paymentTarget)} UZS`}
+          title="Tarif uchun test to'lovi"
+          productDetails={{
+            subscriptionId: paymentTarget.subscriptionId,
+            name: paymentTarget.name_ru || paymentTarget.name,
+            limit: paymentTarget.max_places,
+          }}
+          onSuccess={async () => {
+            const profileResponse = await api.get('/api/auth/profile/');
+            cacheProfile(profileResponse.data);
+            setDone({
+              tariff: paymentTarget,
+              message: "Test to'lovi tasdiqlandi va tarif faollashtirildi.",
+            });
+          }}
+        />
       )}
     </section>
   );

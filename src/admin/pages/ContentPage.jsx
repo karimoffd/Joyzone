@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api, { getApiErrorMessage } from "../../api/client.js";
 import { defaultContent } from "../../data/defaultContent.js";
 
 // CSS styles
@@ -303,6 +303,8 @@ const CATEGORIES = [
     label: "Навигация (Меню)",
     fields: [
       { key: "nav_links_arr", label: "Ссылки верхнего меню", type: "linkList" },
+      { key: "nav_login", label: "Кнопка входа", type: "text" },
+      { key: "nav_profile", label: "Кнопка профиля", type: "text" },
     ]
   },
   {
@@ -313,6 +315,9 @@ const CATEGORIES = [
       { key: "hero_subtitle", label: "Подзаголовок", type: "textarea" },
       { key: "hero_cta", label: "Кнопка CTA", type: "text" },
       { key: "hero_animated_words", label: "Слова (через запятую)", type: "text" },
+      { key: "home_partner_title", label: "Промо партнёра: заголовок", type: "text" },
+      { key: "home_partner_text", label: "Промо партнёра: текст", type: "textarea" },
+      { key: "home_partner_cta", label: "Промо партнёра: кнопка", type: "text" },
     ]
   },
   {
@@ -416,6 +421,19 @@ const CATEGORIES = [
     fields: [
       { key: "about_title", label: "Заголовок", type: "text" },
       { key: "about_text", label: "Текст", type: "textarea" },
+      { key: "about_page_kicker", label: "Страница О нас: kicker", type: "text" },
+      { key: "about_page_title", label: "Страница О нас: заголовок", type: "text" },
+      { key: "about_page_text", label: "Страница О нас: вводный текст", type: "textarea" },
+      { key: "about_story_kicker", label: "История: kicker", type: "text" },
+      { key: "about_story_title", label: "История: заголовок", type: "text" },
+      { key: "about_story_text", label: "История: текст", type: "textarea" },
+      { key: "partner_guide_kicker", label: "Partner guide: kicker", type: "text" },
+      { key: "partner_guide_title", label: "Partner guide: заголовок", type: "text" },
+      { key: "partner_guide_text", label: "Partner guide: текст", type: "textarea" },
+      { key: "partner_terms_title", label: "Условия партнёра: заголовок", type: "text" },
+      { key: "partner_terms_text", label: "Условия партнёра: текст", type: "textarea" },
+      { key: "tariffs_title", label: "Тарифы: заголовок", type: "text" },
+      { key: "tariffs_subtitle", label: "Тарифы: описание", type: "textarea" },
     ]
   },
   {
@@ -452,6 +470,8 @@ export default function ContentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [usingFallback, setUsingFallback] = useState(false);
   const [draggedItemIdx, setDraggedItemIdx] = useState(null);
 
   useEffect(() => {
@@ -461,17 +481,18 @@ export default function ContentPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const res = await axios.get('http://localhost:8000/api/content/');
-      let fetchedData = res.data || {};
-      if (fetchedData.data) fetchedData = fetchedData.data;
-      if (res.data && res.data[lang]) {
-        fetchedData = res.data[lang];
-      }
+      const res = await api.get('/api/content/');
+      const responseData = res.data?.data || res.data || {};
+      const fetchedData = responseData[lang] || {};
       const defaultData = defaultContent[lang] || {};
       setData({ ...defaultData, ...fetchedData });
+      setError("");
+      setUsingFallback(false);
     } catch (error) {
-      console.error("Failed to fetch content", error);
-      setData(defaultContent[lang] || {});
+      setError(`${getApiErrorMessage(error, "Не удалось загрузить CMS контент")}${import.meta.env.DEV ? " Показан DEV fallback контент." : ""}`);
+      // Dev fallback keeps the CMS editor usable while the backend content endpoint is unavailable.
+      setData(import.meta.env.DEV ? (defaultContent[lang] || {}) : {});
+      setUsingFallback(import.meta.env.DEV);
     }
     setIsLoading(false);
   };
@@ -484,11 +505,13 @@ export default function ContentPage() {
         lang: lang,
         data: data
       };
-      await axios.put('http://localhost:8000/api/content/', payload);
+      await api.put('/api/content/', payload);
+      window.dispatchEvent(new Event('joyzone-content-updated'));
       setSaved(true);
+      setError("");
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
-      console.error("Failed to save content", error);
+      setError(getApiErrorMessage(error, "Не удалось сохранить CMS контент"));
     }
     setIsSaving(false);
   };
@@ -508,6 +531,8 @@ export default function ContentPage() {
             <div>
               <h1 className="rich-title">Управление Контентом</h1>
               <div className="rich-subtitle">Редактируйте тексты сайта в реальном времени. Изменения применяются мгновенно.</div>
+              {error ? <div style={{ color: "#dc2626", marginTop: 10, fontSize: 14, fontWeight: 700 }}>{error}</div> : null}
+              {usingFallback ? <div style={{ color: "#dc2626", marginTop: 6, fontSize: 12, fontWeight: 800 }}>DEV fallback</div> : null}
             </div>
             <div className="lang-toggle">
               {['uz', 'ru', 'en'].map(l => (

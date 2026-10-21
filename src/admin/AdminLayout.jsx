@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
 
 const NAV = [
   {
@@ -22,6 +23,7 @@ const NAV = [
     items: [
       { id: "users", label: "Пользователи", icon: "users" },
       { id: "finance", label: "Финансы", icon: "money" },
+      { id: "audit", label: "Журнал действий", icon: "audit" },
     ],
   },
   {
@@ -94,6 +96,7 @@ function Icon({ name }) {
     star: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
     users: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
     money: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+    audit: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg>,
     edit: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
     settings: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
     bell: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
@@ -108,11 +111,22 @@ function Icon({ name }) {
 
 export { Icon };
 
-export default function AdminLayout({ page, setPage, title, eyebrow, children }) {
+export default function AdminLayout({ page, setPage, title, eyebrow, allowedPages, profile, children }) {
   const [collapsed, setCollapsed] = useState(false);
 
-  const userName = localStorage.getItem("joyzone-name") || "Admin";
+  const userName = profile?.full_name || getStorageItem(STORAGE_KEYS.profile.name, "Admin");
   const initials = userName.slice(0, 2).toUpperCase();
+  const roleLabel = profile?.role === "moderator" && !profile?.is_staff && !profile?.is_superuser
+    ? "Модератор"
+    : "Администратор";
+  const visibleNav = NAV.map((section) => ({
+    ...section,
+    items: section.items
+      .map((item) => item.subItems
+        ? { ...item, subItems: item.subItems.filter((sub) => allowedPages.includes(sub.id)) }
+        : item)
+      .filter((item) => item.subItems ? item.subItems.length > 0 : allowedPages.includes(item.id)),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <div className="adm-shell">
@@ -133,7 +147,7 @@ export default function AdminLayout({ page, setPage, title, eyebrow, children })
 
         {/* Nav */}
         <nav className="adm-nav">
-          {NAV.map(section => (
+          {visibleNav.map(section => (
             <React.Fragment key={section.section}>
               <div className="adm-nav-section-label">{section.section}</div>
               {section.items.map(item => (
@@ -142,6 +156,7 @@ export default function AdminLayout({ page, setPage, title, eyebrow, children })
                 ) : (
                   <button
                     key={item.id}
+                    data-testid={`admin-nav-${item.id}`}
                     className={`adm-nav-item${page === item.id ? " active" : ""}`}
                     onClick={() => setPage(item.id)}
                   >
@@ -161,7 +176,7 @@ export default function AdminLayout({ page, setPage, title, eyebrow, children })
             <div className="adm-sidebar-avatar">{initials}</div>
             <div className="adm-sidebar-user-info">
               <strong>{userName}</strong>
-              <span>Администратор</span>
+              <span>{roleLabel}</span>
             </div>
           </div>
         </div>

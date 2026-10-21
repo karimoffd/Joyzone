@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
 import "./PaymentModal.css";
 
 export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess, productDetails, defaultPhone }) {
@@ -11,6 +12,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
   const [phone, setPhone] = useState(defaultPhone || "+998 ");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   const modalRef = useRef(null);
   const overlayRef = useRef(null);
@@ -25,6 +27,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
       setPhone(defaultPhone || "+998 ");
       setLoading(false);
       setSuccess(false);
+      setError("");
 
       // Entrance animation
       gsap.fromTo(overlayRef.current, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power2.out" });
@@ -38,6 +41,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
   }, [isOpen]);
 
   const handleClose = () => {
+    if (loading) return;
     gsap.to(overlayRef.current, { opacity: 0, duration: 0.25, ease: "power2.in" });
     gsap.to(modalRef.current, { scale: 0.95, opacity: 0, y: 20, duration: 0.25, ease: "power2.in", onComplete: onClose });
   };
@@ -71,7 +75,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
     setPhone(val);
   };
 
-  const handlePay = (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
     if (method === "card") {
       if (cardNumber.replace(/\s/g, "").length < 16) return;
@@ -82,14 +86,53 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
     }
 
     setLoading(true);
-    setTimeout(() => {
+    setError("");
+    try {
+      const token = getAccessToken();
+      const subscriptionId = productDetails?.subscription_id || productDetails?.subscriptionId || productDetails?.tariff_subscription_id;
+      const bookingId = productDetails?.booking_id || productDetails?.bookingId;
+      const payload = {
+        amount: rawPrice,
+        currency: "UZS",
+        metadata: {
+          method,
+          title,
+          product: productDetails || {},
+          phone: method === "card" ? "" : phone
+        }
+      };
+
+      if (bookingId) {
+        payload.booking_id = bookingId;
+      } else if (subscriptionId) {
+        payload.subscription_id = subscriptionId;
+      } else {
+        throw new Error("Не найдена подписка для оплаты. Выберите тариф заново.");
+      }
+
+      const response = await api.post("/api/payments/test-pay/", payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+
+      const paymentStatus = response.data?.payment?.status;
+      if (!['test_paid', 'paid'].includes(paymentStatus)) {
+        throw new Error("Backend не подтвердил тестовую оплату.");
+      }
+      if (subscriptionId && response.data?.subscription?.status !== "active") {
+        throw new Error("Подписка ещё не активирована backend.");
+      }
+
+      if (onSuccess) await onSuccess(response.data);
+
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
         handleClose();
-        if (onSuccess) onSuccess();
-      }, 1500);
-    }, 1800);
+      }, 900);
+    } catch (err) {
+      setLoading(false);
+      setError(getApiErrorMessage(err, "To'lovni yakunlab bo'lmadi. Iltimos, qayta urinib ko'ring."));
+    }
   };
 
   if (!isOpen) return null;
@@ -100,11 +143,11 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
   const formattedTax = new Intl.NumberFormat('ru-RU').format(tax) + " UZS";
 
   return (
-    <div className="pm-overlay" ref={overlayRef}>
-      <div className="pm-backdrop" onClick={handleClose} />
+    <div className="pm-overlay" ref={overlayRef} data-testid="payment-modal">
+      <div className="pm-backdrop" onClick={loading ? undefined : handleClose} />
       
       <div className="pm-modal wide" ref={modalRef}>
-        <button className="pm-close-btn" onClick={handleClose}>✕</button>
+        <button className="pm-close-btn" onClick={handleClose} disabled={loading}>✕</button>
 
         {!success && !loading && (
           <div className="pm-checkout-grid">
@@ -114,26 +157,31 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                 <h2>{method === 'card' ? "Karta ma'lumotlari" : "Telefon raqami"}</h2>
                 <p>{method === 'card' ? "To'lovni amalga oshirish uchun karta ma'lumotlarini kiriting" : "To'lov so'rovini yuborish uchun telefon raqamingizni kiriting"}</p>
               </div>
+              {error ? (
+                <div style={{ marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
+                  {error}
+                </div>
+              ) : null}
 
               {/* Card Inputs Wrapper (Always rendered, animated via CSS classes) */}
               <div className={`pm-inputs-wrapper ${method !== 'card' ? 'dimmed' : ''}`} style={{ pointerEvents: method === 'card' ? 'auto' : 'none' }}>
                 <div className="pm-inputs-grid">
                   <div className="pm-input-group">
                     <label>Karta raqami</label>
-                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
+                    <input data-testid="payment-card-number" type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="8600 •••• •••• ••••" value={cardNumber} onChange={handleNumberChange} />
                   </div>
                   <div className="pm-input-group">
                     <label>Karta egasining ismi</label>
-                    <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
+                    <input data-testid="payment-card-holder" type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="KARTADA YOZILGANDEK" value={cardHolder} onChange={(e) => setCardHolder(e.target.value)} />
                   </div>
                   <div className="pm-row">
                     <div className="pm-input-group flex-1">
                       <label>Amal qilish muddati</label>
-                      <input type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
+                      <input data-testid="payment-expiry" type="text" disabled={method !== 'card'} required={method === 'card'} placeholder="MM/YY" value={expiry} onChange={handleExpiryChange} />
                     </div>
                     <div className="pm-input-group flex-1">
                       <label>CVV / CVC</label>
-                      <input type="password" disabled={method !== 'card'} required={method === 'card'} placeholder="•••" value={cvv} onChange={handleCvvChange} />
+                      <input data-testid="payment-cvv" type="password" disabled={method !== 'card'} required={method === 'card'} placeholder="•••" value={cvv} onChange={handleCvvChange} />
                     </div>
                   </div>
                 </div>
@@ -147,7 +195,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
                 </div>
               </div>
 
-              <button type="submit" className="pm-pay-btn btn-shine" style={{ marginTop: 24 }}>
+              <button data-testid="payment-submit" type="submit" className="pm-pay-btn btn-shine" style={{ marginTop: 24 }}>
                 Tasdiqlash va to'lash
               </button>
             </form>
@@ -208,7 +256,7 @@ export default function PaymentModal({ isOpen, onClose, amount, title, onSuccess
         )}
 
         {success && (
-          <div className="pm-success-state">
+          <div className="pm-success-state" data-testid="payment-success">
             <div className="pm-success-circle">
               <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6 9 17l-5-5" />
