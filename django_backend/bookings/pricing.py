@@ -19,7 +19,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from places.serializers import _normalized_price_fields_from_prices, _parse_price_value
+from places.prices import parse_price_value
 
 
 SERVICE_FEE_RATE = Decimal('0.08')
@@ -70,14 +70,7 @@ def _add_months(day, months):
 
 def get_unit_price(place, duration_type):
     field_name = PRICE_FIELD_BY_DURATION[duration_type]
-    value = getattr(place, field_name, None)
-    if value is None:
-        value = _normalized_price_fields_from_prices(place.prices).get(field_name)
-    if value is None:
-        # Legacy listings only have the free-text `price`; the booking widget
-        # uses it as the rate for any duration, so the server does the same.
-        value = _parse_price_value(place.price)
-    parsed = _parse_price_value(value)
+    parsed = parse_price_value(getattr(place, field_name, None))
     if parsed is None or parsed <= 0:
         raise ValidationError({
             'duration_type': f'This place has no {duration_type} price.'

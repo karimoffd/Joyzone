@@ -25,8 +25,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
-        read_only_fields = ('id', 'username', 'role', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
+        read_only_fields = ('id', 'username', 'role', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
 
     def get_tariff_details(self, obj):
         if obj.tariff:
@@ -44,9 +44,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'balance', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
         read_only_fields = (
-            'id', 'username', 'balance', 'tariff', 'tariff_expires_at',
+            'id', 'username', 'tariff', 'tariff_expires_at',
             'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count',
         )
 

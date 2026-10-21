@@ -11,6 +11,7 @@ from core.audit import create_audit_log
 from django.utils import timezone
 from core.permissions import IsAdminOrModerator, can_manage_owned_object, is_admin_or_moderator, is_partner
 from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite, PlaceModerationLog
+from .prices import PRICE_FIELDS
 from .serializers import PlaceSerializer, CategoryWithSubsSerializer, SubCategorySerializer, ReviewSerializer, ParameterGroupSerializer, ParameterSerializer, DiscountSerializer, FavoriteSerializer
 from bookings.models import Booking
 from notifications.models import Notification
@@ -120,38 +121,17 @@ def _is_int_like(value):
         return False
 
 
-def _place_price_values(place):
-    raw_values = []
-    raw_values.extend([
-        place.price_hourly,
-        place.price_daily,
-        place.price_weekly,
-        place.price_monthly,
-    ])
-    if isinstance(place.prices, dict):
-        raw_values.extend(place.prices.values())
-    elif isinstance(place.prices, list):
-        raw_values.extend(place.prices)
-    raw_values.append(place.price)
-
-    values = []
-    for raw in raw_values:
-        parsed = _parse_decimal(raw)
-        if parsed is not None:
-            values.append(parsed)
-    return values
-
-
-def _place_matches_price(place, min_price=None, max_price=None):
-    prices = _place_price_values(place)
-    if not prices:
-        return False
-
-    return any(
-        (min_price is None or price >= min_price)
-        and (max_price is None or price <= max_price)
-        for price in prices
-    )
+def _price_range_filter(min_price=None, max_price=None):
+    """A place matches when any of its prices falls inside the range."""
+    condition = Q(pk__in=[])
+    for field_name in PRICE_FIELDS:
+        field_condition = Q(**{f'{field_name}__isnull': False})
+        if min_price is not None:
+            field_condition &= Q(**{f'{field_name}__gte': min_price})
+        if max_price is not None:
+            field_condition &= Q(**{f'{field_name}__lte': max_price})
+        condition |= field_condition
+    return condition
 
 
 def _place_matches_amenities(place, required_amenities):
@@ -303,11 +283,7 @@ class PlaceViewSet(viewsets.ModelViewSet):
         min_price = _parse_decimal(params.get('min_price'))
         max_price = _parse_decimal(params.get('max_price'))
         if min_price is not None or max_price is not None:
-            matching_ids = [
-                place.pk for place in qs
-                if _place_matches_price(place, min_price=min_price, max_price=max_price)
-            ]
-            qs = qs.filter(pk__in=matching_ids)
+            qs = qs.filter(_price_range_filter(min_price=min_price, max_price=max_price))
 
         return qs.distinct()
 

@@ -1,61 +1,17 @@
-import re
-from decimal import Decimal, InvalidOperation
-
 from django.db.models import Avg
 from rest_framework import serializers
 from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite, PlaceModerationLog
+from .prices import (
+    PRICE_FIELDS,
+    legacy_price_field,
+    normalized_price_fields_from_prices,
+    parse_price_value,
+)
 
 
-PRICE_FIELD_ALIASES = {
-    'price_hourly': ('soatlik', 'hourly', 'hour'),
-    'price_daily': ('kunlik', 'daily', 'day'),
-    'price_weekly': ('haftalik', 'weekly', 'week'),
-    'price_monthly': ('oylik', 'monthly', 'month'),
-}
-
-
-def _parse_price_value(value):
-    if value is None or value == '':
-        return None
-    if isinstance(value, Decimal):
-        return value
-    if isinstance(value, (int, float)):
-        return Decimal(str(value))
-
-    text = str(value).strip()
-    if not text:
-        return None
-
-    compact = text.replace(' ', '')
-    try:
-        if re.fullmatch(r'\d+(\.\d+)?', compact):
-            return Decimal(compact)
-    except InvalidOperation:
-        return None
-
-    digits = re.sub(r'\D', '', text)
-    if not digits:
-        return None
-    try:
-        return Decimal(digits)
-    except InvalidOperation:
-        return None
-
-
-def _normalized_price_fields_from_prices(prices):
-    if not isinstance(prices, dict):
-        return {}
-
-    normalized = {}
-    for field_name, aliases in PRICE_FIELD_ALIASES.items():
-        for alias in aliases:
-            if alias not in prices:
-                continue
-            parsed = _parse_price_value(prices.get(alias))
-            if parsed is not None:
-                normalized[field_name] = str(parsed)
-                break
-    return normalized
+# Kept as module names because other apps import them from here.
+_parse_price_value = parse_price_value
+_normalized_price_fields_from_prices = normalized_price_fields_from_prices
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -108,6 +64,9 @@ class CategoryWithSubsSerializer(serializers.ModelSerializer):
 
 
 class PlaceSerializer(serializers.ModelSerializer):
+    # Derived from price_* for older clients; writes are mapped in to_internal_value.
+    price = serializers.CharField(read_only=True)
+    prices = serializers.DictField(read_only=True)
     owner_name = serializers.SerializerMethodField()
     owner_email = serializers.SerializerMethodField()
     owner_phone = serializers.SerializerMethodField()
@@ -137,8 +96,13 @@ class PlaceSerializer(serializers.ModelSerializer):
             if 'discount_ids' in data and 'discounts' not in data:
                 data['discounts'] = data.get('discount_ids')
             if 'prices' in data:
-                for field_name, value in _normalized_price_fields_from_prices(data.get('prices')).items():
+                for field_name, value in normalized_price_fields_from_prices(data.get('prices')).items():
                     data.setdefault(field_name, value)
+            legacy_price = data.get('price')
+            if legacy_price not in (None, '') and not any(data.get(name) not in (None, '') for name in PRICE_FIELDS):
+                parsed = parse_price_value(legacy_price)
+                if parsed is not None:
+                    data[legacy_price_field(legacy_price)] = str(parsed)
         return super().to_internal_value(data)
 
     def get_owner_name(self, obj):

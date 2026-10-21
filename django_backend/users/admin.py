@@ -12,7 +12,6 @@ class CustomUserAdmin(UserAdmin):
         'last_name',
         'role',
         'phone_number',
-        'balance',
         'tariff',
         'tariff_expires_at',
         'has_avatar',
@@ -27,7 +26,6 @@ class CustomUserAdmin(UserAdmin):
             'fields': (
                 'phone_number',
                 'role',
-                'balance',
                 'tariff',
                 'tariff_expires_at',
                 'avatar',

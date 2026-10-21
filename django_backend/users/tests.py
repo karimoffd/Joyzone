@@ -958,7 +958,7 @@ class UserManagementApiTests(TestCase):
         row = next(item for item in rows if item['id'] == self.regular_user.id)
         for field in (
             'id', 'username', 'first_name', 'last_name', 'phone_number', 'email',
-            'role', 'tariff_details', 'tariff_expires_at', 'balance', 'bookings_count',
+            'role', 'tariff_details', 'tariff_expires_at', 'bookings_count',
         ):
             self.assertIn(field, row)
 
@@ -967,14 +967,13 @@ class UserManagementApiTests(TestCase):
 
         response = self.client.patch(
             f'/api/auth/users/{self.regular_user.id}/',
-            {'role': 'partner', 'balance': '999999', 'is_superuser': True, 'is_staff': True},
+            {'role': 'partner', 'is_superuser': True, 'is_staff': True},
             format='json',
         )
 
         self.assertEqual(response.status_code, 200)
         self.regular_user.refresh_from_db()
         self.assertEqual(self.regular_user.role, 'partner')
-        self.assertEqual(self.regular_user.balance, 0)
         self.assertFalse(self.regular_user.is_superuser)
         self.assertFalse(self.regular_user.is_staff)
 

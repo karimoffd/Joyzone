@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PartnerTariff, PartnerSubscription, TariffPlan, TariffSubscription
+from .models import TariffPlan, TariffSubscription
 
 
 @admin.register(TariffPlan)
@@ -29,12 +29,3 @@ class TariffSubscriptionAdmin(admin.ModelAdmin):
     autocomplete_fields = ('partner', 'tariff')
     readonly_fields = ('created_at',)
 
-
-@admin.register(PartnerTariff)
-class PartnerTariffAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'duration_days')
-
-@admin.register(PartnerSubscription)
-class PartnerSubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('partner', 'tariff', 'start_date', 'end_date', 'is_active')
-    list_filter = ('is_active',)

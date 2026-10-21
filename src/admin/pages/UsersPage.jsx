@@ -39,10 +39,6 @@ const formatDate = (dateStr) => {
   return date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: 'numeric' }).replace(' г.', '');
 };
 
-const formatMoney = (val) => {
-  return new Intl.NumberFormat('ru-RU').format(Math.round(val)).replace(',', ' ') + " UZS";
-};
-
 function UserEditModal({ user, onClose, onSave }) {
   const [role, setRole] = useState(user.role || 'client');
   const [loading, setLoading] = useState(false);
@@ -143,10 +139,6 @@ function UserEditModal({ user, onClose, onSave }) {
               <div className="adm-user-detail-item">
                 <span className="adm-user-detail-label">Тариф действует до</span>
                 <span className="adm-user-detail-val">{formatDate(user.tariff_expires_at)}</span>
-              </div>
-              <div className="adm-user-detail-item">
-                <span className="adm-user-detail-label">Баланс</span>
-                <span className="adm-user-detail-val">{formatMoney(user.balance || 0)}</span>
               </div>
               <div className="adm-user-detail-item">
                 <span className="adm-user-detail-label">Бронирования</span>
@@ -289,17 +281,15 @@ export default function UsersPage() {
     let partners = 0;
     let admins = 0;
     let moderators = 0;
-    let totalBalance = 0;
 
     users.forEach(u => {
       if (u.role === 'client') clients++;
       else if (u.role === 'partner') partners++;
       else if (u.role === 'admin') admins++;
       else if (u.role === 'moderator') moderators++;
-      totalBalance += Number(u.balance) || 0;
     });
 
-    return { clients, partners, admins, moderators, total: users.length, totalBalance };
+    return { clients, partners, admins, moderators, total: users.length };
   }, [users]);
 
   const filtered = React.useMemo(() => {
@@ -377,8 +367,8 @@ export default function UsersPage() {
           <strong style={{ fontSize: 26, color: '#1a6b6b' }}>{stats.partners}</strong>
         </div>
         <div className="adm-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Баланс пользователей</span>
-          <strong style={{ fontSize: 22, color: 'var(--orange)', marginTop: 4 }}>{formatMoney(stats.totalBalance)}</strong>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4 }}>Админы и модераторы</span>
+          <strong style={{ fontSize: 26, color: 'var(--orange)' }}>{stats.admins + stats.moderators}</strong>
         </div>
       </div>
 
@@ -462,9 +452,6 @@ export default function UsersPage() {
                 <th onClick={() => handleSort('bookings_count')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
                   Брони {getSortIcon('bookings_count')}
                 </th>
-                <th onClick={() => handleSort('balance')} style={{ padding: '14px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-                  Баланс {getSortIcon('balance')}
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -505,7 +492,6 @@ export default function UsersPage() {
                     <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 3 }}>{u.tariff_expires_at ? `до ${formatDate(u.tariff_expires_at)}` : 'Срок не задан'}</div>
                   </td>
                   <td style={{ padding: '14px 16px', fontSize: 14, fontWeight: 600 }}>{u.bookings_count}</td>
-                  <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 500, color: 'var(--navy)' }}>{formatMoney(u.balance || 0)}</td>
                 </tr>
               ))}
             </tbody>

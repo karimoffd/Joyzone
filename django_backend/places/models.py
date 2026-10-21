@@ -1,6 +1,16 @@
+from decimal import Decimal
+
 from django.db import models
 from django.db.models import Q
 from users.models import User
+
+from .prices import (
+    legacy_price_field,
+    normalized_price_fields_from_prices,
+    parse_price_value,
+    prices_dict,
+    primary_price_text,
+)
 
 
 class Category(models.Model):
@@ -106,9 +116,7 @@ class Place(models.Model):
     latitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
     longitude = models.DecimalField(max_digits=10, decimal_places=7, null=True, blank=True)
 
-    # Pricing details (legacy fields are kept for old frontend/data compatibility)
-    price = models.CharField(max_length=100)
-    prices = models.JSONField(default=dict, blank=True, help_text='Detailed prices e.g. {"soatlik": 50000, "kunlik": 400000}')
+    # The only stored prices. `price` / `prices` below are derived properties.
     price_hourly = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     price_daily = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     price_weekly = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -152,6 +160,28 @@ class Place(models.Model):
 
     def __str__(self):
         return f"{self.title} [{self.status}]"
+
+    # Legacy accessors kept for old API clients, seeds and tests. Setting them
+    # fills the matching price_* field; an explicit price_* value always wins.
+    @property
+    def prices(self):
+        return prices_dict(self)
+
+    @prices.setter
+    def prices(self, value):
+        for field_name, parsed in normalized_price_fields_from_prices(value).items():
+            setattr(self, field_name, Decimal(parsed))
+
+    @property
+    def price(self):
+        return primary_price_text(self)
+
+    @price.setter
+    def price(self, value):
+        parsed = parse_price_value(value)
+        field_name = legacy_price_field(value)
+        if parsed is not None and getattr(self, field_name) is None:
+            setattr(self, field_name, parsed)
 
 
 class PlaceModerationLog(models.Model):

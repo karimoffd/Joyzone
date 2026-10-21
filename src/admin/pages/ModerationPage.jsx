@@ -382,13 +382,6 @@ function getPriceDetails(place = {}) {
       rows.push({ label: priceLabels[key], value: formatMoney(place[key], place.currency || 'UZS') });
     }
   });
-  if (place.prices && typeof place.prices === 'object' && !Array.isArray(place.prices)) {
-    Object.entries(place.prices).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        rows.push({ label: priceLabels[key] || key, value: formatMoney(value, place.currency || 'UZS') });
-      }
-    });
-  }
   if (rows.length === 0 && place.price) {
     rows.push({ label: 'Основная', value: place.price });
   }
