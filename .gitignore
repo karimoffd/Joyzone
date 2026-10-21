@@ -30,6 +30,9 @@ django_backend/staticfiles/
 django_backend/check_db.json
 django_backend/out.json
 django_backend/.e2e/
+django_backend/.test-runtime/
+*.sqlite3
+audit-artifacts/
 
 # Browser test artifacts
 playwright-report/

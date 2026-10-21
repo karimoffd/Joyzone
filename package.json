@@ -1,8 +1,8 @@
 {
-  "name": "joyzone-auth-screen",
+  "name": "joyzone",
   "version": "1.0.0",
   "private": true,
-  "description": "Joyzone premium registration screen with reusable GSAP slider.",
+  "description": "Joyzone — marketplace for renting offices, coworkings and event halls in Uzbekistan.",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",

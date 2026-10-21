@@ -13,7 +13,6 @@ import UserProfile, { ProfileQuestionnaireEdit } from "./components/UserProfile.
 import AccountSettings from "./components/AccountSettings.jsx";
 import HostDashboard from "./components/HostDashboard.jsx";
 import CardVariants from "./components/CardVariants.jsx";
-import AdminDashboardIntegration from "../admin-dashboard-example/admin-integration.jsx";
 import AdminRouteGuard from "./admin/AdminRouteGuard.jsx";
 import { AboutUsPage, PartnerGuidePage, FooterVariantPage } from "./components/StaticInfoPages.jsx";
 import MobileInfoPage from "./components/MobileInfoPage.jsx";
@@ -516,17 +515,6 @@ function AppContent() {
       </>
     );
   }
-
-if (displayedRoute === "admin") {
-  return (
-    <>
-      <div className="route-screen route-screen-admin app-route-shell">
-        <AdminDashboardIntegration />
-      </div>
-      <JoyLoader active={bootLoading} />
-    </>
-  );
-}
 
   if (displayedRoute === "verify") {
     return (
