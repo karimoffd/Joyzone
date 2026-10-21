@@ -25,6 +25,7 @@ import { cacheProfile } from "../utils/profileMapper.js";
 import PaymentModal from "./PaymentModal.jsx";
 import "./HostDashboard.css";
 import { navigate } from "../utils/router.js";
+import { useVisiblePolling } from "../utils/polling.js";
 
 const pageMeta = {
   today: {
@@ -781,11 +782,9 @@ function MessagesPage({ listings = [], partnerId = null }) {
 
   useEffect(() => {
     refreshChats();
-    const poll = setInterval(refreshChats, 7000);
-    return () => {
-      clearInterval(poll);
-    };
   }, [refreshChats]);
+
+  useVisiblePolling(refreshChats, 7000);
 
   const activeChat = chats.find((chat) => chat.id === selectedChat);
 

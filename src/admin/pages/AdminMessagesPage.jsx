@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMessageSender, getStoredChats, sendMessageToChat, syncChatsWithBackend } from '../../utils/chatManager.js';
+import { useVisiblePolling } from '../../utils/polling.js';
 
 export default function AdminMessagesPage() {
   const [chats, setChats] = useState(() => getStoredChats());
@@ -15,13 +16,13 @@ export default function AdminMessagesPage() {
     refreshChats();
     window.addEventListener('joyzone-chat-update', refreshChats);
     window.addEventListener('storage', refreshChats);
-    const poll = setInterval(refreshChats, 7000);
     return () => {
-      clearInterval(poll);
       window.removeEventListener('joyzone-chat-update', refreshChats);
       window.removeEventListener('storage', refreshChats);
     };
   }, []);
+
+  useVisiblePolling(refreshChats, 7000);
 
   const send = async () => {
     if (!draft.trim() || !active) return;

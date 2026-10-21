@@ -11,6 +11,7 @@ import {
   openNotificationTarget
 } from "../utils/notificationsManager.js";
 import "./FloatingNotificationBell.css";
+import { useVisiblePolling } from "../utils/polling.js";
 
 function typeLabel(type) {
   const labels = {
@@ -103,11 +104,7 @@ export function FloatingNotificationBell({ onOpenChat }) {
     if (isOpen) refreshNotifications();
   }, [isOpen, refreshNotifications]);
 
-  useEffect(() => {
-    if (!authEnabled) return undefined;
-    const timer = window.setInterval(refreshNotifications, 30000);
-    return () => window.clearInterval(timer);
-  }, [authEnabled, refreshNotifications]);
+  useVisiblePolling(refreshNotifications, 30000, { enabled: authEnabled });
 
   useEffect(() => {
     if (isOpen && dropdownRef.current) {

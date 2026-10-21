@@ -16,10 +16,10 @@ export function getActiveClientName() {
     return (
       getStorageItem(STORAGE_KEYS.profile.name) ||
       getStorageItem(STORAGE_KEYS.profile.legacyUsername) ||
-      "Nosirov Abdulboriy"
+      "Mehmon"
     );
   } catch (e) {
-    return "Nosirov Abdulboriy";
+    return "Mehmon";
   }
 }
 
@@ -151,7 +151,18 @@ function upsertStoredChat(chat) {
   return normalized;
 }
 
-export async function syncChatsWithBackend({ placeId, silent = false, allowDevFallback = true } = {}) {
+// Several widgets poll chats at the same time; share one in-flight request.
+const inFlightSyncs = new Map();
+
+export function syncChatsWithBackend(options = {}) {
+  const key = String(options.placeId || "");
+  if (!inFlightSyncs.has(key)) {
+    inFlightSyncs.set(key, fetchChatsFromBackend(options).finally(() => inFlightSyncs.delete(key)));
+  }
+  return inFlightSyncs.get(key);
+}
+
+async function fetchChatsFromBackend({ placeId, silent = false, allowDevFallback = true } = {}) {
   if (!canUseBackendChat()) {
     if (import.meta.env.DEV && allowDevFallback) return getStoredChats();
     throw new Error("Authentication is required to load chats.");

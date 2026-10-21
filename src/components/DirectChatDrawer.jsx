@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { getChatById, getMessageSender, markChatRead, sendMessageToChat, syncChatsWithBackend } from "../utils/chatManager.js";
+import { useVisiblePolling } from "../utils/polling.js";
 import "./DirectChatDrawer.css";
 
 export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
@@ -23,15 +24,15 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
   useEffect(() => {
     refreshChat();
     const handleUpdate = () => refreshChat();
-    const poll = setInterval(refreshChat, 7000);
     window.addEventListener("joyzone-chat-update", handleUpdate);
     window.addEventListener("storage", handleUpdate);
     return () => {
-      clearInterval(poll);
       window.removeEventListener("joyzone-chat-update", handleUpdate);
       window.removeEventListener("storage", handleUpdate);
     };
   }, [chatId]);
+
+  useVisiblePolling(refreshChat, 7000);
 
   useEffect(() => {
     if (chat?.id) {

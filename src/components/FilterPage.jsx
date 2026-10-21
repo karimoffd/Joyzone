@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import api, { getApiErrorMessage, isRequestCanceled } from "../api/client.js";
-import { sendClientAction } from "../socket.js";
 import { ChevronIcon } from "./ui/Shared.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
@@ -780,23 +779,6 @@ export default function FilterPage({ userState, setUserState }) {
   }, [requestQuery]);
 
   // Send search action log to WebSocket server when filters change (debounced)
-  useEffect(() => {
-    const activeFilters = [];
-    if (filters.search) activeFilters.push(`nomi: "${filters.search}"`);
-    if (filters.location.length) activeFilters.push(`manzil: ${filters.location.join(', ')}`);
-    if (selectedCategory) activeFilters.push(`kategoriya: ${selectedCategory}`);
-    if (selectedSubCat) activeFilters.push(`tur: ${selectedSubCat}`);
-    if (filters.price.length) activeFilters.push(`narx: ${filters.price.join(', ')}`);
-    
-    const queryDescription = activeFilters.join(' | ') || 'Barcha joylar';
-
-    const delayDebounce = setTimeout(() => {
-      sendClientAction("search", { query: queryDescription });
-    }, 850);
-
-    return () => clearTimeout(delayDebounce);
-  }, [filters.search, filters.location, filters.price, selectedCategory, selectedSubCat]);
-
   const filteredCards = useMemo(() => {
     return spaces.filter((item) => {
       if (!usingMockFallback) {

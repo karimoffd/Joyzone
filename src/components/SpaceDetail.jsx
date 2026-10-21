@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, useContext } 
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
-import { sendClientAction } from "../socket.js";
 import { LanguageContext } from "../context/LanguageContext.jsx";
 
 import { Header as JoyNavbar } from "./HomeHero.jsx";
@@ -545,13 +544,6 @@ export default function SpaceDetail({ route, userState, setUserState }) {
     // Fallback to static mapping if parameters are not yet loaded
     return amenityList.filter(item => space.amenities.includes(slugify(item.name)));
   }, [space.amenities, allParameters]);
-
-  // Send view event to live traffic monitor via socket.io
-  useEffect(() => {
-    if (space) {
-      sendClientAction("view_space", { spaceName: space.title || space.name });
-    }
-  }, [space]);
 
   const [activeImage, setActiveImage] = useState(0);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
