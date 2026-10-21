@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { basename, dirname, resolve } from "node:path";
 
@@ -6,9 +6,11 @@ const root = resolve(import.meta.dirname, "..");
 const backend = resolve(root, "django_backend");
 const runtimeDir = resolve(backend, ".e2e");
 const database = resolve(runtimeDir, "db.sqlite3");
-const python = process.platform === "win32"
-  ? resolve(backend, "venv", "Scripts", "python.exe")
-  : resolve(backend, "venv", "bin", "python");
+// Prefer the uv-style .venv, fall back to the classic venv folder.
+const venvPython = (folder) => (process.platform === "win32"
+  ? resolve(backend, folder, "Scripts", "python.exe")
+  : resolve(backend, folder, "bin", "python"));
+const python = [".venv", "venv"].map(venvPython).find((candidate) => existsSync(candidate)) || venvPython("venv");
 const publicDemoAccount = "public_demo_e2e_client";
 const publicDemoAccounts = [
   publicDemoAccount,
@@ -41,6 +43,10 @@ const env = {
   CORS_ALLOWED_ORIGINS: "http://127.0.0.1:4173",
   SQLITE_PATH: database,
   MEDIA_ROOT: resolve(runtimeDir, "media"),
+  // One browser makes many requests from 127.0.0.1; keep global limits out of the way.
+  API_ANON_RATE: "100000/minute",
+  API_USER_RATE: "100000/minute",
+  TEST_PAYMENTS_ENABLED: "true",
 };
 
 function runManage(args) {

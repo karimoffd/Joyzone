@@ -36,10 +36,10 @@ async function setUserRole(request, adminAccess, username, role) {
 }
 
 async function installSession(page, session, adminPage = null) {
-  await page.goto("/#home");
-  await page.evaluate(async ({ access, refresh, adminPage: targetPage }) => {
+  await page.goto("/");
+  await page.evaluate(async ({ access, adminPage: targetPage }) => {
     const { beginAuthSession } = await import("/src/utils/storageKeys.js");
-    beginAuthSession(access, refresh);
+    beginAuthSession(access);
     if (targetPage) localStorage.setItem("joyzone-admin-page", targetPage);
   }, { ...session, adminPage });
 }
@@ -66,7 +66,7 @@ test.describe.serial("admin route guard", () => {
       }
     });
 
-    await page.goto("/#admin");
+    await page.goto("/admin");
     await expect(page.getByTestId("admin-access-unauthenticated")).toBeVisible();
     await expect(page.locator(".adm-shell")).toHaveCount(0);
     expect(privateCalls).toEqual([]);
@@ -75,7 +75,7 @@ test.describe.serial("admin route guard", () => {
   test("client cannot mount the admin shell", async ({ page, request }) => {
     const clientSession = await demoLogin(request, CLIENT_ACCOUNT);
     await installSession(page, clientSession);
-    await page.goto("/#admin");
+    await page.goto("/admin");
 
     await expect(page.getByTestId("admin-access-forbidden")).toBeVisible();
     await expect(page.locator(".adm-shell")).toHaveCount(0);
@@ -88,7 +88,7 @@ test.describe.serial("admin route guard", () => {
       if (request.url().includes("/api/finance/")) financeCalls += 1;
     });
     await installSession(page, moderatorSession, "finance");
-    await page.goto("/#admin");
+    await page.goto("/admin");
 
     await expect(page.locator(".adm-shell")).toBeVisible();
     await expect(page.getByTestId("admin-nav-finance")).toHaveCount(0);
@@ -99,7 +99,7 @@ test.describe.serial("admin route guard", () => {
 
   test("server-side role loss unmounts an open admin shell", async ({ page, request }) => {
     await installSession(page, moderatorSession, "moderation");
-    await page.goto("/#admin");
+    await page.goto("/admin");
     await expect(page.locator(".adm-shell")).toBeVisible();
 
     await setUserRole(request, adminSession.access, MODERATOR_ACCOUNT, "client");
@@ -113,7 +113,7 @@ test.describe.serial("admin route guard", () => {
 
   test("staff admin mounts the shell and logout unmounts it immediately", async ({ page }) => {
     await installSession(page, adminSession);
-    await page.goto("/#admin");
+    await page.goto("/admin");
     await expect(page.locator(".adm-shell")).toBeVisible();
     await expect(page.getByTestId("admin-nav-finance")).toBeVisible();
 

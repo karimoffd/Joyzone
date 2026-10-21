@@ -5,7 +5,7 @@ const PARTNER_PHONE = "+998901110001";
 const CLIENT_PHONE = "+998901110002";
 
 async function loginWithDevOtp(page, phone, firstName, lastName) {
-  await page.goto("/#login");
+  await page.goto("/login");
   await page.getByTestId("auth-phone").fill(phone);
   await page.getByTestId("auth-send-otp").click();
   await expect(page.getByTestId("auth-otp-0")).toBeVisible();
@@ -21,7 +21,7 @@ async function loginWithDevOtp(page, phone, firstName, lastName) {
   await page.getByTestId("auth-profile-submit").click();
 
   await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem("joyzone-access")))).toBe(true);
-  await expect(page).toHaveURL(/#home/);
+  await expect(page).toHaveURL(/:4173.(#.*)?$/);
 }
 
 async function completeCardPayment(page, prefix = "payment") {
@@ -33,7 +33,7 @@ async function completeCardPayment(page, prefix = "payment") {
 }
 
 async function createPlaceThroughOnboarding(page) {
-  await page.goto("/#partner");
+  await page.goto("/partner");
   await page.getByTestId("onboarding-start").click();
   await page.getByTestId("onboarding-selection-kovorking").click();
   await page.getByTestId("onboarding-next").click();
@@ -94,7 +94,7 @@ test("full Joyzone MVP browser flow", async ({ browser }) => {
   const partnerPage = await partnerContext.newPage();
   await loginWithDevOtp(partnerPage, PARTNER_PHONE, "E2E", "Partner");
 
-  await partnerPage.goto("/#partner-guide");
+  await partnerPage.goto("/partner-guide");
   await partnerPage.getByTestId("tariff-select-comfort").click();
   await expect(partnerPage.getByTestId("payment-modal")).toBeVisible();
   await completeCardPayment(partnerPage);
@@ -109,12 +109,12 @@ test("full Joyzone MVP browser flow", async ({ browser }) => {
   );
   expect(adminLoginResponse.ok()).toBeTruthy();
   const adminSession = await adminLoginResponse.json();
-  await adminPage.goto("/#home");
-  await adminPage.evaluate(async ({ access, refresh }) => {
+  await adminPage.goto("/");
+  await adminPage.evaluate(async ({ access }) => {
     const { beginAuthSession } = await import("/src/utils/storageKeys.js");
-    beginAuthSession(access, refresh);
+    beginAuthSession(access);
   }, adminSession);
-  await adminPage.goto("/#admin");
+  await adminPage.goto("/admin");
   await expect(adminPage.getByTestId("admin-nav-moderation")).toBeVisible({ timeout: 30_000 });
   await adminPage.getByTestId("admin-nav-moderation").click();
   await expect(adminPage.getByTestId(`moderation-place-${place.id}`)).toContainText(PLACE_TITLE);
@@ -123,7 +123,7 @@ test("full Joyzone MVP browser flow", async ({ browser }) => {
 
   const publicContext = await browser.newContext();
   const publicPage = await publicContext.newPage();
-  await publicPage.goto("/#filter");
+  await publicPage.goto("/filter");
   await expect(publicPage.getByTestId(`place-card-${place.id}`)).toContainText(PLACE_TITLE);
   await publicContext.close();
 
@@ -163,19 +163,19 @@ test("full Joyzone MVP browser flow", async ({ browser }) => {
     response.url().endsWith("/api/bookings/")
     && response.request().method() === "POST"
   ));
-  await clientPage.goto(`/#book-space-${place.id}`);
+  await clientPage.goto(`/book-space-${place.id}`);
   await completeCardPayment(clientPage, "checkout");
   const bookingResponse = await bookingResponsePromise;
   expect(bookingResponse.ok()).toBeTruthy();
   const booking = await bookingResponse.json();
   await expect(clientPage.getByTestId("booking-payment-success")).toBeVisible();
 
-  await clientPage.goto("/#profile");
+  await clientPage.goto("/profile");
   await expect(clientPage.getByTestId("notification-bell")).toBeVisible();
   await clientPage.getByTestId("notification-bell").click();
   await expect(clientPage.locator('[data-testid^="notification-booking_paid-"]')).toHaveCount(1);
 
-  await partnerPage.goto("/#host-today");
+  await partnerPage.goto("/host-today");
   await partnerPage.reload();
   await expect(partnerPage.getByTestId(`host-upcoming-booking-${booking.id}`)).toContainText(PLACE_TITLE);
   await partnerPage.getByTestId("notification-bell").click();

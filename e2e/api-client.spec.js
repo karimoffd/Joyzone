@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/#home");
+  await page.goto("/");
 });
 
 test("default timeout is finite and a safe GET can be retried manually", async ({ page }) => {

@@ -4,20 +4,24 @@ const DEMO_ACCOUNT = "public_demo_e2e_client";
 const DEMO_PASSWORD = process.env.E2E_DEMO_PASSWORD || "e2e-only-demo-secret-4f8d2a";
 
 test("allowlisted public demo account can sign in without OTP", async ({ page }) => {
-  await page.goto("/#login");
+  await page.goto("/login");
   await expect(page.getByTestId("demo-login-open")).toBeVisible();
   await page.getByTestId("demo-login-open").click();
   await page.getByTestId("demo-account").fill(DEMO_ACCOUNT);
   await page.getByTestId("demo-password").fill(DEMO_PASSWORD);
   await page.getByTestId("demo-login-submit").click();
 
-  await expect(page).toHaveURL(/#home/);
+  await expect(page).toHaveURL(/:4173.(#.*)?$/);
   const session = await page.evaluate(() => ({
     access: localStorage.getItem("joyzone-access"),
     refresh: localStorage.getItem("joyzone-refresh"),
   }));
   expect(session.access).toBeTruthy();
-  expect(session.refresh).toBeTruthy();
+  // The refresh token never reaches JavaScript: it is an httpOnly cookie.
+  expect(session.refresh).toBeNull();
+  const refreshCookie = (await page.context().cookies("http://127.0.0.1:8010/api/auth/"))
+    .find((cookie) => cookie.name === "joyzone_refresh");
+  expect(refreshCookie?.httpOnly).toBe(true);
 
   const profileResponse = await page.request.get("http://127.0.0.1:8010/api/auth/profile/", {
     headers: { Authorization: `Bearer ${session.access}` },

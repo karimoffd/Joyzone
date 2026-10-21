@@ -20,10 +20,10 @@ async function createDemoSession(request, account, firstName) {
 }
 
 async function installSession(page, session) {
-  await page.evaluate(async ({ access, refresh, profile }) => {
+  await page.evaluate(async ({ access, profile }) => {
     const storage = await import("/src/utils/storageKeys.js");
     const profiles = await import("/src/utils/profileMapper.js");
-    storage.beginAuthSession(access, refresh);
+    storage.beginAuthSession(access);
     profiles.cacheProfile(profile);
   }, session);
 }
@@ -31,7 +31,7 @@ async function installSession(page, session) {
 test("late profile from account A cannot overwrite account B", async ({ page, request }) => {
   const accountA = await createDemoSession(request, "public_demo_race_a", "Account A");
   const accountB = await createDemoSession(request, "public_demo_race_b", "Account B");
-  await page.goto("/#home");
+  await page.goto("/");
   await installSession(page, accountA);
 
   let releaseProfile;
@@ -64,7 +64,7 @@ test("late profile from account A cannot overwrite account B", async ({ page, re
     const storage = await import("/src/utils/storageKeys.js");
     const profiles = await import("/src/utils/profileMapper.js");
     await logoutSession().catch(() => null);
-    storage.beginAuthSession(sessionB.access, sessionB.refresh);
+    storage.beginAuthSession(sessionB.access);
     profiles.cacheProfile(sessionB.profile);
     storage.setStorageItem(storage.STORAGE_KEYS.booking.active, JSON.stringify({ id: "booking-b" }));
     storage.setStorageItem(storage.STORAGE_KEYS.offline.favorites, JSON.stringify([{ id: "favorite-b" }]));
@@ -84,7 +84,7 @@ test("late profile from account A cannot overwrite account B", async ({ page, re
 
   expect(result.lateResult).toBe("JOYZONE_SESSION_CHANGED");
   expect(result.access).toBe(accountB.access);
-  expect(result.refresh).toBe(accountB.refresh);
+  expect(result.refresh).toBeNull();
   expect(result.name).toContain("Account B");
   expect(result.booking).toContain("booking-b");
   expect(result.favorites).toContain("favorite-b");
@@ -95,7 +95,7 @@ test("late profile from account A cannot overwrite account B", async ({ page, re
 test("late refresh from account A cannot restore tokens after account B login", async ({ page, request }) => {
   const accountA = await createDemoSession(request, "public_demo_race_a", "Refresh A");
   const accountB = await createDemoSession(request, "public_demo_race_b", "Refresh B");
-  await page.goto("/#home");
+  await page.goto("/");
   await installSession(page, accountA);
 
   let releaseRefresh;
@@ -131,7 +131,7 @@ test("late refresh from account A cannot restore tokens after account B login", 
     const storage = await import("/src/utils/storageKeys.js");
     const profiles = await import("/src/utils/profileMapper.js");
     await logoutSession().catch(() => null);
-    storage.beginAuthSession(sessionB.access, sessionB.refresh);
+    storage.beginAuthSession(sessionB.access);
     profiles.cacheProfile(sessionB.profile);
   }, accountB);
 
@@ -145,17 +145,17 @@ test("late refresh from account A cannot restore tokens after account B login", 
 
   expect(result.lateResult).toBe("JOYZONE_SESSION_CHANGED");
   expect(result.access).toBe(accountB.access);
-  expect(result.refresh).toBe(accountB.refresh);
+  expect(result.refresh).toBeNull();
   expect(result.name).toContain("Refresh B");
   expect(result.access).not.toBe("late-access-a");
-  expect(result.refresh).not.toBe("late-refresh-a");
 });
 
-test("logout synchronizes across tabs while preserving UI and guest preferences", async ({ context, request }) => {
-  const accountA = await createDemoSession(request, "public_demo_race_a", "Two Tabs");
+test("logout synchronizes across tabs while preserving UI and guest preferences", async ({ context }) => {
+  // context.request shares cookies with the tabs, so logout can revoke the refresh cookie.
+  const accountA = await createDemoSession(context.request, "public_demo_race_a", "Two Tabs");
   const pageA = await context.newPage();
   const pageB = await context.newPage();
-  await Promise.all([pageA.goto("/#home"), pageB.goto("/#profile")]);
+  await Promise.all([pageA.goto("/"), pageB.goto("/profile")]);
 
   await pageB.evaluate(() => {
     window.__sessionGenerationEvents = 0;
@@ -181,7 +181,7 @@ test("logout synchronizes across tabs while preserving UI and guest preferences"
     await logoutSession();
   });
 
-  await expect(pageB).toHaveURL(/#login/);
+  await expect(pageB).toHaveURL(/login$/);
   const state = await pageB.evaluate(() => ({
     generationEvents: window.__sessionGenerationEvents,
     access: localStorage.getItem("joyzone-access"),
