@@ -19,14 +19,65 @@ def normalize_login_identifier(value):
         return compact
     return value.casefold()
 
+AVATAR_MAX_LENGTH = 1_000_000
+AVATAR_DATA_PREFIXES = ('data:image/jpeg;base64,', 'data:image/png;base64,', 'data:image/webp;base64,', 'data:image/gif;base64,')
+
+
+def validate_avatar_value(value):
+    """Avatar is an image data URL (resized in the browser) or an http(s) link."""
+    if value in (None, ''):
+        return value
+    value = str(value).strip()
+    if not (value.startswith(AVATAR_DATA_PREFIXES) or value.startswith(('https://', 'http://'))):
+        raise serializers.ValidationError('Avatar must be a JPEG, PNG, WebP or GIF image.')
+    if len(value) > AVATAR_MAX_LENGTH:
+        raise serializers.ValidationError('Avatar image is too large; use a picture under 700 KB.')
+    return value
+
+
+PROFILE_DETAIL_LIMITS = {
+    'headline': 120,
+    'preferred_name': 80,
+    'city': 80,
+    'address': 200,
+    'birth_year': 4,
+    'languages': 120,
+    'work': 120,
+    'company': 120,
+    'interests': 1000,
+    'about': 2000,
+}
+
+
+def validate_profile_details_value(value):
+    if value in (None, ''):
+        return {}
+    if not isinstance(value, dict):
+        raise serializers.ValidationError('Profile details must be an object.')
+    unknown = sorted(set(value) - set(PROFILE_DETAIL_LIMITS))
+    if unknown:
+        raise serializers.ValidationError(f"Unknown profile fields: {', '.join(unknown)}.")
+    cleaned = {}
+    for key, raw in value.items():
+        text = str(raw if raw is not None else '').strip()
+        if len(text) > PROFILE_DETAIL_LIMITS[key]:
+            raise serializers.ValidationError(f'{key} is too long (max {PROFILE_DETAIL_LIMITS[key]} characters).')
+        if key == 'birth_year' and text and not (text.isdigit() and 1900 <= int(text) <= 2100):
+            raise serializers.ValidationError('birth_year must be a year like 1996.')
+        if text:
+            cleaned[key] = text
+    return cleaned
+
+
 class UserSerializer(serializers.ModelSerializer):
     tariff_details = serializers.SerializerMethodField()
     bookings_count = serializers.SerializerMethodField()
+    admin_sections = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'company_name', 'partner_bio', 'is_featured_partner', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
-        read_only_fields = ('id', 'username', 'role', 'is_featured_partner', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'company_name', 'partner_bio', 'is_featured_partner', 'profile_details', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count', 'admin_sections')
+        read_only_fields = ('id', 'username', 'role', 'is_featured_partner', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count', 'admin_sections')
 
     def get_tariff_details(self, obj):
         if obj.tariff:
@@ -37,6 +88,17 @@ class UserSerializer(serializers.ModelSerializer):
     def get_bookings_count(self, obj):
         return obj.bookings.count()
 
+    def validate_avatar(self, value):
+        return validate_avatar_value(value)
+
+    def validate_profile_details(self, value):
+        merged = {**(getattr(self.instance, 'profile_details', None) or {}), **(value or {})}
+        return validate_profile_details_value(merged)
+
+    def get_admin_sections(self, obj):
+        from core.permissions import admin_sections_for
+        return admin_sections_for(obj)
+
 
 class AdminUserSerializer(serializers.ModelSerializer):
     tariff_details = serializers.SerializerMethodField()
@@ -44,9 +106,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'company_name', 'partner_bio', 'is_featured_partner', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'avatar', 'company_name', 'partner_bio', 'is_featured_partner', 'profile_details', 'tariff', 'tariff_expires_at', 'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count')
         read_only_fields = (
-            'id', 'username', 'tariff', 'tariff_expires_at',
+            'id', 'username', 'profile_details', 'tariff', 'tariff_expires_at',
             'tariff_details', 'is_superuser', 'is_staff', 'date_joined', 'bookings_count',
         )
 
@@ -55,6 +117,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
             from tariffs.serializers import TariffPlanSerializer
             return TariffPlanSerializer(obj.tariff).data
         return None
+
+    def validate_avatar(self, value):
+        return validate_avatar_value(value)
 
     def get_bookings_count(self, obj):
         if hasattr(obj, 'bookings_total'):

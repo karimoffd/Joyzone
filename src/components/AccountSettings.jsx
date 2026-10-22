@@ -118,15 +118,21 @@ function SettingsIcon({ type }) {
   );
 }
 
-const BACKEND_PROFILE_KEYS = new Set(["legalName", "email", "phone", "companyName", "partnerBio"]);
+// Settings rows stored inside profile_details on the account.
+const DETAIL_SETTING_KEYS = { preferredName: "preferred_name", address: "address" };
+const BACKEND_PROFILE_KEYS = new Set(["legalName", "email", "phone", "companyName", "partnerBio", ...Object.keys(DETAIL_SETTING_KEYS)]);
 
 function profileValues(data, normalized) {
+  const details = data?.profile_details || {};
   return {
     legalName: normalized.full_name,
     email: normalized.email,
     phone: normalized.phone_number,
     companyName: data?.company_name || "",
     partnerBio: data?.partner_bio || "",
+    ...Object.fromEntries(Object.entries(DETAIL_SETTING_KEYS)
+      .filter(([, detailKey]) => details[detailKey])
+      .map(([key, detailKey]) => [key, details[detailKey]])),
   };
 }
 
@@ -204,6 +210,7 @@ function AccountSettings({ userState, setUserState }) {
         if (editingKey === "phone") payload = { phone_number: draftValue.trim() };
         if (editingKey === "companyName") payload = { company_name: draftValue.trim() };
         if (editingKey === "partnerBio") payload = { partner_bio: draftValue.trim() };
+        if (DETAIL_SETTING_KEYS[editingKey]) payload = { profile_details: { [DETAIL_SETTING_KEYS[editingKey]]: draftValue.trim() } };
         const response = await api.patch("/api/auth/profile/", payload);
         const normalized = cacheProfile(response.data);
         setUserState?.(profileToUserState(normalized, userState));

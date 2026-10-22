@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import api, { API_BASE_URL, getApiErrorMessage } from "../../api/client.js";
 import { cacheProfile, normalizeProfile } from "../../utils/profileMapper.js";
+import { fileToAvatarDataUrl } from "../../utils/avatarImage.js";
 import { getStorageItem, readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../../utils/storageKeys.js";
 
 const ICONS = {
@@ -110,14 +111,15 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result);
-      };
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setAvatar(await fileToAvatarDataUrl(file));
+      setProfileError('');
+    } catch (error) {
+      setProfileError(error.message);
     }
   };
 

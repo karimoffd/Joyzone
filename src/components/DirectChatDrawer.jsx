@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getChatById, getMessageSender, markChatRead, sendMessageToChat, syncChatsWithBackend } from "../utils/chatManager.js";
+import { chatPartnerAvatar, chatPartnerName, getChatById, isOwnMessage, markChatRead, sendMessageToChat, syncChatsWithBackend } from "../utils/chatManager.js";
 import { useVisiblePolling } from "../utils/polling.js";
 import "./DirectChatDrawer.css";
 
 export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
   const overlayRef = useRef(null);
   const drawerRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const feedRef = useRef(null);
 
   const [chat, setChat] = useState(() => getChatById(chatId));
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   const refreshChat = async () => {
     await syncChatsWithBackend({ silent: true });
@@ -40,9 +42,12 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
     }
   }, [chat?.id, chat?.messages?.length]);
 
+  // Scroll only the message feed, never the page, so the composer stays put.
+  const messageCount = chat?.messages?.length || 0;
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat?.messages]);
+    const feed = feedRef.current;
+    if (feed) feed.scrollTop = feed.scrollHeight;
+  }, [messageCount]);
 
   useEffect(() => {
     const overlay = overlayRef.current;
@@ -81,10 +86,18 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
   };
 
   const handleSend = async () => {
-    if (!draft.trim() || !chat) return;
-    await sendMessageToChat(chat.id, { from: "guest", text: draft });
-    setDraft("");
-    refreshChat();
+    if (!draft.trim() || !chat || sending) return;
+    setSending(true);
+    try {
+      const updated = await sendMessageToChat(chat.id, { from: chat.viewerRole || "guest", text: draft });
+      if (updated) setChat(updated);
+      setDraft("");
+      setSendError("");
+    } catch (error) {
+      setSendError("Xabar yuborilmadi. Qayta urinib ko'ring.");
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -96,7 +109,7 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
 
   if (!chat) return null;
 
-  const displayHostName = chat.name || hostName || "Ega / Host";
+  const displayHostName = chatPartnerName(chat) || hostName || "Ega / Host";
   const displaySpaceTitle = chat.space || spaceTitle || "Joyzone Space";
 
   return createPortal(
@@ -107,7 +120,9 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
         <div className="direct-chat-header">
           <div className="direct-chat-host-info">
             <div className="direct-chat-avatar" style={{ background: chat.color || "#294a6d" }}>
-              {displayHostName.slice(0, 2).toUpperCase()}
+              {chatPartnerAvatar(chat)
+                ? <img src={chatPartnerAvatar(chat)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} />
+                : displayHostName.slice(0, 2).toUpperCase()}
               <span className="direct-chat-status-dot" title="Onlayn" />
             </div>
             <div>
@@ -122,17 +137,17 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
         </div>
 
         {/* Messages Feed */}
-        <div className="direct-chat-messages-feed">
+        <div className="direct-chat-messages-feed" ref={feedRef}>
           {chat.messages.map((msg, index) => (
             <div
-              key={index}
-              className={`direct-chat-bubble ${getMessageSender(msg) === "guest" ? "is-guest" : "is-host"}`}
+              key={msg.id || index}
+              className={`direct-chat-bubble ${isOwnMessage(chat, msg) ? "is-guest" : "is-host"}`}
             >
               {msg.text}
             </div>
           ))}
-          <div ref={messagesEndRef} />
         </div>
+        {sendError ? <p className="direct-chat-error">{sendError}</p> : null}
 
         {/* Input Composer */}
         <div className="direct-chat-composer">
@@ -147,7 +162,7 @@ export function DirectChatDrawer({ chatId, spaceTitle, hostName, onClose }) {
             type="button"
             className={`direct-chat-send-btn ${draft.trim() ? "is-active" : ""}`}
             onClick={handleSend}
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || sending}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="22" y1="2" x2="11" y2="13" />

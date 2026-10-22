@@ -1466,7 +1466,9 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                           <div className="sd-review-header-row">
                             <div className="sd-review-user-info">
                               <div className="sd-review-avatar" style={{ background: avatarGrad }}>
-                                {review.name.charAt(0).toUpperCase()}
+                                {review.avatar
+                                  ? <img src={review.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} />
+                                  : review.name.charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <strong>{review.name}</strong>

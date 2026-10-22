@@ -20,24 +20,26 @@ import DiscountsPage from "./pages/DiscountsPage.jsx";
 import AuditLogPage from "./pages/AuditLogPage.jsx";
 import BannersPage from "./pages/BannersPage.jsx";
 
-const PAGES = {
-  overview:   { title: "Обзор",          eyebrow: "Главная",      component: OverviewPage },
-  bookings:   { title: "Бронирования",   eyebrow: "Управление",   component: BookingsPage },
-  spaces:     { title: "Пространства",   eyebrow: "Управление",   component: SpacesPage },
-  moderation: { title: "Модерация мест", eyebrow: "Проверка",     component: ModerationPage },
-  users:      { title: "Пользователи",   eyebrow: "Управление",   component: UsersPage, adminOnly: true },
-  messages:   { title: "Сообщения",      eyebrow: "Коммуникация", component: MessagesPage },
-  reviews:    { title: "Отзывы",         eyebrow: "Репутация",    component: ReviewsPage },
-  finance:    { title: "Финансы",        eyebrow: "Аналитика",    component: FinancePage, adminOnly: true },
-  audit:      { title: "Журнал действий", eyebrow: "Безопасность", component: AuditLogPage },
-  tariffs:    { title: "Тарифы",         eyebrow: "Платформа",    component: TariffsPage },
-  categories: { title: "Категории",       eyebrow: "Платформа",    component: CategoriesPage },
-  amenities:  { title: "Список удобств",  eyebrow: "Платформа",    component: AmenitiesPage },
-  parameters: { title: "Счетчики и х-ки", eyebrow: "Платформа",    component: ParametersPage },
-  discounts:  { title: "Скидки",           eyebrow: "Платформа",    component: DiscountsPage },
-  content:    { title: "Контент сайта",  eyebrow: "CMS",          component: ContentPage },
-  banners:    { title: "Баннеры",        eyebrow: "CMS",          component: BannersPage },
-  settings:   { title: "Настройки",      eyebrow: "Профиль",      component: SettingsPage },
+// adminOnly mirrors core.permissions.ADMIN_ONLY_SECTIONS; the backend sends the
+// exact list in profile.admin_sections, this is only a fallback for old caches.
+export const PAGES = {
+  overview:   { title: "Обзор",               eyebrow: "Дашборд",      component: OverviewPage },
+  bookings:   { title: "Бронирования",        eyebrow: "Операции",     component: BookingsPage },
+  spaces:     { title: "Пространства",        eyebrow: "Операции",     component: SpacesPage },
+  moderation: { title: "Модерация мест",      eyebrow: "Операции",     component: ModerationPage },
+  messages:   { title: "Сообщения",           eyebrow: "Общение",      component: MessagesPage },
+  reviews:    { title: "Отзывы",              eyebrow: "Общение",      component: ReviewsPage },
+  content:    { title: "Контент сайта",       eyebrow: "Сайт",         component: ContentPage },
+  banners:    { title: "Баннеры",             eyebrow: "Сайт",         component: BannersPage },
+  users:      { title: "Пользователи",        eyebrow: "Управление",   component: UsersPage, adminOnly: true },
+  finance:    { title: "Финансы",             eyebrow: "Управление",   component: FinancePage, adminOnly: true },
+  audit:      { title: "Журнал действий",     eyebrow: "Управление",   component: AuditLogPage, adminOnly: true },
+  tariffs:    { title: "Тарифы",              eyebrow: "Справочники",  component: TariffsPage, adminOnly: true },
+  categories: { title: "Категории",           eyebrow: "Справочники",  component: CategoriesPage, adminOnly: true },
+  amenities:  { title: "Удобства",            eyebrow: "Справочники",  component: AmenitiesPage, adminOnly: true },
+  parameters: { title: "Счётчики и характеристики", eyebrow: "Справочники", component: ParametersPage, adminOnly: true },
+  discounts:  { title: "Скидки",              eyebrow: "Справочники",  component: DiscountsPage, adminOnly: true },
+  settings:   { title: "Мой профиль",         eyebrow: "Аккаунт",      component: SettingsPage },
 };
 
 export function hasAdminShellAccess(profile) {
@@ -52,19 +54,38 @@ export function hasAdminShellAccess(profile) {
   );
 }
 
+export function isFullAdmin(profile) {
+  return Boolean(profile && (profile.role === "admin" || profile.is_staff || profile.is_superuser));
+}
+
 export function getAllowedAdminPages(profile) {
   if (!hasAdminShellAccess(profile)) return [];
-  const hasFullAccess = profile.role === "admin" || profile.is_staff || profile.is_superuser;
+  if (Array.isArray(profile.admin_sections)) {
+    return Object.keys(PAGES).filter((id) => profile.admin_sections.includes(id));
+  }
+  const hasFullAccess = isFullAdmin(profile);
   return Object.keys(PAGES).filter((id) => hasFullAccess || !PAGES[id].adminOnly);
 }
 
-export default function AdminApp({ profile }) {
+export default function AdminApp({ profile: initialProfile }) {
+  const [profile, setProfile] = useState(initialProfile);
   const allowedPages = useMemo(() => getAllowedAdminPages(profile), [profile]);
   const [page, setPage] = useState(() => {
     const savedPage = getStorageItem(STORAGE_KEYS.workflow.adminPage);
     return PAGES[savedPage] ? savedPage : "overview";
   });
   const safePage = allowedPages.includes(page) ? page : (allowedPages[0] || "overview");
+
+  useEffect(() => setProfile(initialProfile), [initialProfile]);
+
+  // Settings saves the profile; keep the sidebar name and photo in sync.
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      if (event.detail) setProfile((current) => ({ ...current, ...event.detail }));
+    };
+    window.addEventListener("joyzone-profile-update", handleProfileUpdate);
+    return () => window.removeEventListener("joyzone-profile-update", handleProfileUpdate);
+  }, []);
 
   useEffect(() => {
     if (page !== safePage) setPage(safePage);
@@ -74,7 +95,10 @@ export default function AdminApp({ profile }) {
   const currentPage = PAGES[safePage] || PAGES.overview;
   const PageComponent = currentPage.component;
   const selectPage = (nextPage) => {
-    if (allowedPages.includes(nextPage)) setPage(nextPage);
+    if (allowedPages.includes(nextPage)) {
+      setPage(nextPage);
+      window.scrollTo({ top: 0 });
+    }
   };
 
   return (
@@ -86,7 +110,7 @@ export default function AdminApp({ profile }) {
       allowedPages={allowedPages}
       profile={profile}
     >
-      <PageComponent setPage={selectPage} />
+      <PageComponent setPage={selectPage} profile={profile} allowedPages={allowedPages} />
     </AdminLayout>
   );
 }

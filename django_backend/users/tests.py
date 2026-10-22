@@ -107,6 +107,29 @@ class AuthApiTests(TestCase):
             refresh_cookie.value,
         )
 
+    def test_profile_rejects_non_image_or_oversized_avatar(self):
+        login = self.client.post(
+            '/api/auth/verify-otp/',
+            {'phone_number': '+998907770033', 'otp_code': '111111'},
+            format='json',
+        )
+        auth = {'HTTP_AUTHORIZATION': f"Bearer {login.data['access']}"}
+
+        script = self.client.patch('/api/auth/profile/', {'avatar': 'javascript:alert(1)'}, format='json', **auth)
+        huge = self.client.patch(
+            '/api/auth/profile/',
+            {'avatar': 'data:image/jpeg;base64,' + 'A' * 1_000_001},
+            format='json',
+            **auth,
+        )
+        cleared = self.client.patch('/api/auth/profile/', {'avatar': None}, format='json', **auth)
+
+        self.assertEqual(script.status_code, 400)
+        self.assertIn('avatar', script.data)
+        self.assertEqual(huge.status_code, 400)
+        self.assertEqual(cleared.status_code, 200)
+        self.assertIsNone(cleared.data['avatar'])
+
     def test_profile_patch_persists_supported_fields(self):
         login = self.client.post(
             '/api/auth/verify-otp/',
@@ -1013,3 +1036,22 @@ class UserManagementApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.admin.refresh_from_db()
         self.assertEqual(self.admin.role, 'admin')
+
+
+class ProfileDetailsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='details-user', password='pass', role='client')
+        self.client.force_authenticate(self.user)
+
+    def test_profile_details_merge_and_validate(self):
+        first = self.client.patch('/api/auth/profile/', {'profile_details': {'city': ' Toshkent ', 'about': 'Hi'}}, format='json')
+        second = self.client.patch('/api/auth/profile/', {'profile_details': {'birth_year': '1996', 'about': ''}}, format='json')
+        unknown = self.client.patch('/api/auth/profile/', {'profile_details': {'is_staff': True}}, format='json')
+        bad_year = self.client.patch('/api/auth/profile/', {'profile_details': {'birth_year': 'abc'}}, format='json')
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.data['profile_details'], {'city': 'Toshkent', 'about': 'Hi'})
+        self.assertEqual(second.data['profile_details'], {'city': 'Toshkent', 'birth_year': '1996'})
+        self.assertEqual(unknown.status_code, 400)
+        self.assertEqual(bad_year.status_code, 400)

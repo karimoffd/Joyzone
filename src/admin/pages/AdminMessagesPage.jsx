@@ -1,98 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { getMessageSender, getStoredChats, sendMessageToChat, syncChatsWithBackend } from '../../utils/chatManager.js';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getApiErrorMessage } from '../../api/client.js';
+import { getMessageSender, markChatRead, sendMessageToChat, syncChatsWithBackend } from '../../utils/chatManager.js';
 import { useVisiblePolling } from '../../utils/polling.js';
+import { Icon } from '../AdminIcons.jsx';
+import { Avatar } from '../AdminLayout.jsx';
+import './messages.css';
+
+function formatTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const today = new Date().toDateString() === date.toDateString();
+  return today
+    ? date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+    : date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+}
 
 export default function AdminMessagesPage() {
-  const [chats, setChats] = useState(() => getStoredChats());
-  const [active, setActive] = useState(null);
+  const [chats, setChats] = useState([]);
+  const [activeId, setActiveId] = useState(null);
   const [draft, setDraft] = useState('');
+  const [search, setSearch] = useState('');
+  const [onlyUnread, setOnlyUnread] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const bodyRef = useRef(null);
 
-  const refreshChats = async () => {
-    const synced = await syncChatsWithBackend({ silent: true });
-    setChats(synced || getStoredChats());
-  };
-
-  useEffect(() => {
-    refreshChats();
-    window.addEventListener('joyzone-chat-update', refreshChats);
-    window.addEventListener('storage', refreshChats);
-    return () => {
-      window.removeEventListener('joyzone-chat-update', refreshChats);
-      window.removeEventListener('storage', refreshChats);
-    };
+  const refreshChats = useCallback(async () => {
+    try {
+      const synced = await syncChatsWithBackend({ silent: true, allowDevFallback: false });
+      setChats(synced || []);
+      setError('');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Не удалось загрузить чаты.'));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => { refreshChats(); }, [refreshChats]);
   useVisiblePolling(refreshChats, 7000);
 
+  const activeChat = chats.find((chat) => String(chat.id) === String(activeId));
+  const messageCount = activeChat?.messages?.length || 0;
+
+  // Scroll only the message list, so the composer always stays visible.
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (body) body.scrollTop = body.scrollHeight;
+  }, [activeId, messageCount]);
+
+  const activeUnread = Boolean(activeChat?.unread);
+  useEffect(() => {
+    if (!activeId || !activeUnread) return;
+    markChatRead(activeId, { allowDevFallback: false })
+      .then((updated) => {
+        if (updated) setChats((current) => current.map((chat) => (String(chat.id) === String(updated.id) ? updated : chat)));
+      })
+      .catch(() => {});
+  }, [activeId, activeUnread]);
+
+  const visibleChats = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return chats.filter((chat) => {
+      if (onlyUnread && !chat.unread) return false;
+      if (!needle) return true;
+      return `${chat.name} ${chat.hostName} ${chat.space} ${chat.preview}`.toLowerCase().includes(needle);
+    });
+  }, [chats, search, onlyUnread]);
+  const unreadCount = chats.filter((chat) => chat.unread).length;
+
   const send = async () => {
-    if (!draft.trim() || !active) return;
-    await sendMessageToChat(active, { from: 'host', text: draft });
-    setDraft('');
-    refreshChats();
+    const text = draft.trim();
+    if (!text || !activeChat || sending) return;
+    setSending(true);
+    try {
+      const updated = await sendMessageToChat(activeChat.id, { from: 'host', text }, { allowDevFallback: false });
+      if (updated) setChats((current) => current.map((chat) => (String(chat.id) === String(updated.id) ? updated : chat)));
+      setDraft('');
+      setError('');
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Сообщение не отправлено.'));
+    } finally {
+      setSending(false);
+    }
   };
 
-  const activeChat = chats.find((c) => String(c.id) === String(active));
-
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 0, height: 'calc(100vh - 160px)', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', background: '#fff' }}>
-      {/* Chat list */}
-      <div style={{ borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
-        <div style={{ padding: '16px 16px 10px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>Чаты</div>
-        {chats.map(c => (
-          <div key={c.id} onClick={() => setActive(c.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer', background: String(active) === String(c.id) ? 'rgba(228,102,48,0.07)' : 'transparent', borderBottom: '1px solid var(--border)', transition: 'background 0.15s' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, background: c.color || '#294a6d', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{c.name.slice(0,2).toUpperCase()}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.preview || c.last}</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{c.time}</span>
-              {c.unread && <span style={{ background: 'var(--orange)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '1px 6px', minWidth: 18, textAlign: 'center' }}>NEW</span>}
-            </div>
-          </div>
-        ))}
-      </div>
-      {/* Chat panel */}
-      {activeChat ? (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 15 }}>
-            {activeChat.name} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 8 }}>({activeChat.space || activeChat.spaceTitle})</span>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(activeChat.messages || []).map((m, i) => (
-              <div 
-                key={i} 
-                style={{ 
-                  alignSelf: getMessageSender(m) === 'host' ? 'flex-end' : 'flex-start',
-                  width: 'fit-content',
-                  maxWidth: 'min(62%, 380px)',
-                  background: getMessageSender(m) === 'host' ? '#294a6d' : '#f6f1ee',
-                  color: getMessageSender(m) === 'host' ? '#fff' : 'var(--text)',
-                  padding: '10px 14px',
-                  borderRadius: getMessageSender(m) === 'host' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  fontSize: 14, 
-                  lineHeight: 1.5,
-                  overflowWrap: 'anywhere',
-                  wordBreak: 'break-word',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                  boxSizing: 'border-box'
-                }}
-              >
-                {m.text}
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10 }}>
-            <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()} placeholder="Напишите сообщение..." style={{ flex: 1, padding: '10px 16px', borderRadius: 24, border: '1px solid var(--border)', fontSize: 14, fontFamily: 'Inter,sans-serif', outline: 'none' }} />
-            <button className="adm-btn adm-btn-primary" style={{ borderRadius: '50%', width: 44, height: 44, padding: 0, justifyContent: 'center' }} onClick={send}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
+    <div className={`msg-shell${activeChat ? ' has-active' : ''}`}>
+      <aside className="msg-list">
+        <div className="msg-list-head">
+          <div>
+            <h3>Чаты</h3>
+            <small>{chats.length} диалогов · {unreadCount} непрочитанных</small>
           </div>
         </div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 15 }}>Выберите чат</div>
-      )}
+        <div className="msg-search">
+          <Icon name="search" size={16} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Гость, место или текст" />
+        </div>
+        <div className="msg-filter">
+          <button type="button" className={!onlyUnread ? 'is-active' : ''} onClick={() => setOnlyUnread(false)}>Все</button>
+          <button type="button" className={onlyUnread ? 'is-active' : ''} onClick={() => setOnlyUnread(true)}>Непрочитанные {unreadCount ? <b>{unreadCount}</b> : null}</button>
+        </div>
+        <div className="msg-items">
+          {loading ? <p className="msg-empty">Загружаем чаты…</p> : null}
+          {!loading && !visibleChats.length ? <p className="msg-empty">{chats.length ? 'Ничего не найдено' : 'Чатов пока нет'}</p> : null}
+          {visibleChats.map((chat) => (
+            <button
+              key={chat.id}
+              type="button"
+              className={`msg-item${String(chat.id) === String(activeId) ? ' is-active' : ''}${chat.unread ? ' is-unread' : ''}`}
+              onClick={() => setActiveId(chat.id)}
+            >
+              <Avatar src={chat.guestAvatar} name={chat.name} size={42} />
+              <span className="msg-item-text">
+                <span className="msg-item-top">
+                  <strong>{chat.name}</strong>
+                  <em>{formatTime(chat.updated_at) || chat.time}</em>
+                </span>
+                <small>{chat.space} · {chat.hostName}</small>
+                <span className="msg-item-preview">{chat.preview}</span>
+              </span>
+              {chat.unread ? <i aria-label="Непрочитано" /> : null}
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      <section className="msg-thread">
+        {activeChat ? (
+          <>
+            <header className="msg-thread-head">
+              <button type="button" className="msg-back" onClick={() => setActiveId(null)} aria-label="Назад к чатам">
+                <Icon name="chevronLeft" size={20} />
+              </button>
+              <Avatar src={activeChat.guestAvatar} name={activeChat.name} size={40} />
+              <div className="msg-thread-title">
+                <strong>{activeChat.name}</strong>
+                <small>{activeChat.space} · владелец: {activeChat.hostName}</small>
+              </div>
+            </header>
+            <div className="msg-body" ref={bodyRef}>
+              {(activeChat.messages || []).length === 0 ? <p className="msg-empty">Сообщений пока нет</p> : null}
+              {(activeChat.messages || []).map((message, index) => {
+                const fromHost = getMessageSender(message) === 'host';
+                return (
+                  <div key={message.id || index} className={`msg-bubble ${fromHost ? 'is-host' : 'is-guest'}`}>
+                    <span className="msg-bubble-author">{fromHost ? activeChat.hostName : activeChat.name}</span>
+                    <p>{message.text}</p>
+                    <time>{formatTime(message.created_at)}</time>
+                  </div>
+                );
+              })}
+            </div>
+            {error ? <div className="msg-error">{error}</div> : null}
+            <form className="msg-composer" onSubmit={(event) => { event.preventDefault(); send(); }}>
+              <textarea
+                value={draft}
+                rows={1}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    send();
+                  }
+                }}
+                placeholder="Ответить от имени владельца… (Shift+Enter — новая строка)"
+              />
+              <button type="submit" disabled={!draft.trim() || sending} aria-label="Отправить">
+                <Icon name="chevronRight" size={20} strokeWidth={2.5} />
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="msg-placeholder">
+            <span><Icon name="chat" size={28} /></span>
+            <h3>Выберите диалог</h3>
+            <p>Здесь видны все переписки гостей с владельцами мест. Ответ уходит гостю от имени владельца.</p>
+            {error ? <div className="msg-error">{error}</div> : null}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

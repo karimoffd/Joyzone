@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getMessageSender, getStoredChats } from "../utils/chatManager.js";
+import { chatPartnerName, getStoredChats } from "../utils/chatManager.js";
 import {
   canUseBackendNotifications,
   fetchNotifications,
@@ -39,10 +39,7 @@ export function FloatingNotificationBell({ onOpenChat }) {
   const [authEnabled, setAuthEnabled] = useState(() => canUseBackendNotifications());
   const dropdownRef = useRef(null);
 
-  const unreadChats = chats.filter((c) => {
-    const lastMsg = c.messages?.[c.messages.length - 1];
-    return lastMsg && getMessageSender(lastMsg) === "host";
-  });
+  const unreadChats = chats.filter((chat) => chat.unread);
 
   const refreshNotifications = useCallback(async () => {
     if (!canUseBackendNotifications()) {
@@ -250,11 +247,11 @@ export function FloatingNotificationBell({ onOpenChat }) {
                       }}
                     >
                       <div className="fnb-item-avatar" style={{ background: chat.color || "#e46630" }}>
-                        {chat.name?.slice(0, 2).toUpperCase()}
+                        {(chatPartnerName(chat) || "J").slice(0, 2).toUpperCase()}
                       </div>
                       <div className="fnb-item-info">
                         <div className="fnb-item-top">
-                          <strong>{chat.name}</strong>
+                          <strong>{chatPartnerName(chat)}</strong>
                           <small>{chat.time || "Hozir"}</small>
                         </div>
                         <p>{lastMsg?.text || chat.preview || "Chat ochilgan"}</p>

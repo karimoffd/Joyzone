@@ -35,6 +35,7 @@ export function profileToUserState(profile, current = {}) {
     email: normalized.email,
     phone: normalized.phone_number,
     avatar: normalized.avatar,
+    profileDetails: normalized.profile_details || {},
   };
 }
 
@@ -61,4 +62,29 @@ export function cacheProfile(profile) {
     }));
   }
   return normalized;
+}
+
+// "About me" questionnaire fields <-> backend profile_details keys.
+const QUESTIONNAIRE_DETAIL_KEYS = {
+  role: "headline",
+  city: "city",
+  birthYear: "birth_year",
+  languages: "languages",
+  work: "work",
+  company: "company",
+  interests: "interests",
+  about: "about",
+};
+
+export function questionnaireFromProfile(profile = {}, legacyLocal = {}) {
+  const details = profile.profile_details || {};
+  const hasBackendData = Object.keys(details).length > 0;
+  return Object.fromEntries(Object.entries(QUESTIONNAIRE_DETAIL_KEYS)
+    .map(([field, detailKey]) => [field, hasBackendData ? details[detailKey] || "" : legacyLocal[field] || ""])
+    .filter(([, value]) => value));
+}
+
+export function questionnaireToDetails(draft = {}) {
+  return Object.fromEntries(Object.entries(QUESTIONNAIRE_DETAIL_KEYS)
+    .map(([field, detailKey]) => [detailKey, String(draft[field] ?? "").trim()]));
 }

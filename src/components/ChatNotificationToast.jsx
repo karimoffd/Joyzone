@@ -1,47 +1,41 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
-import { getMessageSender, getStoredChats } from "../utils/chatManager.js";
+import { chatPartnerName, getStoredChats, isOwnMessage } from "../utils/chatManager.js";
 import "./ChatNotificationToast.css";
 
-export function ChatNotificationToast({ onOpenChat }) {
+export function ChatNotificationToast({ onOpenChat, activeChatId = null }) {
   const toastRef = useRef(null);
   const [notification, setNotification] = useState(null);
-  const lastMsgRef = useRef(null);
+  const seenRef = useRef(null);
+  const activeChatRef = useRef(activeChatId);
+  activeChatRef.current = activeChatId;
 
   useEffect(() => {
+    const messageKey = (chat) => {
+      const last = chat.messages?.[chat.messages.length - 1];
+      return last ? `${chat.id}:${last.id || `${chat.messages.length}-${last.text}`}` : null;
+    };
+    // Messages that already existed when the app opened are not announced.
+    seenRef.current = new Set(getStoredChats().map(messageKey).filter(Boolean));
+
     const checkNewMessages = () => {
-      const chats = getStoredChats();
-      if (!chats || chats.length === 0) return;
-
-      for (const chat of chats) {
-        if (chat.messages && chat.messages.length > 0) {
-          const lastMsg = chat.messages[chat.messages.length - 1];
-          const msgKey = `${chat.id}-${chat.messages.length}-${lastMsg.text}`;
-
-          if (getMessageSender(lastMsg) === "host" && lastMsgRef.current !== msgKey) {
-            if (lastMsgRef.current !== null) {
-              setNotification({
-                chatId: chat.id,
-                senderName: chat.name || "Ega / Host",
-                spaceTitle: chat.space || chat.spaceTitle || "Joyzone Space",
-                text: lastMsg.text,
-                avatarColor: chat.color || "#e46630"
-              });
-            }
-            lastMsgRef.current = msgKey;
-            break;
-          }
-        }
+      for (const chat of getStoredChats()) {
+        const lastMsg = chat.messages?.[chat.messages.length - 1];
+        const key = messageKey(chat);
+        if (!lastMsg || !key || seenRef.current.has(key)) continue;
+        seenRef.current.add(key);
+        if (!chat.unread || isOwnMessage(chat, lastMsg)) continue;
+        if (String(activeChatRef.current) === String(chat.id)) continue;
+        setNotification({
+          chatId: chat.id,
+          senderName: chatPartnerName(chat) || "Joyzone",
+          spaceTitle: chat.space || chat.spaceTitle || "Joyzone Space",
+          text: lastMsg.text,
+          avatarColor: chat.color || "#e46630"
+        });
       }
     };
-
-    const initialChats = getStoredChats();
-    if (initialChats && initialChats[0]?.messages?.length) {
-      const first = initialChats[0];
-      const last = first.messages[first.messages.length - 1];
-      lastMsgRef.current = `${first.id}-${first.messages.length}-${last.text}`;
-    }
 
     window.addEventListener("joyzone-chat-update", checkNewMessages);
     window.addEventListener("storage", checkNewMessages);

@@ -22,6 +22,7 @@ export const STORAGE_KEYS = Object.freeze({
     legacyLanguage: "joyzone-language",
     currency: "joyzone-currency",
     currencyRates: "joyzone-currency-rates",
+    adminSidebarCollapsed: "joyzone-admin-sidebar-collapsed",
   }),
   booking: Object.freeze({
     active: "joyzone-booking",

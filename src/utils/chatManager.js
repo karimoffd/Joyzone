@@ -107,6 +107,22 @@ export function getMessageSender(message) {
   return String(message?.from || message?.sender || message?.from_sender || "guest").toLowerCase();
 }
 
+export function isOwnMessage(chat, message) {
+  return getMessageSender(message) === (chat?.viewerRole || "guest");
+}
+
+/** Photo of the other side of the conversation ("" when there is none). */
+export function chatPartnerAvatar(chat) {
+  if (!chat) return "";
+  return chat.viewerRole === "host" ? chat.guestAvatar : chat.hostAvatar;
+}
+
+/** Name of the other side of the conversation, from the viewer's point of view. */
+export function chatPartnerName(chat) {
+  if (!chat) return "";
+  return chat.viewerRole === "host" ? chat.name : chat.hostName;
+}
+
 export function normalizeChatMessage(message = {}) {
   const from = getMessageSender(message);
   return {
@@ -119,7 +135,7 @@ export function normalizeChatMessage(message = {}) {
 
 export function normalizeChat(chat = {}) {
   const spaceTitle = chat.spaceTitle || chat.space_title || chat.space || "Joyzone Space";
-  const hostName = chat.hostName || chat.host_name || chat.host_user_name || "Ega / Host";
+  const hostName = chat.host_user_name || chat.hostName || chat.host_name || "Ega / Host";
   return {
     ...chat,
     id: chat.id || chat.thread_id,
@@ -135,6 +151,10 @@ export function normalizeChat(chat = {}) {
     space_title: spaceTitle,
     preview: chat.preview || chat.last || "Диалог начат...",
     unread: Boolean(chat.unread),
+    // "guest" or "host": which side of the thread the current user is on.
+    viewerRole: chat.viewer_role || chat.viewerRole || "guest",
+    guestAvatar: chat.guest_avatar || chat.guestAvatar || "",
+    hostAvatar: chat.host_avatar || chat.hostAvatar || "",
     color: chat.color || "#e46630",
     messages: Array.isArray(chat.messages) ? chat.messages.map(normalizeChatMessage) : []
   };

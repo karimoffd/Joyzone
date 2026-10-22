@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from core.audit import create_audit_log
 from django.utils import timezone
-from core.permissions import IsAdminOrModerator, can_manage_owned_object, is_admin_or_moderator, is_partner
+from core.permissions import IsAdminOrModerator, IsAdminUserRole, can_manage_owned_object, is_admin_or_moderator, is_partner
 from .models import Place, Category, SubCategory, Review, ParameterGroup, Parameter, Discount, Favorite, PlaceModerationLog
 from .prices import PRICE_FIELDS
 from .serializers import PlaceSerializer, CategoryWithSubsSerializer, SubCategorySerializer, ReviewSerializer, ParameterGroupSerializer, ParameterSerializer, DiscountSerializer, FavoriteSerializer
@@ -162,7 +162,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 class SubCategoryViewSet(viewsets.ModelViewSet):
@@ -179,7 +179,7 @@ class SubCategoryViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 # ─── Place ViewSet ────────────────────────────────────────────────────────────
@@ -711,7 +711,7 @@ class ParameterGroupViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 class ParameterViewSet(viewsets.ModelViewSet):
@@ -721,7 +721,7 @@ class ParameterViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 class DiscountViewSet(viewsets.ModelViewSet):
@@ -731,7 +731,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve'):
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 def _favorite_identity(request, token=None):

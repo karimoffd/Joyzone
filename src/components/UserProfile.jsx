@@ -9,7 +9,8 @@ import { HostListingDetailModal } from "./HostListingDetailModal.jsx";
 import { normalizePlace } from "../utils/placeMapper.js";
 import { fetchFavoritesFromBackend, getLocalFavorites } from "../utils/favoritesManager.js";
 import { normalizeBooking } from "../utils/bookingMapper.js";
-import { cacheProfile, profileToUserState } from "../utils/profileMapper.js";
+import { cacheProfile, profileToUserState, questionnaireFromProfile } from "../utils/profileMapper.js";
+import { fileToAvatarDataUrl } from "../utils/avatarImage.js";
 import { getStorageItem, readJsonStorage, STORAGE_KEYS } from "../utils/storageKeys.js";
 import "./UserProfile.css";
 import "./HostDashboard.css";
@@ -70,10 +71,10 @@ function UserProfile({ userState, setUserState }) {
     const activeName = userState?.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi";
     const activeEmail = userState?.email || getStorageItem(STORAGE_KEYS.profile.email, "");
     const activePhone = userState?.phone || getStorageItem(STORAGE_KEYS.profile.phone, "");
-    const localOnly = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
+    const legacyLocal = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
     return {
       ...initialProfile,
-      ...localOnly,
+      ...questionnaireFromProfile({ profile_details: userState?.profileDetails }, legacyLocal),
       name: activeName,
       email: activeEmail,
       phone: activePhone
@@ -92,29 +93,24 @@ function UserProfile({ userState, setUserState }) {
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files && e.target.files[0];
+    e.target.value = "";
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result;
-      const token = getAccessToken();
-      if (!token) {
-        setProfileError("Profil rasmini saqlash uchun tizimga kiring.");
-        return;
-      }
-      setAvatarSaving(true);
-      try {
-        const response = await api.patch("/api/auth/profile/", { avatar: base64Data });
-        const profile = cacheProfile(response.data);
-        setUserState?.(profileToUserState(profile, userState));
-        setProfileError("");
-      } catch (err) {
-        setProfileError(getApiErrorMessage(err, "Не удалось обновить аватар"));
-      } finally {
-        setAvatarSaving(false);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (!getAccessToken()) {
+      setProfileError("Profil rasmini saqlash uchun tizimga kiring.");
+      return;
+    }
+    setAvatarSaving(true);
+    try {
+      const avatar = await fileToAvatarDataUrl(file);
+      const response = await api.patch("/api/auth/profile/", { avatar });
+      const profile = cacheProfile(response.data);
+      setUserState?.(profileToUserState(profile, userState));
+      setProfileError("");
+    } catch (err) {
+      setProfileError(err?.response ? getApiErrorMessage(err, "Не удалось обновить аватар") : err.message);
+    } finally {
+      setAvatarSaving(false);
+    }
   };
 
   const handleAvatarRemove = async () => {

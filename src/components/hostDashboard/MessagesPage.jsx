@@ -12,7 +12,7 @@ export function MessagesPage({ listings = [], partnerId = null }) {
   const [usingOfflineFallback, setUsingOfflineFallback] = useState(false);
   const [inboxLoading, setInboxLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const messagesEndRef = useRef(null);
+  const chatBodyRef = useRef(null);
   
   const refreshChats = useCallback(async () => {
     try {
@@ -44,9 +44,23 @@ export function MessagesPage({ listings = [], partnerId = null }) {
     }
   }, [activeChat, selectedChat]);
 
+  // Scroll only the message list so the composer never leaves the screen.
+  const activeMessageCount = activeChat?.messages?.length || 0;
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeChat?.messages]);
+    const body = chatBodyRef.current;
+    if (body) body.scrollTop = body.scrollHeight;
+  }, [selectedChat, activeMessageCount]);
+
+  // A guest message that arrives while the chat is open counts as read.
+  const activeUnread = Boolean(activeChat?.unread);
+  useEffect(() => {
+    if (!selectedChat || !activeUnread || usingOfflineFallback) return;
+    markChatRead(selectedChat, { allowDevFallback: false })
+      .then((updated) => {
+        if (updated) setChats((current) => current.map((item) => String(item.id) === String(updated.id) ? updated : item));
+      })
+      .catch(() => {});
+  }, [selectedChat, activeUnread, usingOfflineFallback]);
 
   const handleSelectChat = async (chat) => {
     setSelectedChat(chat.id);
@@ -108,7 +122,9 @@ export function MessagesPage({ listings = [], partnerId = null }) {
             <p style={{ color: "#64748b", fontSize: 14 }}>Загрузка чатов...</p>
           ) : chats.length > 0 ? chats.map((chat) => (
             <button key={chat.id} type="button" className={chat.id === selectedChat ? "is-active" : ""} onClick={() => handleSelectChat(chat)}>
-              <span>{chat.name.slice(0, 2).toUpperCase()}</span>
+              <span style={chat.guestAvatar ? { overflow: "hidden", padding: 0 } : undefined}>
+                {chat.guestAvatar ? <img src={chat.guestAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : chat.name.slice(0, 2).toUpperCase()}
+              </span>
               <div>
                 <strong>{chat.name}</strong>
                 <small>{chat.space}</small>
@@ -136,11 +152,10 @@ export function MessagesPage({ listings = [], partnerId = null }) {
               </div>
               <a href="/host-calendar" className="desktop-only-link">Открыть бронь</a>
             </div>
-            <div className="host-chat-body">
+            <div className="host-chat-body" ref={chatBodyRef}>
               {activeChat.messages.map((message, index) => (
                 <p key={message.id || `${message.text}-${index}`} className={`${getMessageSender(message) === "host" ? "is-host" : ""} ${message.isNew ? "msg-pop" : ""}`}>{message.text}</p>
               ))}
-              <div ref={messagesEndRef} />
             </div>
             <div className="host-chat-composer">
               <button type="button" className="composer-icon-btn" aria-label="GIFs">

@@ -36,6 +36,9 @@ class ChatThreadSerializer(serializers.ModelSerializer):
     host_id = serializers.IntegerField(source='host.id', read_only=True)
     guest_name = serializers.SerializerMethodField()
     host_user_name = serializers.SerializerMethodField()
+    viewer_role = serializers.SerializerMethodField()
+    guest_avatar = serializers.SerializerMethodField()
+    host_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatThread
@@ -52,6 +55,9 @@ class ChatThreadSerializer(serializers.ModelSerializer):
             'host_id',
             'color',
             'unread',
+            'viewer_role',
+            'guest_avatar',
+            'host_avatar',
             'last_read_by_guest',
             'last_read_by_host',
             'preview',
@@ -86,6 +92,20 @@ class ChatThreadSerializer(serializers.ModelSerializer):
             )
 
         return False
+
+    def get_viewer_role(self, obj):
+        """Which side of the conversation the requesting user is on."""
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user and user.is_authenticated and obj.guest_id == user.id:
+            return 'guest'
+        return 'host'
+
+    def get_guest_avatar(self, obj):
+        return (obj.guest.avatar or '') if obj.guest else ''
+
+    def get_host_avatar(self, obj):
+        return (obj.host.avatar or '') if obj.host else ''
 
     def get_guest_name(self, obj):
         if obj.guest:

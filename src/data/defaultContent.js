@@ -1,4 +1,5 @@
 import { defaultLists } from "./defaultLists.js";
+import { siteTexts } from "./siteTexts.js";
 
 const baseContent = {
   uz: {
@@ -21,22 +22,7 @@ const baseContent = {
     home_partner_cta: "Batafsil",
     
     tab_all: "barchasi",
-    tab_office: "ofis",
-    tab_coworking: "kovorking",
-    tab_events: "tadbirlar",
-    tab_halls: "zallar",
-    filter_price: "Narx",
-    filter_people: "Odam soni",
-    filter_floor: "Qavat",
 
-    card_people: "kishi",
-    card_room: "xona",
-    card_sqm: "m2",
-    card_ad: "Reklama",
-    card_fav: "Guest favourite",
-    card_per_hour: "/ soat",
-    card_per_day: "/ kun",
-    card_view_all: "Barcha joylarni ko'rish",
 
     popular_title: "Ommabop joylar",
     popular_subtitle: "Eng ko'p izlangan va band qilingan joylar",
@@ -92,19 +78,14 @@ const baseContent = {
     tariffs_subtitle: "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring.",
     
     footer_about: "Bizning maqsadimiz qulay ish joylarini va saytni ijarachilarga yaqinlashtirish.",
-    footer_address: "Toshkent shahri, Yunusobod tumani",
     footer_phone: "+998 77 044 40 00",
     footer_email: "info@joyzone.uz",
     footer_nav1: "Ma'lumotlar",
-    footer_nav2: "Xizmatlar",
     footer_link_about: "Biz haqimizda",
     footer_link_dirs: "Yo'nalishlar",
     footer_link_contact: "Kontaktlar",
     footer_link_privacy: "Maxfiylik siyosati",
     
-    sms_otp: "Sizning tasdiqlash kodingiz: {code}",
-    sms_booking_confirm: "Sizning broningiz tasdiqlandi.",
-    sms_booking_cancel: "Sizning broningiz bekor qilindi.",
   },
   ru: {
     nav_links_arr: [
@@ -126,22 +107,7 @@ const baseContent = {
     home_partner_cta: "Подробнее",
     
     tab_all: "все",
-    tab_office: "офисы",
-    tab_coworking: "коворкинги",
-    tab_events: "мероприятия",
-    tab_halls: "залы",
-    filter_price: "Цена",
-    filter_people: "Вместимость",
-    filter_floor: "Этаж",
 
-    card_people: "чел",
-    card_room: "комн",
-    card_sqm: "м2",
-    card_ad: "Реклама",
-    card_fav: "Выбор гостей",
-    card_per_hour: "/ час",
-    card_per_day: "/ день",
-    card_view_all: "Смотреть все",
 
     popular_title: "Популярные места",
     popular_subtitle: "Самые просматриваемые и бронируемые места",
@@ -197,19 +163,14 @@ const baseContent = {
     tariffs_subtitle: "Начните бесплатно и меняйте тариф по мере роста бизнеса.",
     
     footer_about: "Наша цель — приблизить удобные рабочие места и сайты к арендаторам.",
-    footer_address: "г. Ташкент, Юнусабадский район",
     footer_phone: "+998 77 044 40 00",
     footer_email: "info@joyzone.uz",
     footer_nav1: "Информация",
-    footer_nav2: "Услуги",
     footer_link_about: "О нас",
     footer_link_dirs: "Направления",
     footer_link_contact: "Контакты",
     footer_link_privacy: "Политика конфиденциальности",
     
-    sms_otp: "Ваш код подтверждения: {code}",
-    sms_booking_confirm: "Ваше бронирование подтверждено.",
-    sms_booking_cancel: "Ваше бронирование отменено.",
   },
   en: {
     nav_links_arr: [
@@ -231,22 +192,7 @@ const baseContent = {
     home_partner_cta: "Learn more",
     
     tab_all: "all",
-    tab_office: "office",
-    tab_coworking: "coworking",
-    tab_events: "events",
-    tab_halls: "halls",
-    filter_price: "Price",
-    filter_people: "Capacity",
-    filter_floor: "Floor",
 
-    card_people: "ppl",
-    card_room: "rooms",
-    card_sqm: "sqm",
-    card_ad: "Ad",
-    card_fav: "Guest favourite",
-    card_per_hour: "/ hr",
-    card_per_day: "/ day",
-    card_view_all: "View all spaces",
 
     popular_title: "Popular Spaces",
     popular_subtitle: "Most viewed and booked spaces",
@@ -302,22 +248,17 @@ const baseContent = {
     tariffs_subtitle: "Start free and change your plan as your business grows.",
     
     footer_about: "Our goal is to bring convenient workspaces closer to tenants.",
-    footer_address: "Tashkent, Yunusabad district",
     footer_phone: "+998 77 044 40 00",
     footer_email: "info@joyzone.uz",
     footer_nav1: "Information",
-    footer_nav2: "Services",
     footer_link_about: "About Us",
     footer_link_dirs: "Categories",
     footer_link_contact: "Contact",
     footer_link_privacy: "Privacy Policy",
     
-    sms_otp: "Your verification code is: {code}",
-    sms_booking_confirm: "Your booking is confirmed.",
-    sms_booking_cancel: "Your booking is canceled.",
   }
 };
 
 export const defaultContent = Object.fromEntries(
-  Object.entries(baseContent).map(([lang, values]) => [lang, { ...values, ...defaultLists[lang] }]),
+  Object.entries(baseContent).map(([lang, values]) => [lang, { ...values, ...siteTexts[lang], ...defaultLists[lang] }]),
 );

@@ -278,13 +278,13 @@ export function Banner({
                     <div ref={locationSelectRef} className={`custom-select ${isLocationOpen ? "open" : ""} ${locationOpenAbove ? "open-above" : ""}`}>
                       <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
                         <img height="38" src={kvIcon} alt="" />
-                        <span>{selectedLocation || "Manzilni tanlang"}</span>
+                        <span>{selectedLocation || content?.[lang]?.hero_location_placeholder || "Manzilni tanlang"}</span>
                         {usingDevLocationFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV</small> : null}
                       </div>
                       {isMobile ? (
-                        <BottomSheet isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} title="Manzil">
+                        <BottomSheet isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} title={content?.[lang]?.hero_location_title || "Manzil"}>
                           <div className="dropdown" style={{ position: "static", opacity: 1, visibility: "visible", boxShadow: "none", transform: "none", width: "100%", padding: "0 16px 24px", maxHeight: "60vh", overflowY: "auto" }}>
-                        <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
+                        <input className="search-input" value={searchQuery} placeholder={content?.[lang]?.hero_search_placeholder || "Qidirish..."} onChange={(event) => setSearchQuery(event.target.value)} />
                         <ul className="options">
                           {Object.entries(locationGroups).map(([region, districts]) => {
                             const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -366,7 +366,7 @@ export function Banner({
                         </BottomSheet>
                       ) : (
                         <div className="dropdown">
-                        <input className="search-input" value={searchQuery} placeholder="Qidirish..." onChange={(event) => setSearchQuery(event.target.value)} />
+                        <input className="search-input" value={searchQuery} placeholder={content?.[lang]?.hero_search_placeholder || "Qidirish..."} onChange={(event) => setSearchQuery(event.target.value)} />
                         <ul className="options">
                           {Object.entries(locationGroups).map(([region, districts]) => {
                             const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -461,7 +461,7 @@ export function Banner({
                   <JoySlider items={slides} interval={4600} />
                 ) : (
                   <div className="home-hero-media-empty" role="status">
-                    {placesError || "Hozircha ko'rsatish uchun joylar yo'q."}
+                    {placesError || content?.[lang]?.hero_empty_places || "Hozircha ko'rsatish uchun joylar yo'q."}
                   </div>
                 )}
               </div>

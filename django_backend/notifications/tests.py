@@ -77,6 +77,26 @@ class RestChatTests(TestCase):
         admin_response = self.client.get('/api/notifications/chats/')
         self.assertEqual({item['id'] for item in admin_response.data}, {own_thread.thread_id, other_thread.thread_id})
 
+    def test_host_reply_reaches_guest_as_unread_with_viewer_roles(self):
+        thread = self._create_thread(self.guest, self.place)
+
+        self.client.force_authenticate(self.host)
+        reply = self.client.post(
+            '/api/notifications/chats/message/',
+            {'chat_id': thread.thread_id, 'from': 'guest', 'text': 'Welcome!'},
+            format='json',
+        )
+        self.assertEqual(reply.status_code, 200)
+        self.assertEqual(reply.data['viewer_role'], 'host')
+        self.assertEqual(reply.data['messages'][-1]['sender'], 'host')
+
+        self.client.force_authenticate(self.guest)
+        guest_list = self.client.get('/api/notifications/chats/')
+        self.assertEqual(guest_list.data[0]['viewer_role'], 'guest')
+        self.assertTrue(guest_list.data[0]['unread'])
+        self.assertEqual(guest_list.data[0]['preview'], 'Welcome!')
+        self.assertEqual(self.client.get('/api/notifications/chats/unread-count/').data['count'], 1)
+
     def test_user_cannot_send_message_to_unrelated_chat(self):
         thread = self._create_thread(self.guest, self.place)
         self.client.force_authenticate(self.other_guest)

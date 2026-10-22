@@ -139,7 +139,9 @@ export default function ReviewsPage() {
         {reviews.map((r, i) => (
           <div key={r.id || i} className="adm-card adm-card-pad">
             <div style={{ display: 'flex', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>{r.user_name.slice(0,2).toUpperCase()}</div>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: r.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0, overflow: 'hidden' }}>
+                {r.user_avatar ? <img src={r.user_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : r.user_name.slice(0,2).toUpperCase()}
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6 }}>
                   <div><strong style={{ fontSize: 14 }}>{r.user_name}</strong> <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>{r.place_title}</span></div>

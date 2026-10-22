@@ -152,6 +152,7 @@ export function normalizeReview(review = {}) {
     ...review,
     id: review.id || `${name}-${review.created_at || review.date || Math.random()}`,
     name,
+    avatar: review.user_avatar || review.avatar || "",
     role: review.role || "Joyzone mehmoni",
     date: formatReviewDate(review.created_at || review.date) || "Yaqinda",
     rating: Number.isFinite(rating) ? rating : 5,

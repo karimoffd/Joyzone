@@ -78,3 +78,23 @@ class IsAdminUserRole(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return is_admin_user(request.user)
+
+
+# Admin panel sections each role may open. The frontend builds its menu from
+# this list (profile.admin_sections) and the API enforces the same split.
+MODERATOR_ADMIN_SECTIONS = (
+    'overview', 'moderation', 'spaces', 'bookings', 'messages', 'reviews',
+    'content', 'banners', 'settings',
+)
+ADMIN_ONLY_SECTIONS = (
+    'users', 'finance', 'audit', 'tariffs', 'categories', 'amenities',
+    'parameters', 'discounts',
+)
+
+
+def admin_sections_for(user):
+    if is_admin_user(user):
+        return [*MODERATOR_ADMIN_SECTIONS, *ADMIN_ONLY_SECTIONS]
+    if is_admin_or_moderator(user):
+        return list(MODERATOR_ADMIN_SECTIONS)
+    return []

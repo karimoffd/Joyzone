@@ -1,791 +1,425 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api, { getApiErrorMessage } from "../../api/client.js";
 import { defaultContent } from "../../data/defaultContent.js";
+import { CONTENT_FIELDS, CONTENT_SCHEMA } from "../../data/contentSchema.js";
+import { Icon } from "../AdminIcons.jsx";
+import "./content.css";
 
-// CSS styles
-const styles = `
-.rich-content-page {
-  font-family: 'Inter', 'Roboto', sans-serif;
-  color: #1a1a2e;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-  min-height: calc(100vh - 40px);
-  padding: 40px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-}
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-  border-radius: 24px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-.rich-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30px 40px;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
-}
-.rich-title {
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #294a6d 0%, #e46630 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0;
-}
-.rich-subtitle {
-  color: #64748b;
-  font-size: 14px;
-  margin-top: 4px;
-}
-.lang-toggle {
-  display: flex;
-  background: rgba(0,0,0,0.04);
-  padding: 4px;
-  border-radius: 12px;
-}
-.lang-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 13px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: transparent;
-  color: #64748b;
-}
-.lang-btn.active {
-  background: #fff;
-  color: #e46630;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-.rich-layout {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  flex: 1;
-}
-.rich-sidebar {
-  padding: 30px;
-  border-right: 1px solid rgba(0,0,0,0.05);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.cat-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  text-align: left;
-  padding: 14px 20px;
-  border-radius: 16px;
-  border: none;
-  background: transparent;
-  color: #475569;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.cat-btn:hover {
-  background: rgba(228, 102, 48, 0.05);
-  color: #e46630;
-}
-.cat-btn.active {
-  background: linear-gradient(135deg, rgba(228, 102, 48, 0.1) 0%, rgba(228, 102, 48, 0.05) 100%);
-  color: #e46630;
-  box-shadow: inset 2px 0 0 #e46630;
-}
-.rich-content {
-  padding: 40px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-.field-group {
-  margin-bottom: 30px;
-}
-.field-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #64748b;
-  margin-bottom: 10px;
-}
-.rich-input {
-  width: 100%;
-  background: #fff;
-  border: 2px solid transparent;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-  border-radius: 16px;
-  padding: 16px 20px;
-  font-size: 16px;
-  color: #1e293b;
-  font-family: inherit;
-  transition: all 0.3s ease;
-}
-.rich-input:focus {
-  outline: none;
-  border-color: rgba(228, 102, 48, 0.4);
-  box-shadow: 0 4px 20px rgba(228, 102, 48, 0.15);
-  background: rgba(255,255,255,0.9);
-}
-textarea.rich-input {
-  resize: vertical;
-  min-height: 120px;
-}
-.floating-save {
-  position: sticky;
-  bottom: 0px;
-  align-self: flex-end;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, #e46630 0%, #d05320 100%);
-  color: #fff;
-  border: none;
-  padding: 16px 32px;
-  border-radius: 50px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 10px 25px rgba(228, 102, 48, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: auto;
-}
-.floating-save:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(228, 102, 48, 0.5);
-}
-.floating-save:active {
-  transform: translateY(0);
-}
-.floating-save.saved {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
-}
-.cat-icon {
-  width: 20px;
-  height: 20px;
-  stroke-width: 2;
-  stroke: currentColor;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+const LANGS = ['uz', 'ru', 'en'];
+const LANG_LABELS = { uz: "O'zbekcha", ru: "Русский", en: "English" };
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const same = (a, b) => JSON.stringify(a ?? "") === JSON.stringify(b ?? "");
+
+function isFilled(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  return String(value ?? "").trim().length > 0;
 }
 
-.sidebar-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+function buildValues(server = {}) {
+  return Object.fromEntries(LANGS.map((lang) => [lang, { ...(defaultContent[lang] || {}), ...(server[lang] || {}) }]));
 }
-.sidebar-group-title {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
-  font-weight: 700;
-  margin-bottom: 8px;
-  padding-left: 14px;
-}
-.sidebar-divider {
-  height: 1px;
-  background: rgba(41, 74, 109, 0.08);
-  margin: 16px 0;
-}
-.link-card {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.8);
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(41, 74, 109, 0.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.02);
-  transition: all 0.2s ease;
-}
-.link-card.dragging {
-  opacity: 0.5;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-  transform: scale(1.02);
-}
-.link-card:hover {
-  border-color: rgba(228, 102, 48, 0.3);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-}
-.drag-handle {
-  cursor: grab;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-}
-.drag-handle:active {
-  cursor: grabbing;
-}
-.link-inputs-row {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-@media (max-width: 600px) {
-  .link-inputs-row {
-    flex-direction: column;
-  }
-}
-.link-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  border: none;
-  background: #f1f5f9;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.link-btn:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #1a1a2e;
-}
-.link-btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-.link-btn-delete {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-}
-.link-btn-delete:hover {
-  background: #ef4444;
-  color: white;
-}
-.add-link-btn {
-  align-self: flex-start;
-  padding: 10px 20px;
-  background: rgba(228, 102, 48, 0.1);
-  color: #e46630;
-  border: 1px dashed #e46630;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.add-link-btn:hover {
-  background: #e46630;
-  color: white;
-}
-`;
 
-const CATEGORIES = [
-  {
-    id: "nav",
-    label: "Навигация (Меню)",
-    fields: [
-      { key: "nav_links_arr", label: "Ссылки верхнего меню", type: "linkList" },
-      { key: "nav_login", label: "Кнопка входа", type: "text" },
-      { key: "nav_profile", label: "Кнопка профиля", type: "text" },
-    ]
-  },
-  {
-    id: "hero",
-    label: "Hero (Главная)",
-    fields: [
-      { key: "hero_title", label: "Заголовок", type: "text" },
-      { key: "hero_subtitle", label: "Подзаголовок", type: "textarea" },
-      { key: "hero_cta", label: "Кнопка CTA", type: "text" },
-      { key: "hero_animated_words", label: "Слова (через запятую)", type: "text" },
-      { key: "home_partner_title", label: "Промо партнёра: заголовок", type: "text" },
-      { key: "home_partner_text", label: "Промо партнёра: текст", type: "textarea" },
-      { key: "home_partner_cta", label: "Промо партнёра: кнопка", type: "text" },
-    ]
-  },
-  {
-    id: "filters",
-    label: "Фильтры и Вкладки",
-    fields: [
-      { key: "tab_all", label: "Вкладка Все", type: "text" },
-      { key: "tab_office", label: "Вкладка Офис", type: "text" },
-      { key: "tab_coworking", label: "Вкладка Коворкинг", type: "text" },
-      { key: "tab_events", label: "Вкладка Мероприятия", type: "text" },
-      { key: "tab_halls", label: "Вкладка Залы", type: "text" },
-      { key: "filter_price", label: "Фильтр Цена", type: "text" },
-      { key: "filter_people", label: "Фильтр Люди", type: "text" },
-      { key: "filter_floor", label: "Фильтр Этаж", type: "text" },
-    ]
-  },
-  {
-    id: "cards",
-    label: "Карточки мест",
-    fields: [
-      { key: "card_people", label: "человек", type: "text" },
-      { key: "card_room", label: "комната", type: "text" },
-      { key: "card_sqm", label: "м2", type: "text" },
-      { key: "card_ad", label: "Реклама", type: "text" },
-      { key: "card_fav", label: "Выбор гостей", type: "text" },
-      { key: "card_per_hour", label: "за час", type: "text" },
-      { key: "card_per_day", label: "в день", type: "text" },
-      { key: "card_view_all", label: "Смотреть все", type: "text" },
-    ]
-  },
-  {
-    id: "popular",
-    label: "Популярные места",
-    fields: [
-      { key: "popular_title", label: "Заголовок", type: "text" },
-      { key: "popular_subtitle", label: "Подзаголовок", type: "text" },
-    ]
-  },
-  {
-    id: "howit",
-    label: "Как это работает",
-    fields: [
-      { key: "how_title", label: "Заголовок", type: "text" },
-      { key: "how_step1", label: "Шаг 1", type: "text" },
-      { key: "how_step2", label: "Шаг 2", type: "text" },
-      { key: "how_step3", label: "Шаг 3", type: "text" },
-    ]
-  },
-  {
-    id: "agents",
-    label: "Партнеры (Агенты)",
-    fields: [
-      { key: "agent_title", label: "Заголовок Партнеров", type: "text" },
-      { key: "agent_sub", label: "Подзаголовок", type: "textarea" },
-      { key: "agent_premium", label: "Бейдж Премиум", type: "text" },
-      { key: "agent_reviews", label: "отзывов", type: "text" },
-      { key: "agent_profile", label: "Кнопка Профиль", type: "text" },
-    ]
-  },
-  {
-    id: "reviews",
-    label: "Отзывы и FAQ",
-    fields: [
-      { key: "rev_title", label: "Отзывы", type: "text" },
-      { key: "faq_kicker", label: "FAQ kicker", type: "text" },
-      { key: "faq_title", label: "FAQ заголовок", type: "text" },
-    ]
-  },
-  {
-    id: "partner",
-    label: "Стать партнёром",
-    fields: [
-      { key: "partner_title", label: "Заголовок", type: "text" },
-      { key: "partner_subtitle", label: "Описание", type: "textarea" },
-      { key: "partner_cta", label: "Кнопка", type: "text" },
-    ]
-  },
-  {
-    id: "auth",
-    label: "Авторизация",
-    fields: [
-      { key: "auth_login_title", label: "Заголовок Входа", type: "text" },
-      { key: "auth_login_sub", label: "Подзаголовок Входа", type: "textarea" },
-      { key: "auth_reg_title", label: "Заголовок Регистрации", type: "text" },
-      { key: "auth_reg_sub", label: "Подзаголовок Регистрации", type: "textarea" },
-      { key: "auth_otp_title", label: "Заголовок OTP", type: "text" },
-      { key: "auth_otp_sub", label: "Подзаголовок OTP", type: "textarea" },
-      { key: "auth_forgot_title", label: "Заголовок Восст.", type: "text" },
-      { key: "auth_forgot_sub", label: "Подзаголовок Восст.", type: "textarea" },
-      { key: "auth_forgot_btn", label: "Кнопка Восст.", type: "text" },
-      { key: "auth_forgot_login", label: "Ссылка Войти", type: "text" },
-      { key: "auth_verify_title", label: "Заголовок Подтв.", type: "text" },
-      { key: "auth_verify_sub", label: "Подзаголовок Подтв.", type: "textarea" },
-      { key: "auth_verify_btn", label: "Кнопка Подтв.", type: "text" },
-      { key: "auth_verify_resend", label: "Кнопка Отправить код", type: "text" },
-    ]
-  },
-  {
-    id: "about",
-    label: "О нас",
-    fields: [
-      { key: "about_title", label: "Заголовок", type: "text" },
-      { key: "about_text", label: "Текст", type: "textarea" },
-      { key: "about_page_kicker", label: "Страница О нас: kicker", type: "text" },
-      { key: "about_page_title", label: "Страница О нас: заголовок", type: "text" },
-      { key: "about_page_text", label: "Страница О нас: вводный текст", type: "textarea" },
-      { key: "about_story_kicker", label: "История: kicker", type: "text" },
-      { key: "about_story_title", label: "История: заголовок", type: "text" },
-      { key: "about_story_text", label: "История: текст", type: "textarea" },
-      { key: "partner_guide_kicker", label: "Partner guide: kicker", type: "text" },
-      { key: "partner_guide_title", label: "Partner guide: заголовок", type: "text" },
-      { key: "partner_guide_text", label: "Partner guide: текст", type: "textarea" },
-      { key: "partner_terms_title", label: "Условия партнёра: заголовок", type: "text" },
-      { key: "partner_terms_text", label: "Условия партнёра: текст", type: "textarea" },
-      { key: "tariffs_title", label: "Тарифы: заголовок", type: "text" },
-      { key: "tariffs_subtitle", label: "Тарифы: описание", type: "textarea" },
-    ]
-  },
-  {
-    id: "home_blocks",
-    label: "Главная: преимущества и FAQ",
-    fields: [
-      { key: "benefits_arr", label: "Преимущества (карточки)", type: "objectList", itemFields: [
-        { name: "title", label: "Заголовок" },
-        { name: "text", label: "Текст", multiline: true },
-        { name: "icon", label: "иконка: interface, search, building, shield, crown, megaphone, map" },
-      ], newItem: { title: "Новое преимущество", text: "", icon: "interface" } },
-      { key: "faq_arr", label: "Вопросы и ответы (FAQ)", type: "objectList", itemFields: [
-        { name: "question", label: "Вопрос" },
-        { name: "answer", label: "Ответ", multiline: true },
-      ], newItem: { question: "Новый вопрос", answer: "" } },
-    ]
-  },
-  {
-    id: "about_lists",
-    label: "О нас и партнёрам: списки",
-    fields: [
-      { key: "about_stats_arr", label: "О нас: цифры", type: "objectList", itemFields: [
-        { name: "value", label: "Значение (напр. 120+)" },
-        { name: "label", label: "Подпись" },
-      ], newItem: { value: "0", label: "" } },
-      { key: "about_values_arr", label: "О нас: ценности", type: "objectList", itemFields: [
-        { name: "title", label: "Заголовок" },
-        { name: "text", label: "Текст", multiline: true },
-        { name: "icon", label: "иконка: interface, search, building, shield, crown, megaphone, map" },
-      ], newItem: { title: "", text: "", icon: "map" } },
-      { key: "guide_steps_arr", label: "Инструкция партнёра: шаги", type: "objectList", itemFields: [
-        { name: "step", label: "Номер (01, 02…)" },
-        { name: "title", label: "Заголовок" },
-        { name: "text", label: "Текст", multiline: true },
-        { name: "deliverable", label: "Результат шага" },
-      ], newItem: { step: "07", title: "", text: "", deliverable: "" } },
-      { key: "partner_terms_arr", label: "Условия партнёрства", type: "objectList", itemFields: [
-        { name: "title", label: "Заголовок" },
-        { name: "text", label: "Текст", multiline: true },
-      ], newItem: { title: "", text: "" } },
-    ]
-  },
-  {
-    id: "footer",
-    label: "Подвал (Footer)",
-    fields: [
-      { key: "footer_about", label: "О компании (текст)", type: "textarea" },
-      { key: "footer_address", label: "Адрес", type: "text" },
-      { key: "footer_phone", label: "Телефон", type: "text" },
-      { key: "footer_email", label: "Email", type: "text" },
-      { key: "support_phone", label: "Телефон поддержки (боковое меню)", type: "text" },
-      { key: "social_telegram", label: "Telegram (ссылка)", type: "text" },
-      { key: "social_instagram", label: "Instagram (ссылка)", type: "text" },
-      { key: "social_facebook", label: "Facebook (ссылка)", type: "text" },
-      { key: "social_linkedin", label: "LinkedIn (ссылка, можно пусто)", type: "text" },
-      { key: "footer_nav1", label: "Колонка Инфо", type: "text" },
-      { key: "footer_nav2", label: "Колонка Сервисы", type: "text" },
-      { key: "footer_link_about", label: "О нас", type: "text" },
-      { key: "footer_link_dirs", label: "Направления", type: "text" },
-      { key: "footer_link_contact", label: "Контакты", type: "text" },
-      { key: "footer_link_privacy", label: "Политика", type: "text" },
-    ]
-  },
-  {
-    id: "sms",
-    label: "SMS шаблоны",
-    fields: [
-      { key: "sms_otp", label: "OTP сообщение", type: "textarea" },
-      { key: "sms_booking_confirm", label: "Подтверждение брони", type: "textarea" },
-      { key: "sms_booking_cancel", label: "Отмена брони", type: "textarea" },
-    ]
-  }
-];
+function previewText(value) {
+  if (Array.isArray(value)) return value.map((item) => (typeof item === "object" ? Object.values(item).join(" ") : item)).join(" ");
+  return String(value ?? "");
+}
 
-// Editor for CMS lists such as FAQ or benefits: each item is a small card of
-// text fields that can be added, removed and reordered.
-function ObjectListEditor({ field, items, onChange }) {
-  const update = (index, name, value) => onChange(items.map((item, i) => (i === index ? { ...item, [name]: value } : item)));
+function Highlight({ text, query }) {
+  if (!query) return text;
+  const index = text.toLowerCase().indexOf(query.toLowerCase());
+  if (index < 0) return text;
+  return (
+    <>
+      {text.slice(0, index)}
+      <mark>{text.slice(index, index + query.length)}</mark>
+      {text.slice(index + query.length)}
+    </>
+  );
+}
+
+function LinksEditor({ items, onChange }) {
+  const list = Array.isArray(items) ? items : [];
+  const update = (index, patch) => onChange(list.map((item, i) => (i === index ? { ...item, ...patch } : item)));
   const move = (index, delta) => {
     const target = index + delta;
-    if (target < 0 || target >= items.length) return;
-    const next = [...items];
+    if (target < 0 || target >= list.length) return;
+    const next = [...list];
     [next[index], next[target]] = [next[target], next[index]];
     onChange(next);
   };
   return (
-    <div data-testid={`cms-list-${field.key}`} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {items.map((item, index) => (
-        <div key={index} className="link-card" style={{ flexDirection: "column", alignItems: "stretch", gap: 8, padding: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <strong style={{ fontSize: 13, color: "#64748b" }}>#{index + 1}</strong>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button type="button" className="link-btn" onClick={() => move(index, -1)} disabled={index === 0} title="Выше">↑</button>
-              <button type="button" className="link-btn" onClick={() => move(index, 1)} disabled={index === items.length - 1} title="Ниже">↓</button>
-              <button type="button" className="link-btn link-btn-delete" onClick={() => onChange(items.filter((_, i) => i !== index))} title="Удалить">✕</button>
-            </div>
+    <div className="cp-links">
+      {list.map((item, index) => (
+        <div className="cp-link-row" key={index}>
+          <span className="cp-row-num">{index + 1}</span>
+          <input className="cp-input" value={item.label || ""} placeholder="Название" onChange={(event) => update(index, { label: event.target.value })} />
+          <input className="cp-input cp-input-mono" value={item.href || ""} placeholder="/filter или #faq" onChange={(event) => update(index, { href: event.target.value })} />
+          <div className="cp-row-actions">
+            <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Выше"><Icon name="chevronDown" size={15} /></button>
+            <button type="button" onClick={() => move(index, 1)} disabled={index === list.length - 1} aria-label="Ниже"><Icon name="chevronDown" size={15} /></button>
+            <button type="button" className="is-danger" onClick={() => onChange(list.filter((_, i) => i !== index))} aria-label="Удалить"><Icon name="trash" size={15} /></button>
           </div>
-          {field.itemFields.map((sub) => (
-            <label key={sub.name} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b", fontWeight: 600 }}>
-              {sub.label}
-              {sub.multiline ? (
-                <textarea className="rich-input" rows={2} style={{ padding: "8px 12px", fontSize: 14, minHeight: 60 }} value={item?.[sub.name] ?? ""} onChange={(e) => update(index, sub.name, e.target.value)} />
-              ) : (
-                <input className="rich-input" style={{ padding: "8px 12px", fontSize: 14 }} value={item?.[sub.name] ?? ""} onChange={(e) => update(index, sub.name, e.target.value)} />
-              )}
-            </label>
-          ))}
         </div>
       ))}
-      <button type="button" className="add-link-btn" onClick={() => onChange([...items, { ...field.newItem }])}>+ Добавить</button>
+      <button type="button" className="cp-add" onClick={() => onChange([...list, { label: "Новая ссылка", href: "/" }])}>
+        <Icon name="plus" size={15} /> Добавить ссылку
+      </button>
+    </div>
+  );
+}
+
+function ListEditor({ field, items, onChange }) {
+  const list = Array.isArray(items) ? items : [];
+  const [openIndex, setOpenIndex] = useState(null);
+  const update = (index, name, value) => onChange(list.map((item, i) => (i === index ? { ...item, [name]: value } : item)));
+  const move = (index, delta) => {
+    const target = index + delta;
+    if (target < 0 || target >= list.length) return;
+    const next = [...list];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+    setOpenIndex(target);
+  };
+  const add = () => {
+    onChange([...list, Object.fromEntries(field.itemFields.map((item) => [item.name, item.options?.[0] || ""]))]);
+    setOpenIndex(list.length);
+  };
+  const titleOf = (item) => item[field.itemFields[0].name] || "Без названия";
+
+  return (
+    <div className="cp-list">
+      {list.map((item, index) => {
+        const open = openIndex === index;
+        return (
+          <div className={`cp-list-item${open ? " is-open" : ""}`} key={index}>
+            <div className="cp-list-head">
+              <button type="button" className="cp-list-toggle" onClick={() => setOpenIndex(open ? null : index)}>
+                <span className="cp-row-num">{index + 1}</span>
+                <span className="cp-list-title">{titleOf(item)}</span>
+                <Icon name="chevronDown" size={16} />
+              </button>
+              <div className="cp-row-actions">
+                <button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label="Выше"><Icon name="chevronDown" size={15} /></button>
+                <button type="button" onClick={() => move(index, 1)} disabled={index === list.length - 1} aria-label="Ниже"><Icon name="chevronDown" size={15} /></button>
+                <button
+                  type="button"
+                  className="is-danger"
+                  aria-label="Удалить"
+                  onClick={() => {
+                    if (window.confirm(`Удалить «${titleOf(item)}»?`)) onChange(list.filter((_, i) => i !== index));
+                  }}
+                >
+                  <Icon name="trash" size={15} />
+                </button>
+              </div>
+            </div>
+            {open ? (
+              <div className="cp-list-body">
+                {field.itemFields.map((itemField) => (
+                  <label key={itemField.name} className="cp-sub-field">
+                    <span>{itemField.label}</span>
+                    {itemField.type === "select" ? (
+                      <select className="cp-input" value={item[itemField.name] || ""} onChange={(event) => update(index, itemField.name, event.target.value)}>
+                        {[...new Set([item[itemField.name], ...itemField.options].filter(Boolean))].map((option) => <option key={option} value={option}>{option}</option>)}
+                      </select>
+                    ) : itemField.multiline ? (
+                      <textarea className="cp-input cp-textarea" rows={3} value={item[itemField.name] || ""} onChange={(event) => update(index, itemField.name, event.target.value)} />
+                    ) : (
+                      <input className="cp-input" value={item[itemField.name] || ""} onChange={(event) => update(index, itemField.name, event.target.value)} />
+                    )}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
+      <button type="button" className="cp-add" onClick={add}>
+        <Icon name="plus" size={15} /> Добавить: {field.itemLabel || "элемент"}
+      </button>
+    </div>
+  );
+}
+
+function FieldInput({ field, value, onChange }) {
+  if (field.type === "links") return <LinksEditor items={value} onChange={onChange} />;
+  if (field.type === "list") return <ListEditor field={field} items={value} onChange={onChange} />;
+  if (field.type === "textarea") {
+    return <textarea className="cp-input cp-textarea" rows={Math.min(8, Math.max(3, Math.ceil(String(value || "").length / 70)))} value={value || ""} onChange={(event) => onChange(event.target.value)} />;
+  }
+  const inputType = { email: "email", url: "url", phone: "tel" }[field.type] || "text";
+  return (
+    <div className="cp-input-wrap">
+      <input className="cp-input" type={inputType} value={value || ""} onChange={(event) => onChange(event.target.value)} placeholder={field.type === "url" ? "https://" : ""} />
+      {field.type === "words" ? (
+        <div className="cp-chips">
+          {String(value || "").split(",").map((word) => word.trim()).filter(Boolean).map((word) => <span key={word}>{word}</span>)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FieldCard({ field, lang, values, baseline, setLang, onChange, query }) {
+  const value = values[lang]?.[field.key];
+  const changed = !same(value, baseline[lang]?.[field.key]);
+  const isDefault = same(value, defaultContent[lang]?.[field.key]);
+  const isText = !["links", "list"].includes(field.type);
+  const isWide = ["links", "list", "textarea", "words"].includes(field.type);
+
+  return (
+    <div className={`cp-field${changed ? " is-changed" : ""}${isWide ? " is-wide" : ""}`} id={`cp-field-${field.key}`}>
+      <div className="cp-field-head">
+        <div className="cp-field-title">
+          <strong><Highlight text={field.label} query={query} /></strong>
+          {field.hint ? <small>{field.hint}</small> : null}
+        </div>
+        <div className="cp-field-meta">
+          {changed ? <span className="cp-badge is-changed">Изменено</span> : null}
+          <div className="cp-lang-dots" title="Заполнено на языках">
+            {LANGS.map((code) => (
+              <button
+                key={code}
+                type="button"
+                className={`${isFilled(values[code]?.[field.key]) ? "is-filled" : "is-empty"}${code === lang ? " is-current" : ""}`}
+                onClick={() => setLang(code)}
+                title={`${LANG_LABELS[code]}: ${isFilled(values[code]?.[field.key]) ? "заполнено" : "пусто"}`}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          {!isDefault && defaultContent[lang]?.[field.key] !== undefined ? (
+            <button type="button" className="cp-icon-btn" title="Вернуть стандартный текст" onClick={() => onChange(clone(defaultContent[lang][field.key]))}>
+              <Icon name="undo" size={14} />
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <FieldInput field={field} value={value} onChange={onChange} />
+      {isText && field.type !== "words" && value ? <div className="cp-field-foot">{String(value).length} симв.</div> : null}
     </div>
   );
 }
 
 export default function ContentPage() {
   const [lang, setLang] = useState("ru");
-  const [activeCat, setActiveCat] = useState("hero");
-  const [data, setData] = useState({});
+  const [activePage, setActivePage] = useState(CONTENT_SCHEMA[0].id);
+  const [values, setValues] = useState(() => buildValues());
+  const [baseline, setBaseline] = useState(() => buildValues());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState(null);
   const [error, setError] = useState("");
-  const [usingFallback, setUsingFallback] = useState(false);
-  const [draggedItemIdx, setDraggedItemIdx] = useState(null);
+  const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [lang]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await api.get('/api/content/');
-      const responseData = res.data?.data || res.data || {};
-      const fetchedData = responseData[lang] || {};
-      const defaultData = defaultContent[lang] || {};
-      setData({ ...defaultData, ...fetchedData });
+      const next = buildValues(res.data?.data || res.data || {});
+      setValues(next);
+      setBaseline(clone(next));
       setError("");
-      setUsingFallback(false);
-    } catch (error) {
-      setError(`${getApiErrorMessage(error, "Не удалось загрузить CMS контент")}${import.meta.env.DEV ? " Показан DEV fallback контент." : ""}`);
-      // Dev fallback keeps the CMS editor usable while the backend content endpoint is unavailable.
-      setData(import.meta.env.DEV ? (defaultContent[lang] || {}) : {});
-      setUsingFallback(import.meta.env.DEV);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Не удалось загрузить тексты сайта."));
     }
     setIsLoading(false);
-  };
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const dirty = useMemo(() => {
+    const result = {};
+    LANGS.forEach((code) => {
+      result[code] = CONTENT_FIELDS.filter((field) => !same(values[code]?.[field.key], baseline[code]?.[field.key])).map((field) => field.key);
+    });
+    return result;
+  }, [values, baseline]);
+  const dirtyTotal = LANGS.reduce((sum, code) => sum + dirty[code].length, 0);
+
+  useEffect(() => {
+    if (!dirtyTotal) return undefined;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirtyTotal]);
+
+  const setField = (key, value) => setValues((current) => ({ ...current, [lang]: { ...current[lang], [key]: value } }));
 
   const handleSave = async () => {
     setIsSaving(true);
+    setError("");
     try {
-      // Build the final dictionary
-      const payload = {
-        lang: lang,
-        data: data
-      };
-      await api.put('/api/content/', payload);
+      for (const code of LANGS) {
+        if (!dirty[code].length) continue;
+        const data = Object.fromEntries(dirty[code].map((key) => [key, values[code][key]]));
+        await api.put('/api/content/', { lang: code, data });
+      }
+      setBaseline(clone(values));
       window.dispatchEvent(new Event('joyzone-content-updated'));
-      setSaved(true);
-      setError("");
-      setTimeout(() => setSaved(false), 2000);
-    } catch (error) {
-      setError(getApiErrorMessage(error, "Не удалось сохранить CMS контент"));
+      setNotice(`Сохранено: ${dirtyTotal} ${dirtyTotal === 1 ? "поле" : "полей"}. Сайт уже обновлён.`);
+      window.setTimeout(() => setNotice(null), 3500);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Не удалось сохранить. Изменения остались в форме — попробуйте ещё раз."));
     }
     setIsSaving(false);
   };
 
-  const handleChange = (key, value) => {
-    setData(prev => ({ ...prev, [key]: value }));
+  const discard = () => {
+    if (window.confirm("Отменить все несохранённые изменения?")) setValues(clone(baseline));
   };
 
-  const activeFields = CATEGORIES.find(c => c.id === activeCat)?.fields || [];
+  const fillStats = useMemo(() => Object.fromEntries(LANGS.map((code) => [
+    code,
+    Math.round((CONTENT_FIELDS.filter((field) => isFilled(values[code]?.[field.key])).length / CONTENT_FIELDS.length) * 100),
+  ])), [values]);
+
+  const trimmedQuery = query.trim();
+  const searchResults = useMemo(() => {
+    if (!trimmedQuery) return null;
+    const needle = trimmedQuery.toLowerCase();
+    return CONTENT_FIELDS.filter((field) => [
+      field.label, field.hint, field.key, field.section.title,
+      ...LANGS.map((code) => previewText(values[code]?.[field.key])),
+    ].join(" ").toLowerCase().includes(needle));
+  }, [trimmedQuery, values]);
+
+  const page = CONTENT_SCHEMA.find((item) => item.id === activePage) || CONTENT_SCHEMA[0];
+  const pageDirtyCount = (pageItem) => {
+    const keys = new Set(pageItem.sections.flatMap((section) => section.fields.map((field) => field.key)));
+    return LANGS.reduce((sum, code) => sum + dirty[code].filter((key) => keys.has(key)).length, 0);
+  };
+
+  const renderField = (field) => (
+    <FieldCard
+      key={field.key}
+      field={field}
+      lang={lang}
+      values={values}
+      baseline={baseline}
+      setLang={setLang}
+      onChange={(value) => setField(field.key, value)}
+      query={trimmedQuery}
+    />
+  );
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="rich-content-page">
-        <div className="glass-panel">
-          <div className="rich-header">
-            <div>
-              <h1 className="rich-title">Управление Контентом</h1>
-              <div className="rich-subtitle">Редактируйте тексты сайта в реальном времени. Изменения применяются мгновенно.</div>
-              {error ? <div style={{ color: "#dc2626", marginTop: 10, fontSize: 14, fontWeight: 700 }}>{error}</div> : null}
-              {usingFallback ? <div style={{ color: "#dc2626", marginTop: 6, fontSize: 12, fontWeight: 800 }}>DEV fallback</div> : null}
-            </div>
-            <div className="lang-toggle">
-              {['uz', 'ru', 'en'].map(l => (
-                <button 
-                  key={l}
-                  className={`lang-btn ${lang === l ? 'active' : ''}`}
-                  onClick={() => setLang(l)}
-                >
-                  {l.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="rich-layout">
-            <div className="rich-sidebar">
-              <div className="sidebar-group">
-                <span className="sidebar-group-title">Структура сайта</span>
-                <button 
-                  className={`cat-btn ${activeCat === 'nav' ? 'active' : ''}`}
-                  onClick={() => setActiveCat('nav')}
-                >
-                  Навигация (Меню)
-                </button>
-              </div>
-              <div className="sidebar-divider" />
-              <div className="sidebar-group">
-                <span className="sidebar-group-title">Текстовый контент</span>
-                {CATEGORIES.filter(cat => cat.id !== 'nav').map(cat => (
-                  <button 
-                    key={cat.id} 
-                    className={`cat-btn ${activeCat === 'nav' ? '' : (activeCat === cat.id ? 'active' : '')}`}
-                    onClick={() => setActiveCat(cat.id)}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="rich-content">
-              {isLoading ? (
-                <div style={{color: '#64748b', fontSize: 16}}>Загрузка контента...</div>
-              ) : (
-                <div style={{ paddingBottom: 20 }}>
-                  <h2 style={{fontSize: 22, fontWeight: 700, color: '#1a1a2e', marginBottom: 30}}>
-                    {CATEGORIES.find(c => c.id === activeCat)?.label}
-                  </h2>
-                  
-                  {activeFields.map(field => (
-                    <div className="field-group" key={field.key}>
-                      <label className="field-label">{field.label}</label>
-                      {field.type === 'textarea' ? (
-                        <textarea 
-                          className="rich-input"
-                          value={data[field.key] || ''}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                          rows={3}
-                        />
-                      ) : field.type === 'objectList' ? (
-                        <ObjectListEditor
-                          field={field}
-                          items={Array.isArray(data[field.key]) ? data[field.key] : []}
-                          onChange={(items) => handleChange(field.key, items)}
-                        />
-                      ) : field.type === 'linkList' ? (
-                        <div className="link-list-editor" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {(Array.isArray(data[field.key]) ? data[field.key] : []).map((link, idx, arr) => (
-                            <div 
-                              key={idx} 
-                              className={`link-card ${draggedItemIdx === idx ? 'dragging' : ''}`}
-                              draggable
-                              onDragStart={(e) => {
-                                setDraggedItemIdx(idx);
-                                e.dataTransfer.effectAllowed = 'move';
-                              }}
-                              onDragOver={(e) => {
-                                e.preventDefault(); // necessary to allow dropping
-                                e.dataTransfer.dropEffect = 'move';
-                              }}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                if (draggedItemIdx === null || draggedItemIdx === idx) return;
-                                const newArr = [...arr];
-                                const [removed] = newArr.splice(draggedItemIdx, 1);
-                                newArr.splice(idx, 0, removed);
-                                handleChange(field.key, newArr);
-                                setDraggedItemIdx(null);
-                              }}
-                              onDragEnd={() => setDraggedItemIdx(null)}
-                            >
-                              <div className="drag-handle" title="Зажмите, чтобы переместить">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-                              </div>
-                              <div className="link-inputs-row">
-                                <input 
-                                  className="rich-input" 
-                                  style={{ margin: 0, padding: '8px 12px', fontSize: '14px', flex: '1 1 50%' }} 
-                                  placeholder="Текст ссылки"
-                                  value={link.label}
-                                  onChange={e => {
-                                    const newArr = [...arr];
-                                    newArr[idx].label = e.target.value;
-                                    handleChange(field.key, newArr);
-                                  }}
-                                />
-                                <input 
-                                  className="rich-input" 
-                                  style={{ margin: 0, padding: '8px 12px', fontSize: '14px', color: '#64748b', background: '#f8fafc', flex: '1 1 50%' }} 
-                                  placeholder="URL (напр. #home)"
-                                  value={link.href}
-                                  onChange={e => {
-                                    const newArr = [...arr];
-                                    newArr[idx].href = e.target.value;
-                                    handleChange(field.key, newArr);
-                                  }}
-                                />
-                              </div>
-                              <button type="button" className="link-btn link-btn-delete" style={{ width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0 }} onClick={() => {
-                                const newArr = arr.filter((_, i) => i !== idx);
-                                handleChange(field.key, newArr);
-                              }}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                              </button>
-                            </div>
-                          ))}
-                          <button type="button" className="add-link-btn" style={{ marginTop: '4px' }} onClick={() => {
-                            const newArr = [...(Array.isArray(data[field.key]) ? data[field.key] : []), { label: "Новая ссылка", href: "#" }];
-                            handleChange(field.key, newArr);
-                          }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                            Добавить ссылку
-                          </button>
-                        </div>
-                      ) : (
-                        <input 
-                          type="text" 
-                          className="rich-input"
-                          value={data[field.key] || ''}
-                          onChange={(e) => handleChange(field.key, e.target.value)}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <button 
-                className={`floating-save ${saved ? 'saved' : ''}`} 
-                onClick={handleSave}
-                disabled={isLoading || isSaving}
-              >
-                {saved ? (
-                  <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    Сохранено!
-                  </>
-                ) : (
-                  <>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+    <div className="cp-page">
+      <div className="cp-toolbar">
+        <div className="cp-search">
+          <Icon name="search" size={17} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти текст на сайте: «FAQ», «телефон», «Kirish»…" />
+          {query ? <button type="button" onClick={() => setQuery("")} aria-label="Очистить"><Icon name="x" size={15} /></button> : null}
+        </div>
+        <div className="cp-langs" role="tablist" aria-label="Язык">
+          {LANGS.map((code) => (
+            <button key={code} type="button" role="tab" aria-selected={lang === code} className={lang === code ? "is-active" : ""} onClick={() => setLang(code)}>
+              <strong>{code.toUpperCase()}</strong>
+              <span>{LANG_LABELS[code]}</span>
+              <em style={{ "--fill": `${fillStats[code]}%` }}>{fillStats[code]}%</em>
+              {dirty[code].length ? <i>{dirty[code].length}</i> : null}
+            </button>
+          ))}
         </div>
       </div>
-    </>
+
+      {error ? <div className="cp-alert is-error"><Icon name="info" size={16} />{error}<button type="button" onClick={fetchData}>Обновить</button></div> : null}
+
+      <div className="cp-layout">
+        <aside className="cp-pages" aria-label="Страницы сайта">
+          <span className="cp-pages-label">Страницы сайта</span>
+          {CONTENT_SCHEMA.map((item) => {
+            const count = item.sections.reduce((sum, section) => sum + section.fields.length, 0);
+            const changed = pageDirtyCount(item);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cp-page-btn${!searchResults && item.id === page.id ? " is-active" : ""}`}
+                onClick={() => { setActivePage(item.id); setQuery(""); }}
+              >
+                <span className="cp-page-icon"><Icon name={item.icon} size={17} /></span>
+                <span className="cp-page-text">
+                  <strong>{item.title}</strong>
+                  <small>{count} текстов</small>
+                </span>
+                {changed ? <span className="cp-page-dirty">{changed}</span> : null}
+              </button>
+            );
+          })}
+          <div className="cp-tip">
+            <Icon name="info" size={16} />
+            <p>Тексты сохраняются для каждого языка отдельно. Кружки <b>UZ RU EN</b> у поля показывают, где перевод уже есть.</p>
+          </div>
+        </aside>
+
+        <main className="cp-main">
+          {isLoading ? (
+            <div className="cp-loading">Загружаем тексты сайта…</div>
+          ) : searchResults ? (
+            <>
+              <header className="cp-page-head">
+                <div>
+                  <h2>Результаты поиска</h2>
+                  <p>{searchResults.length ? `Найдено ${searchResults.length} полей по запросу «${trimmedQuery}»` : `По запросу «${trimmedQuery}» ничего не найдено`}</p>
+                </div>
+              </header>
+              {searchResults.map((field) => (
+                <section className="cp-section" key={field.key}>
+                  <div className="cp-section-where">
+                    <Icon name="file" size={14} /> {field.page.title} → {field.section.title}
+                  </div>
+                  {renderField(field)}
+                </section>
+              ))}
+            </>
+          ) : (
+            <>
+              <header className="cp-page-head">
+                <div>
+                  <h2>{page.title}</h2>
+                  <p>{page.description}</p>
+                </div>
+                <a className="cp-open-link" href={page.path} target="_blank" rel="noreferrer">
+                  <Icon name="external" size={15} /> Открыть на сайте
+                </a>
+              </header>
+              {page.sections.map((section) => (
+                <section className="cp-section" key={section.title}>
+                  <div className="cp-section-head">
+                    <h3>{section.title}</h3>
+                    <p><Icon name="eye" size={14} /> {section.where}</p>
+                  </div>
+                  <div className="cp-fields">
+                    {section.fields.map(renderField)}
+                  </div>
+                </section>
+              ))}
+            </>
+          )}
+        </main>
+      </div>
+
+      {dirtyTotal || notice ? (
+        <div className={`cp-savebar${notice && !dirtyTotal ? " is-success" : ""}`} role="status">
+          {dirtyTotal ? (
+            <>
+              <div className="cp-savebar-text">
+                <strong>Есть несохранённые изменения</strong>
+                <span>{LANGS.filter((code) => dirty[code].length).map((code) => `${code.toUpperCase()}: ${dirty[code].length}`).join(" · ")}</span>
+              </div>
+              <button type="button" className="cp-btn-ghost" onClick={discard} disabled={isSaving}>Отменить</button>
+              <button type="button" className="cp-btn-primary" onClick={handleSave} disabled={isSaving}>
+                <Icon name="check" size={16} /> {isSaving ? "Сохраняем…" : "Сохранить"}
+              </button>
+            </>
+          ) : (
+            <div className="cp-savebar-text"><strong><Icon name="check" size={16} /> {notice}</strong></div>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 }

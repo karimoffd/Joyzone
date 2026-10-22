@@ -20,8 +20,10 @@ for their own places, and chat as host for their places.
 ### `moderator`
 
 Operational moderation role. A moderator can review places, approve/reject
-places, manage public content, see moderation/admin operational listings, see
-all chats, and view audit/admin summaries where allowed.
+places, manage public site texts and banners, see bookings and all chats,
+answer chats, delete reviews and see the operational dashboard (without money).
+Platform dictionaries (categories, amenities, parameters, discounts, tariffs),
+users, finance and the audit log are admin-only.
 
 ### `admin`
 
@@ -57,14 +59,14 @@ Use these from `core.permissions` instead of repeating role checks:
 | Places create | No | Authenticated create is currently allowed and owner becomes requester | Create own place | Create place | Create place |
 | Places update/delete | No | Own only if owner | Own places | Any place | Any place |
 | Moderation approve/reject | No | No | No | Yes | Yes |
-| Categories/subcategories/parameters/discounts | Read public | Read public | Read public | CRUD | CRUD |
+| Categories/subcategories/parameters/discounts | Read public | Read public | Read public | Read public | CRUD |
 | Bookings list | No | Own bookings | Bookings for own places | All bookings | All bookings |
 | Bookings create | No | Yes, client becomes requester | Yes, also can block own place availability | Yes | Yes |
 | Booking confirm/block | No | No | Own places only | Any place | Any place |
 | Booking cancel | No | Own booking | Own booking or own place booking | Any booking | Any booking |
 | Availability | Approved places | Approved places | Own places, including non-approved | Any place | Any place |
-| Tariff plans | Read public | Read public, subscribe | Read public, subscribe | Create/update/delete plans | Create/update/delete plans |
-| Tariff subscriptions admin list | No | No | No | Yes | Yes |
+| Tariff plans | Read public | Read public, subscribe | Read public, subscribe | Read public | Create/update/delete plans |
+| Tariff subscriptions admin list | No | No | No | No | Yes |
 | Manual tariff activation | No | No | No | No | Admin/staff/superuser only |
 | Test payment | No | Own booking/subscription | Own booking/subscription | Any target | Any target |
 | Refund/finance | No | No | No | No | Admin/staff/superuser only |
@@ -75,8 +77,20 @@ Use these from `core.permissions` instead of repeating role checks:
 | Chat create/send/read | No | Own/approved place chat as guest | Own place chat as host | Any chat | Any chat |
 | Favorites | Guest token flow | User-bound favorites | User-bound favorites | User-bound favorites | User-bound favorites |
 | Reviews | Public read | Create only after confirmed/completed booking | Create only after confirmed/completed booking | Delete/manage | Delete/manage |
-| Audit logs | No | No | No | Yes | Yes |
-| Admin overview | No | No | No | Yes | Yes |
+| Audit logs | No | No | No | No | Yes |
+| Admin overview | No | No | No | Yes, without revenue/average check | Yes |
+| Admin badges (`/api/admin/badges/`) | No | No | No | Yes | Yes |
+
+## Admin panel sections
+
+`GET /api/auth/profile/` returns `admin_sections`: the admin panel pages the
+user may open. It comes from `core.permissions.admin_sections_for`:
+
+- moderator: overview, moderation, spaces, bookings, messages, reviews,
+  content, banners, settings;
+- admin/staff/superuser: everything above plus users, finance, audit,
+  tariffs, categories, amenities, parameters, discounts;
+- client/partner: empty list (no admin panel).
 
 ## Endpoint Notes
 

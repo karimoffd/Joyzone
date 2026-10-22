@@ -30,7 +30,7 @@ class TariffPlanPermissionTests(TestCase):
         self.assertEqual(list_response.status_code, 200)
         self.assertEqual(detail_response.status_code, 200)
 
-    def test_tariff_create_requires_admin_or_moderator(self):
+    def test_tariff_create_requires_admin(self):
         payload = {
             'slug': 'comfort',
             'name': 'Comfort',
@@ -48,9 +48,13 @@ class TariffPlanPermissionTests(TestCase):
 
         self.client.force_authenticate(self.moderator)
         moderator_response = self.client.post('/api/tariffs/create/', payload, format='json')
-        self.assertEqual(moderator_response.status_code, 201)
+        self.assertEqual(moderator_response.status_code, 403)
 
-    def test_tariff_update_and_delete_require_admin_moderator_or_staff(self):
+        self.client.force_authenticate(self.staff)
+        staff_response = self.client.post('/api/tariffs/create/', payload, format='json')
+        self.assertEqual(staff_response.status_code, 201)
+
+    def test_tariff_update_and_delete_require_admin_or_staff(self):
         self.client.force_authenticate(self.partner)
         partner_patch = self.client.patch(f'/api/tariffs/{self.plan.id}/', {'name': 'Blocked'}, format='json')
         partner_delete = self.client.delete(f'/api/tariffs/{self.plan.id}/')
@@ -60,7 +64,7 @@ class TariffPlanPermissionTests(TestCase):
 
         self.client.force_authenticate(self.moderator)
         moderator_patch = self.client.patch(f'/api/tariffs/{self.plan.id}/', {'name': 'Moderator Updated'}, format='json')
-        self.assertEqual(moderator_patch.status_code, 200)
+        self.assertEqual(moderator_patch.status_code, 403)
 
         self.client.force_authenticate(self.staff)
         staff_patch = self.client.patch(f'/api/tariffs/{self.plan.id}/', {'name': 'Staff Updated'}, format='json')

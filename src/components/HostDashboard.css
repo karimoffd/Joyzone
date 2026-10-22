@@ -939,7 +939,7 @@
 }
 
 .host-chat-panel {
-  min-height: 590px;
+  height: clamp(520px, calc(100vh - 220px), 780px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -950,6 +950,7 @@
 .host-chat-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   flex-direction: column;
   gap: 12px;
   padding: 18px;
@@ -993,6 +994,7 @@
 
 .host-chat-composer {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 8px;
   margin-top: 14px;
@@ -1416,6 +1418,7 @@
   
   .is-messages-page .host-chat-body {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px 20px !important;
     border-radius: 0 !important;

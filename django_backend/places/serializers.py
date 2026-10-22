@@ -197,6 +197,7 @@ class PlaceSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
+    user_avatar = serializers.SerializerMethodField()
     place_title = serializers.CharField(source='place.title', read_only=True)
     
     class Meta:
@@ -208,6 +209,9 @@ class ReviewSerializer(serializers.ModelSerializer):
         if obj.user:
             return obj.user.get_full_name() or obj.user.username
         return "Foydalanuvchi"
+
+    def get_user_avatar(self, obj):
+        return (obj.user.avatar or '') if obj.user else ''
 
     def validate_rating(self, value):
         if value < 1 or value > 5:

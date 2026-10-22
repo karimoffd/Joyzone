@@ -75,14 +75,14 @@ class TariffPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     def get_permissions(self):
         if self.request.method == 'GET':
             return [permissions.AllowAny()]
-        return [IsAdminOrModerator()]
+        return [IsAdminUserRole()]
 
 
 class TariffPlanCreateView(generics.CreateAPIView):
     """Admin: create a new tariff plan"""
     queryset = TariffPlan.objects.all()
     serializer_class = TariffPlanSerializer
-    permission_classes = [IsAdminOrModerator]
+    permission_classes = [IsAdminUserRole]
 
 
 class SubscribeToTariffView(APIView):
@@ -151,7 +151,7 @@ class MySubscriptionsView(generics.ListAPIView):
 
 class AdminSubscriptionsView(generics.ListAPIView):
     """Admin: list subscriptions, optionally filtered by status or status_group."""
-    permission_classes = [IsAdminOrModerator]
+    permission_classes = [IsAdminUserRole]
     serializer_class = TariffSubscriptionSerializer
 
     def get_queryset(self):

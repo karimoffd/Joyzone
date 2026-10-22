@@ -36,10 +36,11 @@ function PageIcon({ type }) {
 }
 
 function BackButton() {
+  const { cms } = useSiteContent();
   return (
     <a className="static-back-button" href="/">
       <PageIcon type="back" />
-      Ortga qaytish
+      {cms.back_button || "Ortga qaytish"}
     </a>
   );
 }
@@ -121,9 +122,9 @@ function PartnerGuidePage() {
           <h1>{cms.partner_guide_title}</h1>
           <p>{cms.partner_guide_text}</p>
           <div className="partner-hero-metrics" aria-label="Partner jarayoni">
-            <span><strong>6</strong> qadam</span>
-            <span><strong>24 soat</strong> ko'rib chiqish</span>
-            <span><strong>1</strong> tayyor karta</span>
+            <span><strong>{cms.guide_metric1_value}</strong> {cms.guide_metric1_label}</span>
+            <span><strong>{cms.guide_metric2_value}</strong> {cms.guide_metric2_label}</span>
+            <span><strong>{cms.guide_metric3_value}</strong> {cms.guide_metric3_label}</span>
           </div>
         </div>
         <aside className="partner-console" aria-label="Partner kabineti namunasi">
@@ -159,9 +160,9 @@ function PartnerGuidePage() {
 
       <section className="partner-guide-layout">
         <aside className="partner-guide-sidebar">
-          <span>Jarayon</span>
-          <strong>Listing tayyorlash</strong>
-          <p>Har bir qadam karta sifatini, mijoz ishonchini va bron konversiyasini oshirish uchun kerak.</p>
+          <span>{cms.guide_sidebar_kicker}</span>
+          <strong>{cms.guide_sidebar_title}</strong>
+          <p>{cms.guide_sidebar_text}</p>
         </aside>
         <div className="partner-process-list">
           {cmsList(cms, "guide_steps_arr").map((item) => (
@@ -179,7 +180,7 @@ function PartnerGuidePage() {
 
       <section className="partner-terms-section">
         <div className="partner-terms-head">
-          <span className="static-kicker">Hamkorlik shartlari</span>
+          <span className="static-kicker">{cms.partner_terms_kicker}</span>
           <h2>{cms.partner_terms_title}</h2>
           <p>{cms.partner_terms_text}</p>
         </div>
@@ -194,8 +195,8 @@ function PartnerGuidePage() {
       </section>
 
       <section className="partner-final-strip">
-        <span>Keyingi qadam</span>
-        <p>Ma'lumotlarni tayyorlang: joy nomi, manzil, 6-8 ta rasm, narx, sig'im, ish vaqti va bron qoidalari.</p>
+        <span>{cms.guide_next_kicker}</span>
+        <p>{cms.guide_next_text}</p>
       </section>
 
       <TariffPlansSection />
@@ -292,14 +293,14 @@ function TariffPlansSection() {
   };
 
   const formatPrice = (tariff) => {
-    if (tariff.is_free) return 'Bepul';
+    if (tariff.is_free) return cms.tariffs_free || 'Bepul';
     return new Intl.NumberFormat('ru-RU').format(tariff.price);
   };
 
   return (
     <section className="tariff-section">
       <div className="tariff-head">
-        <span className="static-kicker">Tariflar</span>
+        <span className="static-kicker">{cms.tariffs_kicker || "Tariflar"}</span>
         <h2>{cms.tariffs_title || "O'zingizga mos tarifni tanlang"}</h2>
         <p>{cms.tariffs_subtitle || "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring."}</p>
       </div>
@@ -330,17 +331,17 @@ function TariffPlansSection() {
             const features = (lang === 'ru' ? tariff.features_ru : lang === 'en' ? tariff.features_en : tariff.features) || tariff.features || [];
             return (
               <div key={tariff.id} data-testid={`tariff-card-${tariff.slug || tariff.id}`} className={`tariff-card${isPremium ? ' tariff-card--premium' : ''}`}>
-                {isPremium && <div className="tariff-badge-top">Eng yaxshi tanlov</div>}
+                {isPremium && <div className="tariff-badge-top">{cms.tariffs_best || "Eng yaxshi tanlov"}</div>}
 
                 <div className="tariff-card-top">
                   <div className="tariff-slug">{tariff.slug}</div>
                   <div className="tariff-name">{name}</div>
                   <div className="tariff-price">
                     <strong>{formatPrice(tariff)}</strong>
-                    {!tariff.is_free && <span>sum / oy</span>}
+                    {!tariff.is_free && <span>{cms.tariffs_per_month || "so'm / oy"}</span>}
                   </div>
                   <div className="tariff-meta">
-                    {tariff.max_places} ta joy &bull; {tariff.is_free ? 'Muddatsiz' : `${tariff.duration_days} kun`}
+                    {tariff.max_places} ta joy &bull; {tariff.is_free ? (cms.tariffs_unlimited || 'Muddatsiz') : `${tariff.duration_days} kun`}
                   </div>
                 </div>
 

@@ -2,8 +2,8 @@ import { BACKEND_PROFILE_DRAFT_KEYS, initialProfile, getCompletion, ProfileIcon,
 import React, { useMemo, useState, useEffect } from "react";
 import api, { getApiErrorMessage } from "../../api/client.js";
 import { Header as JoyNavbar } from "../HomeHero.jsx";
-import { cacheProfile, normalizeProfile, profileToUserState } from "../../utils/profileMapper.js";
-import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../../utils/storageKeys.js";
+import { cacheProfile, normalizeProfile, profileToUserState, questionnaireFromProfile, questionnaireToDetails } from "../../utils/profileMapper.js";
+import { readJsonStorage, removeStorageItem, STORAGE_KEYS } from "../../utils/storageKeys.js";
 
 export function ProfileEditFormSection({ section, draft, onDraftChange }) {
   return (
@@ -61,10 +61,11 @@ export function ProfileQuestionnaireEdit({ userState, setUserState }) {
         const response = await api.get("/api/auth/profile/");
         if (!active) return;
         const profile = normalizeProfile(response.data);
-        const localOnly = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
+        // Older builds kept the questionnaire in localStorage; it is moved to the account on the next save.
+        const legacyLocal = readJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {});
         setDraft({
           ...initialProfile,
-          ...localOnly,
+          ...questionnaireFromProfile(response.data, legacyLocal),
           name: profile.full_name,
           firstName: profile.first_name,
           lastName: profile.last_name,
@@ -95,23 +96,11 @@ export function ProfileQuestionnaireEdit({ userState, setUserState }) {
         last_name: draft.lastName.trim(),
         email: draft.email.trim(),
         phone_number: draft.phone.trim(),
+        profile_details: questionnaireToDetails(draft),
       });
       const profile = cacheProfile(response.data);
       setUserState?.(profileToUserState(profile, userState));
-      try {
-        writeJsonStorage(STORAGE_KEYS.profile.localQuestionnaire, {
-          role: draft.role,
-          city: draft.city,
-          birthYear: draft.birthYear,
-          languages: draft.languages,
-          work: draft.work,
-          company: draft.company,
-          interests: draft.interests,
-          about: draft.about,
-        });
-      } catch (storageError) {
-        // Supported profile fields are already saved by the backend.
-      }
+      removeStorageItem(STORAGE_KEYS.profile.localQuestionnaire);
       setSuccess("Profil saqlandi");
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, "Profilni saqlab bo'lmadi"));

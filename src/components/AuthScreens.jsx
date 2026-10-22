@@ -35,10 +35,10 @@ function PrimaryButton({ children, type = "button", onClick, ...buttonProps }) {
   );
 }
 
-function GoogleButton() {
+function GoogleButton({ label = "Google orqali kirish" }) {
   return (
     <button type="button" className="flex h-[39px] w-full items-center justify-center gap-3 rounded-[10px] border border-joyBlue/15 bg-white/40 text-[12px] font-semibold text-joyBlue transition hover:bg-white focus:outline-none focus:ring-4 focus:ring-joyBlue/10 xl:h-[48px] xl:gap-4 xl:rounded-[14px] xl:text-[16px] min-[1400px]:h-[64px] min-[1400px]:text-[22px]">
-      Google orqali kirish
+      {label}
       <GoogleIcon />
     </button>
   );
@@ -328,9 +328,9 @@ export function AuthForm({ onSuccess }) {
           <AuthSubtitle>{regSub}</AuthSubtitle>
         </div>
         <form onSubmit={handleProfileSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
-          <TextInput data-testid="auth-first-name" placeholder="Ismingiz" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
-          <TextInput data-testid="auth-last-name" placeholder="Familiyangiz" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
-          <PrimaryButton data-testid="auth-profile-submit" type="submit">Yakunlash</PrimaryButton>
+          <TextInput data-testid="auth-first-name" placeholder={db.auth_first_name || "Ismingiz"} value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          <TextInput data-testid="auth-last-name" placeholder={db.auth_last_name || "Familiyangiz"} value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+          <PrimaryButton data-testid="auth-profile-submit" type="submit">{db.auth_finish || "Yakunlash"}</PrimaryButton>
         </form>
       </AuthColumn>
     );
@@ -362,7 +362,7 @@ export function AuthForm({ onSuccess }) {
               />
             ))}
           </div>
-          <PrimaryButton data-testid="auth-otp-submit" type="submit">Tasdiqlash</PrimaryButton>
+          <PrimaryButton data-testid="auth-otp-submit" type="submit">{db.auth_confirm || "Tasdiqlash"}</PrimaryButton>
         </form>
       </AuthColumn>
     );
@@ -377,15 +377,15 @@ export function AuthForm({ onSuccess }) {
       <form onSubmit={handlePhoneSubmit} className="space-y-2 xl:space-y-3 min-[1400px]:space-y-3">
         <TextInput
           data-testid="auth-phone"
-          placeholder="+998 90 123 45 67"
+          placeholder={db.auth_phone_placeholder || "+998 90 123 45 67"}
           autoComplete="tel"
           value={phone}
           onChange={handlePhoneChange}
           required
         />
-        <Divider />
-        <GoogleButton />
-        <PrimaryButton data-testid="auth-send-otp" type="submit">Kodni Olish</PrimaryButton>
+        <Divider label={db.auth_or || "yoki"} />
+        <GoogleButton label={db.auth_google || "Google orqali kirish"} />
+        <PrimaryButton data-testid="auth-send-otp" type="submit">{db.auth_get_code || "Kodni olish"}</PrimaryButton>
         {demoAvailable ? (
           <button
             data-testid="demo-login-open"
@@ -431,7 +431,7 @@ export function ForgotPasswordForm() {
         <AuthSubtitle>{subText}</AuthSubtitle>
       </div>
       <form className="space-y-3 xl:space-y-4">
-        <TextInput placeholder="Email | Telefon raqami" autoComplete="email" />
+        <TextInput placeholder={db.auth_forgot_placeholder || "Email yoki telefon raqami"} autoComplete="email" />
         <PrimaryButton type="button" onClick={() => { navigate("verify"); }}>
           {btnText}
         </PrimaryButton>

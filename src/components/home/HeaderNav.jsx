@@ -235,8 +235,8 @@ export const menuNavLinks = [
     desc: "Kompaniya haqida",
     icon: "info",
     subLinks: [
-      { href: "/mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
-      { href: "/partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
+      { id: "info", href: "/mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
+      { id: "guide", href: "/partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
     ]
   },
   {
@@ -247,8 +247,8 @@ export const menuNavLinks = [
     desc: "Katalog",
     icon: "search",
     subLinks: [
-      { href: "/filter", label: "Ofis va kovorkinglar", desc: "Katalogni ochish" },
-      { href: "/partner", label: "Joy qo'shish", desc: "Mulkdor bo'lish" }
+      { id: "catalog", href: "/filter", label: "Ofis va kovorkinglar", desc: "Katalogni ochish" },
+      { id: "add", href: "/partner", label: "Joy qo'shish", desc: "Mulkdor bo'lish" }
     ]
   },
   { id: "saved", href: "/profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart", requiresAuth: true },
@@ -344,9 +344,24 @@ export const menuIconMap = {
 };
 
 export const mobileQuickActions = [
-  { href: "/filter", label: "Joy topish", desc: "Katalog", icon: <IconSearch /> },
-  { href: "/partner", label: "Joy qo'shish", desc: "Hamkorlik", icon: <IconBriefcase /> }
+  { id: "find", href: "/filter", label: "Joy topish", desc: "Katalog", icon: <IconSearch /> },
+  { id: "add", href: "/partner", label: "Joy qo'shish", desc: "Hamkorlik", icon: <IconBriefcase /> }
 ];
+
+// Menu labels come from the CMS (menu_<id>_label / _desc), constants are fallbacks.
+function localizeMenuLink(link, cms, prefix = "menu") {
+  const key = `${prefix}_${link.id}`;
+  return {
+    ...link,
+    label: cms[`${key}_label`] || link.label,
+    desc: cms[`${key}_desc`] || link.desc,
+    subLinks: link.subLinks?.map((sub) => ({
+      ...sub,
+      label: cms[`${key}_${sub.id}_label`] || sub.label,
+      desc: cms[`${key}_${sub.id}_desc`] || sub.desc,
+    })),
+  };
+}
 
 export function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
   const { lang, setLang, content } = useContext(LanguageContext);
@@ -356,7 +371,8 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
   const tlRef = useRef(null);
   const [activeSubmenuId, setActiveSubmenuId] = useState(null);
   const isDashboard = variant === "dashboard";
-  const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks;
+  const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks.map((link) => localizeMenuLink(link, cms));
+  const quickActions = mobileQuickActions.map((action) => localizeMenuLink(action, cms, "menu_quick"));
   const activeSubmenu = currentMenuLinks.find((link) => link.id === activeSubmenuId);
 
   const resolveLinkHref = (link) => (link.requiresAuth && !userState.isAuthed ? "/login" : link.href);
@@ -436,8 +452,8 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
           
           <div className="menu-sidebar-content">
             <div className="menu-sidebar-quote">
-              <span className="menu-sidebar-tagline">Premium Spaces</span>
-              <h3>O'zbekistondagi eng yaxshi ofislar, kovorkinglar va dam olish maskanlari</h3>
+              <span className="menu-sidebar-tagline">{cms.menu_tagline || "Premium Spaces"}</span>
+              <h3>{cms.menu_headline || "O'zbekistondagi eng yaxshi ofislar, kovorkinglar va dam olish maskanlari"}</h3>
             </div>
             
             <div className="menu-sidebar-footer">
@@ -445,14 +461,14 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                 <a href={phoneHref(cms.support_phone || cms.footer_phone)} className="menu-sidebar-contact-item">
                   <span className="icon"><IconPhone /></span>
                   <div className="text">
-                    <small>Ishonch telefoni</small>
+                    <small>{cms.menu_phone_label || "Ishonch telefoni"}</small>
                     <strong>{cms.support_phone || cms.footer_phone}</strong>
                   </div>
                 </a>
                 <a href={mailHref(cms.footer_email)} className="menu-sidebar-contact-item">
                   <span className="icon"><IconMail /></span>
                   <div className="text">
-                    <small>Elektron pochta</small>
+                    <small>{cms.menu_email_label || "Elektron pochta"}</small>
                     <strong>{cms.footer_email}</strong>
                   </div>
                 </a>
@@ -466,7 +482,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
 
               <div className="menu-sidebar-copyright">
                 <span>© {new Date().getFullYear()} Joyzone.</span>
-                <span>Powered by IT Comfort.</span>
+                <span>{cms.footer_powered || "Powered by IT Comfort"}</span>
               </div>
             </div>
           </div>
@@ -521,13 +537,13 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                       <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12,19 5,12 12,5"/>
                     </svg>
                   </span>
-                  <span>Orqaga</span>
+                  <span>{cms.menu_back || "Orqaga"}</span>
                 </button>
 
                 <div className="menu-subview-head">
                   <span className="menu-subview-head-icon">{menuIconMap[activeSubmenu.icon] || profileNavIcons[activeSubmenu.label]}</span>
                   <div>
-                    <small>Ichki menyu</small>
+                    <small>{cms.menu_submenu || "Ichki menyu"}</small>
                     <h3>{activeSubmenu.label}</h3>
                     <p>{activeSubmenu.desc}</p>
                   </div>
@@ -560,7 +576,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                       )}
                     </div>
                     <div>
-                      <span>{userState.isAuthed ? "Akkaunt" : "Mehmon rejimi"}</span>
+                      <span>{userState.isAuthed ? (cms.menu_account || "Akkaunt") : (cms.menu_guest_mode || "Mehmon rejimi")}</span>
                       <strong>{userState.isAuthed ? (userState.name || "Foydalanuvchi") : "Joyzone"}</strong>
                     </div>
                   </div>
@@ -570,7 +586,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                 </div>
 
                 <div className="menu-mobile-quick-actions" aria-label="Tezkor amallar">
-                  {mobileQuickActions.map((action) => (
+                  {quickActions.map((action) => (
                     <a key={action.href} href={action.href} onClick={closeDrawer}>
                       <span>{action.icon}</span>
                       <div>
@@ -582,7 +598,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                 </div>
 
                 <nav className="menu-nav">
-                  <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : "Navigatsiya"}</span>
+                  <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : (cms.menu_nav_eyebrow || "Navigatsiya")}</span>
                   <ul className="menu-nav-list">
                     {currentMenuLinks.map((link) => {
                       const icon = isDashboard ? profileNavIcons[link.label] : menuIconMap[link.icon];
@@ -606,7 +622,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                               <span className="menu-nav-icon">{icon}</span>
                               <span className="menu-nav-copy">
                                 <span className="menu-nav-label">{link.label}</span>
-                                <span className="menu-nav-desc">{link.requiresAuth && !userState.isAuthed ? "Kirish talab qilinadi" : link.desc}</span>
+                                <span className="menu-nav-desc">{link.requiresAuth && !userState.isAuthed ? (cms.menu_requires_auth || "Kirish talab qilinadi") : link.desc}</span>
                               </span>
                               <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
@@ -622,8 +638,8 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                           <span className="menu-nav-num">{String(currentMenuLinks.length + 1).padStart(2, "0")}</span>
                           <span className="menu-nav-icon"><IconLogout /></span>
                           <span className="menu-nav-copy">
-                            <span className="menu-nav-label">Chiqish</span>
-                            <span className="menu-nav-desc">Akkauntdan chiqish</span>
+                            <span className="menu-nav-label">{cms.menu_logout || "Chiqish"}</span>
+                            <span className="menu-nav-desc">{cms.menu_logout_desc || "Akkauntdan chiqish"}</span>
                           </span>
                           <svg className="menu-nav-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
@@ -667,15 +683,15 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                           <span>{userState.phone || userState.email || getStorageItem(STORAGE_KEYS.profile.phone) || getStorageItem(STORAGE_KEYS.profile.email) || ""}</span>
                         </div>
                         <a href="/profile" className="menu-user-profile-btn" onClick={closeDrawer}>
-                          <IconUser /> Kabinetga o'tish
+                          <IconUser /> {cms.menu_cabinet_link || "Kabinetga o'tish"}
                         </a>
                       </div>
                     ) : (
                       <div className="menu-widget-auth">
-                        <p>Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring</p>
+                        <p>{cms.menu_guest_text || "Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring"}</p>
                         <div className="menu-auth-buttons-row">
-                          <a href="/login" className="menu-btn-auth-primary" onClick={closeDrawer}>Kirish</a>
-                          <a href="/register" className="menu-btn-auth-secondary" onClick={closeDrawer}>Ro'yxatdan o'tish</a>
+                          <a href="/login" className="menu-btn-auth-primary" onClick={closeDrawer}>{cms.nav_login || "Kirish"}</a>
+                          <a href="/register" className="menu-btn-auth-secondary" onClick={closeDrawer}>{cms.menu_register || "Ro'yxatdan o'tish"}</a>
                         </div>
                       </div>
                     )
@@ -684,12 +700,12 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                   {!isDashboard && (
                     <div className="menu-widget-partner">
                       <div className="partner-widget-content">
-                        <span className="tag">Hamkorlar uchun</span>
-                        <h4>Joyingiz bormi?</h4>
-                        <p>Uni Joyzone-da e'lon qiling va daromad olishni boshlang</p>
+                        <span className="tag">{cms.menu_partner_tag || "Hamkorlar uchun"}</span>
+                        <h4>{cms.menu_partner_title || "Joyingiz bormi?"}</h4>
+                        <p>{cms.menu_partner_text || "Uni Joyzone-da e'lon qiling va daromad olishni boshlang"}</p>
                       </div>
                       <a href="/partner" className="partner-widget-cta" onClick={closeDrawer}>
-                        Boshlash
+                        {cms.menu_partner_cta || "Boshlash"}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
                           <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>
                         </svg>

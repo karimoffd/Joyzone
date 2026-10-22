@@ -21,6 +21,9 @@ class User(AbstractUser):
         default=False,
         help_text='Show this partner first in the home page partners block.',
     )
+    # Self-described profile ("About me" questionnaire and account settings).
+    # Allowed keys: users.serializers.PROFILE_DETAIL_LIMITS.
+    profile_details = models.JSONField(default=dict, blank=True)
 
     # Tariff info
     tariff = models.ForeignKey(

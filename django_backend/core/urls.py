@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from places.views import PlaceViewSet, CategoryViewSet, SubCategoryViewSet, ReviewViewSet, ParameterGroupViewSet, ParameterViewSet, DiscountViewSet, favorite_list, favorite_toggle, favorite_merge
 from bookings.views import BookingViewSet
 from payments.views import FinanceSummaryView, FinanceTransactionsView
-from core.views import AdminOverviewView, AuditLogListView
+from core.views import AdminBadgesView, AdminOverviewView, AuditLogListView
 from core.seo import sitemap_xml
 from places.partners import PartnerDetailView, PartnerListView
 
@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/finance/summary/', FinanceSummaryView.as_view(), name='finance-summary'),
     path('api/notifications/', include('notifications.urls')),
     path('api/admin/overview/', AdminOverviewView.as_view(), name='admin-overview'),
+    path('api/admin/badges/', AdminBadgesView.as_view(), name='admin-badges'),
     path('api/audit-logs/', AuditLogListView.as_view(), name='audit-log-list'),
     path('api/partners/', PartnerListView.as_view(), name='partner-list'),
     path('api/partners/<int:pk>/', PartnerDetailView.as_view(), name='partner-detail'),

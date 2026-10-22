@@ -208,20 +208,49 @@ class AdminOverviewApiTests(TestCase):
         self.client.force_authenticate(self.admin)
         response = self.client.get('/api/admin/overview/')
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['users_count'], 5)
-        self.assertEqual(response.data['partners_count'], 1)
-        self.assertEqual(response.data['places_total'], 2)
-        self.assertEqual(response.data['places_pending'], 1)
-        self.assertEqual(response.data['places_approved'], 1)
-        self.assertEqual(response.data['bookings_total'], 1)
-        self.assertEqual(response.data['bookings_pending'], 1)
-        self.assertEqual(response.data['revenue_month_test'], '150000')
-        self.assertEqual(response.data['reviews_count'], 2)
-        self.assertEqual(response.data['average_rating'], 4.0)
+        totals = response.data['totals']
+        self.assertEqual(totals['users'], 5)
+        self.assertEqual(totals['partners'], 1)
+        self.assertEqual(totals['places_total'], 2)
+        self.assertEqual(totals['places_approved'], 1)
+        self.assertEqual(totals['bookings_total'], 1)
+        self.assertEqual(totals['reviews'], 2)
+        self.assertEqual(totals['average_rating'], 4.0)
+        self.assertEqual(response.data['attention']['places_pending'], 1)
+        self.assertEqual(response.data['attention']['bookings_pending'], 1)
+        self.assertTrue(response.data['can_view_finance'])
+        self.assertEqual(response.data['kpis']['revenue']['value'], 150000)
+        self.assertEqual(response.data['kpis']['bookings']['value'], 1)
+        self.assertEqual(response.data['kpis']['avg_check']['value'], 150000)
+        pending = next(row for row in response.data['bookings_by_status'] if row['status'] == 'pending')
+        self.assertEqual(pending['count'], 1)
+        self.assertEqual(len(response.data['series']), 30)
+        self.assertEqual(len(response.data['latest_users']), 5)
         self.assertEqual(response.data['latest_bookings'][0]['id'], self.booking.id)
         self.assertEqual(response.data['latest_reviews'][0]['place_title'], self.approved_place.title)
         self.assertEqual(response.data['top_places'][0]['id'], self.approved_place.id)
         self.assertEqual(response.data['top_places'][0]['bookings_count'], 1)
+
+    def test_moderator_overview_hides_money(self):
+        self.client.force_authenticate(self.moderator)
+        response = self.client.get('/api/admin/overview/')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data['can_view_finance'])
+        self.assertNotIn('revenue', response.data['kpis'])
+        self.assertNotIn('avg_check', response.data['kpis'])
+        self.assertTrue(all(row['revenue'] is None for row in response.data['series']))
+        self.assertIsNone(response.data['top_places'][0]['revenue_test'])
+
+    def test_profile_lists_admin_sections_per_role(self):
+        self.client.force_authenticate(self.moderator)
+        moderator_sections = self.client.get('/api/auth/profile/').data['admin_sections']
+        self.assertIn('moderation', moderator_sections)
+        self.assertNotIn('users', moderator_sections)
+        self.assertNotIn('finance', moderator_sections)
+        self.client.force_authenticate(self.admin)
+        self.assertIn('finance', self.client.get('/api/auth/profile/').data['admin_sections'])
+        self.client.force_authenticate(self.user)
+        self.assertEqual(self.client.get('/api/auth/profile/').data['admin_sections'], [])
 
 
 class AuditLogTests(TestCase):
@@ -251,7 +280,7 @@ class AuditLogTests(TestCase):
         self.client.force_authenticate(self.user)
         self.assertEqual(self.client.get('/api/audit-logs/').status_code, 403)
         self.client.force_authenticate(self.moderator)
-        self.assertEqual(self.client.get('/api/audit-logs/').status_code, 200)
+        self.assertEqual(self.client.get('/api/audit-logs/').status_code, 403)
         self.client.force_authenticate(self.admin)
         response = self.client.get('/api/audit-logs/', {'action': 'test.action'})
         self.assertEqual(response.status_code, 200)
@@ -347,7 +376,7 @@ class SitemapTests(TestCase):
 
 
 class AdminOverviewRevenueChartTests(TestCase):
-    def test_revenue_chart_sums_paid_payments_by_period(self):
+    def test_overview_series_sums_paid_payments_by_period(self):
         User = get_user_model()
         admin = User.objects.create_user(username='chart-admin', password='pass', role='admin')
         payer = User.objects.create_user(username='chart-payer', password='pass')
@@ -357,12 +386,12 @@ class AdminOverviewRevenueChartTests(TestCase):
         client = APIClient()
         client.force_authenticate(admin)
 
-        response = client.get('/api/admin/overview/')
+        week = client.get('/api/admin/overview/', {'period': '7d'})
+        year = client.get('/api/admin/overview/', {'period': '365d'})
 
-        self.assertEqual(response.status_code, 200)
-        chart = response.data['revenue_chart']
-        self.assertEqual(len(chart['week']), 7)
-        self.assertEqual(len(chart['month']), 5)
-        self.assertEqual(len(chart['quarter']), 3)
-        self.assertEqual(chart['week'][-1]['value'], 200000)
-        self.assertEqual(chart['quarter'][-1]['value'], 200000)
+        self.assertEqual(week.status_code, 200)
+        self.assertEqual(len(week.data['series']), 7)
+        self.assertEqual(week.data['series'][-1]['revenue'], 200000)
+        self.assertEqual(week.data['kpis']['revenue']['value'], 200000)
+        self.assertEqual(len(year.data['series']), 12)
+        self.assertEqual(year.data['series'][-1]['revenue'], 200000)

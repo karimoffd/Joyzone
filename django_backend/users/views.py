@@ -528,7 +528,20 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             raise serializers.ValidationError({
                 'role': 'You cannot change your own role. Ask another administrator.',
             })
+        tracked = ('first_name', 'last_name', 'email', 'phone_number', 'avatar', 'company_name', 'partner_bio', 'is_featured_partner')
+        changed_fields = [
+            field for field in tracked
+            if field in serializer.validated_data and serializer.validated_data[field] != getattr(user, field)
+        ]
         updated_user = serializer.save()
+        if changed_fields:
+            create_audit_log(
+                actor=self.request.user,
+                action='user.profile_updated',
+                object_type='User',
+                object_id=updated_user.id,
+                metadata={'username': updated_user.username, 'fields': changed_fields},
+            )
         if previous_role != updated_user.role:
             create_audit_log(
                 actor=self.request.user,

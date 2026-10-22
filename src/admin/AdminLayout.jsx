@@ -1,215 +1,367 @@
-import React, { useState } from "react";
-import { getStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import api, { logoutSession } from "../api/client.js";
+import { useVisiblePolling } from "../utils/polling.js";
+import { getStorageItem, setStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
+import { Icon } from "./AdminIcons.jsx";
+
+const COLLAPSED_KEY = STORAGE_KEYS.ui.adminSidebarCollapsed;
 
 const NAV = [
   {
-    section: "Главное",
+    section: "Операции",
     items: [
-      { id: "overview", label: "Обзор", icon: "home" },
-      { id: "bookings", label: "Бронирования", icon: "calendar", badge: 3 },
-      { id: "spaces", label: "Пространства", icon: "building" },
-      { id: "moderation", label: "Модерация", icon: "shield", badge: null },
+      { id: "overview", label: "Обзор", icon: "dashboard", hint: "Статистика и сводка" },
+      { id: "bookings", label: "Бронирования", icon: "calendar", badge: "bookings", hint: "Заявки и статусы броней" },
+      { id: "moderation", label: "Модерация", icon: "shield", badge: "moderation", hint: "Проверка новых мест" },
+      { id: "spaces", label: "Пространства", icon: "building", hint: "Все места на платформе" },
     ],
   },
   {
     section: "Общение",
     items: [
-      { id: "messages", label: "Сообщения", icon: "chat", badge: 7 },
-      { id: "reviews", label: "Отзывы", icon: "star" },
+      { id: "messages", label: "Сообщения", icon: "chat", badge: "messages", hint: "Чаты гостей и владельцев" },
+      { id: "reviews", label: "Отзывы", icon: "star", hint: "Оценки и комментарии" },
     ],
   },
   {
-    section: "Аналитика",
+    section: "Сайт",
     items: [
-      { id: "users", label: "Пользователи", icon: "users" },
-      { id: "finance", label: "Финансы", icon: "money" },
-      { id: "audit", label: "Журнал действий", icon: "audit" },
+      { id: "content", label: "Контент сайта", icon: "edit", hint: "Тексты всех страниц" },
+      { id: "banners", label: "Баннеры", icon: "image", hint: "Слайды на главной" },
     ],
   },
   {
-    section: "Платформа",
+    section: "Управление",
     items: [
-      { id: "tariffs", label: "Тарифы", icon: "layers" },
-      { id: "categories", label: "Категории", icon: "tag" },
-      { id: "content", label: "Контент сайта", icon: "edit" },
-      { id: "banners", label: "Баннеры", icon: "layers" },
-      { id: "settings", label: "Настройки", icon: "settings" },
-      { 
-        id: "features_group",
-        label: "Удобства",
-        icon: "layers",
-        subItems: [
-          { id: "parameters", label: "Счетчики и характеристики" },
-          { id: "amenities", label: "Список удобств" },
-          { id: "discounts", label: "Скидки" },
-        ]
-      }
+      { id: "users", label: "Пользователи", icon: "users", hint: "Роли, профили, партнёры" },
+      { id: "finance", label: "Финансы", icon: "money", hint: "Платежи и возвраты" },
+      { id: "audit", label: "Журнал действий", icon: "audit", hint: "Кто и что менял" },
+    ],
+  },
+  {
+    section: "Справочники",
+    items: [
+      { id: "categories", label: "Категории", icon: "tag", hint: "Типы пространств" },
+      { id: "amenities", label: "Удобства", icon: "sparkles", hint: "Wi‑Fi, парковка и т.д." },
+      { id: "parameters", label: "Характеристики", icon: "sliders", hint: "Счётчики и параметры" },
+      { id: "discounts", label: "Скидки", icon: "percent", hint: "Скидки по длительности" },
+      { id: "tariffs", label: "Тарифы", icon: "layers", hint: "Тарифы партнёров" },
+    ],
+  },
+  {
+    section: "Аккаунт",
+    items: [
+      { id: "settings", label: "Мой профиль", icon: "settings", hint: "Фото, имя, контакты" },
     ],
   },
 ];
 
-function NavGroup({ item, page, setPage, collapsed }) {
-  const isActive = item.subItems.some(sub => sub.id === page);
-  const [isOpen, setIsOpen] = React.useState(isActive);
+const ROLE_LABELS = { admin: "Администратор", moderator: "Модератор" };
 
-  React.useEffect(() => {
-    if (collapsed) setIsOpen(false);
-  }, [collapsed]);
+function readCollapsed() {
+  try {
+    return getStorageItem(COLLAPSED_KEY) === "true";
+  } catch (error) {
+    return false;
+  }
+}
+
+export function Avatar({ src, name, size = 40, className = "" }) {
+  const words = String(name || "").replace(/[^A-Za-zА-Яа-яЁё\s]/g, "").trim().split(/\s+/).filter(Boolean);
+  const initials = words.map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "JZ";
+  return (
+    <span className={`adm-avatar ${className}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}>
+      {src ? <img src={src} alt={name || ""} /> : initials}
+    </span>
+  );
+}
+
+function useAdminBadges(enabled) {
+  const [badges, setBadges] = useState({});
+  const load = useCallback(async () => {
+    try {
+      const response = await api.get("/api/admin/badges/");
+      setBadges(response.data || {});
+    } catch (error) {
+      // Badges are decorative; the pages themselves report API errors.
+    }
+  }, []);
+  useEffect(() => {
+    if (enabled) load();
+  }, [enabled, load]);
+  useVisiblePolling(load, 60000, { enabled });
+  return badges;
+}
+
+function CommandPalette({ items, onSelect, onClose }) {
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(0);
+  const inputRef = useRef(null);
+  const results = useMemo(() => {
+    const value = query.trim().toLowerCase();
+    if (!value) return items;
+    return items.filter((item) => `${item.label} ${item.hint} ${item.section}`.toLowerCase().includes(value));
+  }, [items, query]);
+
+  useEffect(() => inputRef.current?.focus(), []);
+  useEffect(() => setActive(0), [query]);
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") onClose();
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActive((index) => Math.min(index + 1, results.length - 1));
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActive((index) => Math.max(index - 1, 0));
+    }
+    if (event.key === "Enter" && results[active]) onSelect(results[active].id);
+  };
 
   return (
-    <div className={`adm-nav-group ${isOpen ? 'open' : ''}`}>
-      <button
-        data-testid={`admin-nav-${item.id}`}
-        className={`adm-nav-item${isActive ? " active-parent" : ""}`}
-        onClick={() => setIsOpen(!isOpen)}
-        style={{ marginBottom: isOpen ? '4px' : '0' }}
-      >
-        <span className="adm-nav-icon"><Icon name={item.icon} /></span>
-        <span className="adm-nav-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          {item.label}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </span>
-      </button>
-      <div className="adm-nav-subitems" style={{ height: isOpen && !collapsed ? 'auto' : 0, overflow: 'hidden', paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {item.subItems.map(sub => (
-          <button
-            key={sub.id}
-            data-testid={`admin-nav-${sub.id}`}
-            className={`adm-nav-subitem${page === sub.id ? " active" : ""}`}
-            onClick={() => setPage(sub.id)}
-            title={sub.label}
-          >
-            <span className="adm-nav-sub-dot"></span>
-            <span className="adm-nav-sub-label">{sub.label}</span>
-          </button>
-        ))}
+    <div className="adm-palette-backdrop" onMouseDown={onClose}>
+      <div className="adm-palette" onMouseDown={(event) => event.stopPropagation()} role="dialog" aria-label="Поиск раздела">
+        <div className="adm-palette-input">
+          <Icon name="search" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Куда перейти? Например: отзывы, баннеры…"
+          />
+          <kbd>Esc</kbd>
+        </div>
+        <div className="adm-palette-list">
+          {results.length === 0 ? <p className="adm-palette-empty">Ничего не найдено</p> : results.map((item, index) => (
+            <button
+              key={item.id}
+              type="button"
+              className={index === active ? "is-active" : ""}
+              onMouseEnter={() => setActive(index)}
+              onClick={() => onSelect(item.id)}
+            >
+              <span className="adm-palette-icon"><Icon name={item.icon} /></span>
+              <span className="adm-palette-text">
+                <strong>{item.label}</strong>
+                <small>{item.hint}</small>
+              </span>
+              <span className="adm-palette-section">{item.section}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function Icon({ name }) {
-  const icons = {
-    home: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-    calendar: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-    building: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>,
-    chat: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
-    star: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
-    users: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
-    money: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
-    audit: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg>,
-    edit: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-    settings: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-    bell: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-    search: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
-    chevronLeft: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>,
-    shield: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-    layers: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
-    tag: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
-  };
-  return icons[name] || null;
-}
-
-export { Icon };
-
-export default function AdminLayout({ page, setPage, title, eyebrow, allowedPages, profile, children }) {
-  const [collapsed, setCollapsed] = useState(false);
-
-  const userName = profile?.full_name || getStorageItem(STORAGE_KEYS.profile.name, "Admin");
-  const initials = userName.slice(0, 2).toUpperCase();
-  const roleLabel = profile?.role === "moderator" && !profile?.is_staff && !profile?.is_superuser
-    ? "Модератор"
-    : "Администратор";
-  const visibleNav = NAV.map((section) => ({
-    ...section,
-    items: section.items
-      .map((item) => item.subItems
-        ? { ...item, subItems: item.subItems.filter((sub) => allowedPages.includes(sub.id)) }
-        : item)
-      .filter((item) => item.subItems ? item.subItems.length > 0 : allowedPages.includes(item.id)),
-  })).filter((section) => section.items.length > 0);
+function AttentionMenu({ badges, allowedPages, setPage, onClose }) {
+  const rows = [
+    { id: "moderation", count: badges.moderation, label: "мест ждут модерации", icon: "shield" },
+    { id: "bookings", count: badges.bookings, label: "броней ждут подтверждения", icon: "calendar" },
+    { id: "messages", count: badges.messages, label: "непрочитанных чатов", icon: "chat" },
+  ].filter((row) => allowedPages.includes(row.id));
+  const hasWork = rows.some((row) => row.count > 0);
 
   return (
-    <div className="adm-shell">
-      {/* SIDEBAR */}
-      <aside className={`adm-sidebar${collapsed ? " collapsed" : ""}`}>
-        <button className="adm-sidebar-toggle" onClick={() => setCollapsed(c => !c)} aria-label="Toggle sidebar">
-          <Icon name="chevronLeft" />
+    <div className="adm-attention-menu" role="menu">
+      <div className="adm-attention-head">
+        <strong>Требует внимания</strong>
+        <small>{hasWork ? "Есть задачи" : "Всё под контролем"}</small>
+      </div>
+      {rows.map((row) => (
+        <button
+          key={row.id}
+          type="button"
+          className={row.count > 0 ? "has-count" : ""}
+          onClick={() => { setPage(row.id); onClose(); }}
+        >
+          <span className="adm-attention-icon"><Icon name={row.icon} /></span>
+          <span><b>{row.count || 0}</b> {row.label}</span>
+          <Icon name="chevronRight" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export default function AdminLayout({ page, setPage, title, eyebrow, allowedPages, profile, children }) {
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [attentionOpen, setAttentionOpen] = useState(false);
+  const badges = useAdminBadges(true);
+  const attentionRef = useRef(null);
+
+  const userName = profile?.full_name || getStorageItem(STORAGE_KEYS.profile.name, "Admin");
+  const isAdmin = profile?.role === "admin" || profile?.is_staff || profile?.is_superuser;
+  const roleLabel = isAdmin ? ROLE_LABELS.admin : ROLE_LABELS.moderator;
+  const attentionTotal = ["moderation", "bookings", "messages"]
+    .filter((id) => allowedPages.includes(id))
+    .reduce((sum, id) => sum + (Number(badges[id]) || 0), 0);
+
+  const visibleNav = useMemo(() => NAV
+    .map((section) => ({ ...section, items: section.items.filter((item) => allowedPages.includes(item.id)) }))
+    .filter((section) => section.items.length > 0), [allowedPages]);
+  const paletteItems = useMemo(
+    () => visibleNav.flatMap((section) => section.items.map((item) => ({ ...item, section: section.section }))),
+    [visibleNav],
+  );
+
+  const toggleCollapsed = () => {
+    setCollapsed((value) => {
+      try { setStorageItem(COLLAPSED_KEY, String(!value)); } catch (error) { /* preference only */ }
+      return !value;
+    });
+  };
+
+  const goTo = (id) => {
+    setPage(id);
+    setMobileOpen(false);
+    setPaletteOpen(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!attentionOpen) return undefined;
+    const handleClick = (event) => {
+      if (!attentionRef.current?.contains(event.target)) setAttentionOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [attentionOpen]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileOpen]);
+
+  const handleLogout = async () => {
+    await logoutSession();
+    window.location.assign("/");
+  };
+
+  return (
+    <div className={`adm-shell${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}>
+      <aside className="adm-sidebar" aria-label="Меню админки">
+        <div className="adm-side-head">
+          <a className="adm-side-brand" href="/" title="Открыть сайт">
+            <span className="adm-side-logo">J</span>
+            <span className="adm-side-brand-text">
+              <strong>Joyzone</strong>
+              <small>{isAdmin ? "Admin" : "Moderator"} panel</small>
+            </span>
+          </a>
+          <button type="button" className="adm-side-collapse" onClick={toggleCollapsed} aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}>
+            <Icon name="sidebar" />
+          </button>
+          <button type="button" className="adm-side-close" onClick={() => setMobileOpen(false)} aria-label="Закрыть меню">
+            <Icon name="x" />
+          </button>
+        </div>
+
+        <button type="button" className="adm-side-search" onClick={() => setPaletteOpen(true)} title="Поиск раздела (Ctrl+K)">
+          <Icon name="search" />
+          <span>Поиск раздела</span>
+          <kbd>Ctrl K</kbd>
         </button>
 
-        {/* Logo */}
-        <a className="adm-sidebar-logo" href="/">
-          <div className="adm-sidebar-logo-mark">J</div>
-          <div className="adm-sidebar-logo-text">
-            <strong>Joyzone</strong>
-            <span>Admin Panel</span>
-          </div>
-        </a>
-
-        {/* Nav */}
         <nav className="adm-nav">
-          {visibleNav.map(section => (
-            <React.Fragment key={section.section}>
+          {visibleNav.map((section) => (
+            <div className="adm-nav-section" key={section.section}>
               <div className="adm-nav-section-label">{section.section}</div>
-              {section.items.map(item => (
-                item.subItems ? (
-                  <NavGroup key={item.id} item={item} page={page} setPage={setPage} collapsed={collapsed} />
-                ) : (
+              {section.items.map((item) => {
+                const count = item.badge ? Number(badges[item.badge]) || 0 : 0;
+                return (
                   <button
                     key={item.id}
+                    type="button"
                     data-testid={`admin-nav-${item.id}`}
                     className={`adm-nav-item${page === item.id ? " active" : ""}`}
-                    onClick={() => setPage(item.id)}
+                    onClick={() => goTo(item.id)}
+                    title={collapsed ? item.label : item.hint}
+                    aria-current={page === item.id ? "page" : undefined}
                   >
                     <span className="adm-nav-icon"><Icon name={item.icon} /></span>
                     <span className="adm-nav-label">{item.label}</span>
-                    {item.badge ? <span className="adm-nav-badge">{item.badge}</span> : null}
+                    {count > 0 ? <span className="adm-nav-badge">{count > 99 ? "99+" : count}</span> : null}
                   </button>
-                )
-              ))}
-            </React.Fragment>
+                );
+              })}
+            </div>
           ))}
         </nav>
 
-        {/* User */}
-        <div className="adm-sidebar-bottom">
-          <div className="adm-sidebar-user" onClick={() => setPage("settings")}>
-            <div className="adm-sidebar-avatar">{initials}</div>
-            <div className="adm-sidebar-user-info">
+        <div className="adm-side-foot">
+          <button type="button" className="adm-side-user" onClick={() => goTo("settings")} title="Мой профиль">
+            <Avatar src={profile?.avatar} name={userName} size={38} />
+            <span className="adm-side-user-info">
               <strong>{userName}</strong>
-              <span>{roleLabel}</span>
-            </div>
+              <small><i className={isAdmin ? "is-admin" : "is-moderator"} />{roleLabel}</small>
+            </span>
+          </button>
+          <div className="adm-side-actions">
+            <a href="/" className="adm-side-action" title="На сайт"><Icon name="external" /><span>На сайт</span></a>
+            <button type="button" className="adm-side-action is-danger" onClick={handleLogout} title="Выйти"><Icon name="logout" /><span>Выйти</span></button>
           </div>
         </div>
       </aside>
+      <div className="adm-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
 
-      {/* MAIN */}
-      <div className={`adm-main${collapsed ? " collapsed" : ""}`}>
-        {/* Topbar */}
+      <div className="adm-main">
         <header className="adm-topbar">
+          <button type="button" className="adm-topbar-btn adm-burger" onClick={() => setMobileOpen(true)} aria-label="Открыть меню">
+            <Icon name="menu" />
+          </button>
           <div className="adm-topbar-left">
             <span className="adm-topbar-eyebrow">{eyebrow}</span>
             <h1 className="adm-topbar-title">{title}</h1>
           </div>
           <div className="adm-topbar-right">
-            <button className="adm-topbar-btn" aria-label="Search">
+            <button type="button" className="adm-topbar-search" onClick={() => setPaletteOpen(true)}>
               <Icon name="search" />
+              <span>Поиск…</span>
+              <kbd>Ctrl K</kbd>
             </button>
-            <button className="adm-topbar-btn" aria-label="Notifications">
-              <Icon name="bell" />
-              <span className="badge" />
+            <div className="adm-attention" ref={attentionRef}>
+              <button
+                type="button"
+                className={`adm-topbar-btn${attentionOpen ? " is-open" : ""}`}
+                onClick={() => setAttentionOpen((open) => !open)}
+                aria-label="Задачи"
+              >
+                <Icon name="bell" />
+                {attentionTotal > 0 ? <span className="adm-topbar-count">{attentionTotal > 99 ? "99+" : attentionTotal}</span> : null}
+              </button>
+              {attentionOpen ? (
+                <AttentionMenu badges={badges} allowedPages={allowedPages} setPage={goTo} onClose={() => setAttentionOpen(false)} />
+              ) : null}
+            </div>
+            <button type="button" className="adm-topbar-profile" onClick={() => goTo("settings")} title="Мой профиль">
+              <Avatar src={profile?.avatar} name={userName} size={36} />
             </button>
-            <div className="adm-topbar-avatar" onClick={() => setPage("settings")}>{initials}</div>
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="adm-page">
           {children}
         </main>
       </div>
+
+      {paletteOpen ? <CommandPalette items={paletteItems} onSelect={goTo} onClose={() => setPaletteOpen(false)} /> : null}
     </div>
   );
 }
+
+export { Icon };

@@ -311,6 +311,13 @@ class BookingSerializer(serializers.ModelSerializer):
         booking_status = attrs.get('status', getattr(self.instance, 'status', 'pending'))
         if not place or duration_type != 'hourly' or booking_status == 'blocked' or not start_time or not end_time:
             return
+        # Edits that keep the booked interval (a note, guests) are not re-checked
+        # against hours the place may have changed since the booking was made.
+        interval_unchanged = self.instance is not None and not any(
+            field in attrs for field in ('start_time', 'end_time', 'place', 'duration_type')
+        )
+        if interval_unchanged:
+            return
         local_start = timezone.localtime(start_time)
         local_end = timezone.localtime(end_time)
         same_day = local_start.date() == local_end.date()

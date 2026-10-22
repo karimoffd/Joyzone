@@ -11,7 +11,7 @@ import FloatingBookingWidget from "./components/FloatingBookingWidget.jsx";
 import { ChatNotificationToast } from "./components/ChatNotificationToast.jsx";
 import { FloatingNotificationBell } from "./components/FloatingNotificationBell.jsx";
 import { DirectChatDrawer } from "./components/DirectChatDrawer.jsx";
-import { syncChatsWithBackend } from "./utils/chatManager.js";
+import { canUseBackendChat, syncChatsWithBackend } from "./utils/chatManager.js";
 import { mergeAnonymousFavorites } from "./utils/favoritesManager.js";
 import { cacheProfile, profileToUserState } from "./utils/profileMapper.js";
 import {
@@ -29,6 +29,7 @@ import { slides } from "./data/content.js";
 import { defaultContent } from "./data/defaultContent.js";
 import { currentRoute, navigate, useRoute } from "./utils/router.js";
 import { setRouteMeta } from "./utils/seo.js";
+import { useVisiblePolling } from "./utils/polling.js";
 
 // Screens other than home/auth load on demand, so visitors do not download the
 // admin panel, partner dashboard and checkout up front.
@@ -558,6 +559,8 @@ export default function App() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [activeChatId, setActiveChatId] = useState(null);
   const [sessionMessage, setSessionMessage] = useState("");
+  // The admin panel has its own task bell and chat inbox.
+  const isAdminRoute = useRoute() === "admin";
 
   useEffect(() => {
     // Determine if we are inside an iframe
@@ -566,6 +569,11 @@ export default function App() {
     }
     syncChatsWithBackend();
   }, []);
+
+  // Keep chats fresh app-wide so replies reach the other side without a reload.
+  useVisiblePolling(() => {
+    if (canUseBackendChat()) syncChatsWithBackend().catch(() => {});
+  }, 10000);
 
   useEffect(() => {
     setStoredLanguage(lang);
@@ -631,8 +639,8 @@ export default function App() {
       <Suspense fallback={<JoyLoader active={true} />}>
         <AppContent />
       </Suspense>
-      <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />
-      <ChatNotificationToast onOpenChat={(id) => setActiveChatId(id)} />
+      {isAdminRoute ? null : <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />}
+      <ChatNotificationToast activeChatId={activeChatId} onOpenChat={(id) => setActiveChatId(id)} />
       {activeChatId && (
         <DirectChatDrawer
           chatId={activeChatId}

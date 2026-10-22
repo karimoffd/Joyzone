@@ -226,7 +226,7 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
   );
 }
 
-function CatalogTrail() {
+function CatalogTrail({ label }) {
   const liftCards = () => {
     gsap.to(".property-card", {
       y: (index) => (index % 2 === 0 ? -10 : -6),
@@ -250,7 +250,7 @@ function CatalogTrail() {
   return (
     <a className="catalog-trail" href="#spaces" onMouseEnter={liftCards} onFocus={liftCards} onMouseLeave={settleCards} onBlur={settleCards}>
       <span />
-      <strong>Barcha joylarni ko'rish</strong>
+      <strong>{label || "Barcha joylarni ko'rish"}</strong>
       <b aria-hidden="true">→</b>
     </a>
   );
@@ -521,12 +521,12 @@ function PartnerStartSection({ cms = {} }) {
           
           <div className="soul-stats">
             <div className="soul-stat">
-              <strong>2 daqiqa</strong>
-              <span>Ro'yxatdan o'tish</span>
+              <strong>{cms.how_stat1_value || "2 daqiqa"}</strong>
+              <span>{cms.how_stat1_label || "Ro'yxatdan o'tish"}</span>
             </div>
             <div className="soul-stat">
-              <strong>1 so'rov</strong>
-              <span>Bron jarayoni</span>
+              <strong>{cms.how_stat2_value || "1 so'rov"}</strong>
+              <span>{cms.how_stat2_label || "Bron jarayoni"}</span>
             </div>
           </div>
           
@@ -543,7 +543,7 @@ function PartnerStartSection({ cms = {} }) {
           <div className="soul-step-card">
             <div className="soul-step-number">01</div>
             <div className="soul-step-content">
-              <h3>Akkaunt yarating</h3>
+              <h3>{cms.how_step1_title || "Akkaunt yarating"}</h3>
               <p>{cms.how_step1 || "Akkaunt yarating va Joyzone profilini ishga tushiring."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -552,7 +552,7 @@ function PartnerStartSection({ cms = {} }) {
           <div className="soul-step-card">
             <div className="soul-step-number">02</div>
             <div className="soul-step-content">
-              <h3>Sizga mos joyni tanlang</h3>
+              <h3>{cms.how_step2_title || "Sizga mos joyni tanlang"}</h3>
               <p>{cms.how_step2 || "Manzil, narx va qulayliklar bo'yicha mos joyni tanlang."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -561,7 +561,7 @@ function PartnerStartSection({ cms = {} }) {
           <div className="soul-step-card">
             <div className="soul-step-number">03</div>
             <div className="soul-step-content">
-              <h3>Bron so'rovini yuboring</h3>
+              <h3>{cms.how_step3_title || "Bron so'rovini yuboring"}</h3>
               <p>{cms.how_step3 || "Sana va vaqtni tanlab, bron so'rovini yuboring."}</p>
             </div>
             <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -756,16 +756,16 @@ export function SimpleFooter() {
   );
 }
 
-export function FooterQuestionStrip() {
+export function FooterQuestionStrip({ cms = {} }) {
   return (
     <div className="footer-question-strip">
       <div>
-        <span>Joyzone yordam markazi</span>
-        <h2>Savolingiz bormi?</h2>
-        <p>Ofis, kovorking yoki zal tanlashda yordam beramiz.</p>
+        <span>{cms.help_kicker || "Joyzone yordam markazi"}</span>
+        <h2>{cms.help_title || "Savolingiz bormi?"}</h2>
+        <p>{cms.help_text || "Ofis, kovorking yoki zal tanlashda yordam beramiz."}</p>
       </div>
       <a href="#contact">
-        Biz bilan bog'laning
+        {cms.help_cta || "Biz bilan bog'laning"}
         <FooterIcon type="arrow" />
       </a>
     </div>
@@ -778,7 +778,7 @@ export function JoyFooter({ cms = {} }) {
   return (
     <footer className="joy-footer-section" id="contact">
       <div className="hide-on-mobile">
-        <FooterQuestionStrip />
+        <FooterQuestionStrip cms={cms} />
       </div>
       <div className="joy-footer-card">
         <div className="joy-footer-top">
@@ -793,7 +793,7 @@ export function JoyFooter({ cms = {} }) {
             <FooterIcon type="mail" />
             {cms.footer_email || "info@joyzone.uz"}
           </a>
-          <a href="/partner" className="joy-footer-cta">Ariza qoldirish</a>
+          <a href="/partner" className="joy-footer-cta">{cms.footer_cta || "Ariza qoldirish"}</a>
         </div>
 
         <div className="joy-footer-grid hide-on-mobile">
@@ -808,13 +808,13 @@ export function JoyFooter({ cms = {} }) {
             <a href="#policy">{cms.footer_link_privacy || "Maxfiylik siyosati"}</a>
           </nav>
           <nav aria-label="Xizmatlar">
-            <strong>Xizmatlar</strong>
-            <a href="/filter">Ijaraga ofislar</a>
-            <a href="/filter">Konferensiyalar zali</a>
-            <a href="/partner-guide">Hamkor bo'lish</a>
+            <strong>{cms.footer_nav2 || "Xizmatlar"}</strong>
+            <a href="/filter">{cms.footer_link_offices || "Ijaraga ofislar"}</a>
+            <a href="/filter">{cms.footer_link_halls || "Konferensiyalar zali"}</a>
+            <a href="/partner-guide">{cms.footer_link_partner || "Hamkor bo'lish"}</a>
           </nav>
           <div>
-            <strong>Ijtimoiy tarmoqlarimiz</strong>
+            <strong>{cms.footer_socials_title || "Ijtimoiy tarmoqlarimiz"}</strong>
             <div className="joy-footer-socials">
               {socials.map(([type, href]) => (
                 <a key={type} href={href} aria-label={type}>
@@ -826,8 +826,8 @@ export function JoyFooter({ cms = {} }) {
         </div>
 
         <div className="joy-footer-bottom">
-          <span>©2026 JOY HUB. Barcha huquqlar himoyalangan.</span>
-          <span>Powered by IT Comfort</span>
+          <span>{cms.footer_copyright || "©2026 JOY HUB. Barcha huquqlar himoyalangan."}</span>
+          <span>{cms.footer_powered || "Powered by IT Comfort"}</span>
         </div>
       </div>
 
@@ -842,7 +842,7 @@ export function JoyFooter({ cms = {} }) {
           }}
         >
           <FooterIcon type="chat" />
-          <span>Yordam kerakmi?</span>
+          <span>{cms.help_float || "Yordam kerakmi?"}</span>
         </button>,
         document.body
       )}
@@ -956,7 +956,7 @@ export default function ListingsSection({
     <section className="listings-section" id="home-listings">
       <div className="listings-inner">
         <div className="listings-head">
-          <p>Joyzone tanlovi</p>
+          <p>{cms.popular_kicker || "Joyzone tanlovi"}</p>
           <h2><HighlightedTitle text={cms.popular_title || "Ommabop joylar"} highlight="" /></h2>
           <p>{cms.popular_subtitle || "Eng ko'p izlangan va band qilingan joylar"}</p>
           {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
@@ -983,7 +983,7 @@ export default function ListingsSection({
           ) : null}
         </div>
         <div className="more-row">
-          <CatalogTrail />
+          <CatalogTrail label={cms.card_view_all} />
         </div>
         <PartnerAgents cms={cms} />
         <div className="hide-on-mobile">

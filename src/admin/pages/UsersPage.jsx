@@ -2,6 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import api, { getApiErrorMessage } from '../../api/client.js';
 import logoImage from '../../assets/img/Logo.png';
+import { fileToAvatarDataUrl } from '../../utils/avatarImage.js';
+
+const PERSONAL_FIELDS = ['first_name', 'last_name', 'phone_number', 'email', 'avatar'];
+const PROFILE_DETAIL_LABELS = {
+  headline: 'О себе коротко',
+  preferred_name: 'Предпочитаемое имя',
+  city: 'Город',
+  address: 'Адрес',
+  birth_year: 'Год рождения',
+  languages: 'Языки',
+  work: 'Работа / сфера',
+  company: 'Компания / команда',
+  about: 'О себе',
+  interests: 'Интересы',
+};
+
+function UserAvatar({ user, size = 36, radius = 10 }) {
+  return (
+    <div style={{ width: size, height: size, borderRadius: radius, background: getAvatarColor(user.id), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: Math.round(size / 3), fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
+      {user.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : getInitials(user)}
+    </div>
+  );
+}
 
 const ROLE_MAP = {
   client: { label: 'Клиент', bg: 'rgba(41,74,109,0.1)', color: '#294a6d' },
@@ -25,7 +48,8 @@ const getInitials = (user) => {
   if (f || l) {
     return (f.slice(0, 1) + l.slice(0, 1)).toUpperCase();
   }
-  return (user.username || '').slice(0, 2).toUpperCase() || 'U';
+  const letters = (user.username || '').replace(/[^A-Za-zА-Яа-яЁё]/g, '');
+  return letters.slice(0, 2).toUpperCase() || 'JZ';
 };
 
 const getAvatarColor = (id) => {
@@ -49,14 +73,34 @@ function UserEditModal({ user, onClose, onSave }) {
     partner_bio: user.partner_bio || '',
     is_featured_partner: Boolean(user.is_featured_partner),
   });
+  const [personal, setPersonal] = useState(() => Object.fromEntries(PERSONAL_FIELDS.map((key) => [key, user[key] || ''])));
+  const [avatarError, setAvatarError] = useState('');
+  const avatarInputRef = React.useRef(null);
   const profileChanged = partnerProfile.company_name !== (user.company_name || '')
     || partnerProfile.partner_bio !== (user.partner_bio || '')
     || partnerProfile.is_featured_partner !== Boolean(user.is_featured_partner);
+  const personalChanges = Object.fromEntries(
+    PERSONAL_FIELDS.filter((key) => personal[key] !== (user[key] || '')).map((key) => [key, personal[key] || (key === 'avatar' ? null : '')]),
+  );
+  const personalChanged = Object.keys(personalChanges).length > 0;
+
+  const handleAvatarFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      const avatar = await fileToAvatarDataUrl(file);
+      setPersonal((current) => ({ ...current, avatar }));
+      setAvatarError('');
+    } catch (error) {
+      setAvatarError(error.message);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (role === user.role) {
-      if (profileChanged) executeSave();
+      if (profileChanged || personalChanged) executeSave();
       else onClose();
       return;
     }
@@ -73,7 +117,11 @@ function UserEditModal({ user, onClose, onSave }) {
     setLoading(true);
     setSaveError('');
     try {
-      await onSave(user.id, role === 'partner' && profileChanged ? { role, ...partnerProfile } : { role });
+      await onSave(user.id, {
+        role,
+        ...personalChanges,
+        ...(role === 'partner' && profileChanged ? partnerProfile : {}),
+      });
     } catch (error) {
       setShowWarningConfirm(false);
       setSaveError(getApiErrorMessage(error, 'Не удалось изменить роль пользователя.'));
@@ -110,29 +158,75 @@ function UserEditModal({ user, onClose, onSave }) {
             
             {/* User Profile Banner */}
             <div className="adm-user-profile-banner">
-              <div 
-                className="adm-user-avatar-wrap" 
-                style={{ background: getAvatarColor(user.id) }}
+              <div
+                className="adm-user-avatar-wrap"
+                style={{ background: getAvatarColor(user.id), overflow: 'hidden' }}
               >
-                {getInitials(user)}
-                <span className="adm-user-status-dot" title="Активный аккаунт" />
+                {personal.avatar ? <img src={personal.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : getInitials(user)}
               </div>
               <div className="adm-user-banner-info">
                 <h4 className="adm-user-banner-name">{fullName}</h4>
                 <span className="adm-user-banner-handle">@{user.username || 'user'}</span>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+                  <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarFile} style={{ display: 'none' }} />
+                  <button type="button" className="adm-btn adm-btn-outline" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => avatarInputRef.current?.click()}>
+                    {personal.avatar ? 'Заменить фото' : 'Загрузить фото'}
+                  </button>
+                  {personal.avatar ? (
+                    <button type="button" className="adm-btn adm-btn-outline" style={{ padding: '6px 12px', fontSize: 12, color: '#dc2626' }} onClick={() => setPersonal((current) => ({ ...current, avatar: '' }))}>
+                      Удалить фото
+                    </button>
+                  ) : null}
+                </div>
+                {avatarError ? <small style={{ color: '#dc2626', fontWeight: 600 }}>{avatarError}</small> : null}
               </div>
             </div>
 
+            <div>
+              <div className="adm-role-selector-head">
+                <h4>Личные данные</h4>
+                <p>Имя и контакты видны партнёрам в бронях и чатах</p>
+              </div>
+              <div className="adm-user-edit-grid">
+                {[
+                  ['first_name', 'Имя', 'text'],
+                  ['last_name', 'Фамилия', 'text'],
+                  ['phone_number', 'Телефон', 'tel'],
+                  ['email', 'Email', 'email'],
+                ].map(([key, label, type]) => (
+                  <label key={key} className="adm-user-edit-field">
+                    <span>{label}</span>
+                    <input
+                      type={type}
+                      value={personal[key]}
+                      onChange={(event) => setPersonal((current) => ({ ...current, [key]: event.target.value }))}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {Object.keys(user.profile_details || {}).length ? (
+              <div>
+                <div className="adm-role-selector-head">
+                  <h4>Анкета пользователя</h4>
+                  <p>Заполняет сам пользователь в профиле и настройках</p>
+                </div>
+                <div className="adm-user-details-grid">
+                  {Object.entries(PROFILE_DETAIL_LABELS)
+                    .filter(([key]) => user.profile_details[key])
+                    .map(([key, label]) => (
+                      <div key={key} className="adm-user-detail-item" style={['about', 'interests'].includes(key) ? { gridColumn: '1 / -1' } : undefined}>
+                        <span className="adm-user-detail-label">{label}</span>
+                        <span className="adm-user-detail-val" style={{ whiteSpace: 'pre-wrap', fontWeight: 600 }}>{user.profile_details[key]}</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : null}
+
             {/* User Details Grid */}
             <div className="adm-user-details-grid">
-              <div className="adm-user-detail-item">
-                <span className="adm-user-detail-label">Телефон</span>
-                <span className="adm-user-detail-val">{user.phone_number || user.phone || 'Не указан'}</span>
-              </div>
-              <div className="adm-user-detail-item">
-                <span className="adm-user-detail-label">Email</span>
-                <span className="adm-user-detail-val">{user.email || 'Не указан'}</span>
-              </div>
               <div className="adm-user-detail-item">
                 <span className="adm-user-detail-label">Дата регистрации</span>
                 <span className="adm-user-detail-val">{formatDate(user.date_joined)}</span>
@@ -313,7 +407,7 @@ export default function UsersPage() {
     await api.patch(`/api/auth/users/${userId}/`, data);
     await fetchUsers();
     setEditTarget(null);
-    setActionMessage('Роль пользователя обновлена. Запись добавлена в журнал действий.');
+    setActionMessage('Данные пользователя сохранены. Запись добавлена в журнал действий.');
   };
 
   const stats = React.useMemo(() => {
@@ -506,9 +600,7 @@ export default function UsersPage() {
                 >
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: getAvatarColor(u.id), display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, fontWeight: 700 }}>
-                        {getInitials(u)}
-                      </div>
+                      <UserAvatar user={u} />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--navy)' }}>
                           {u.first_name || u.last_name ? `${u.first_name || ''} ${u.last_name || ''}` : 'Без имени'}
