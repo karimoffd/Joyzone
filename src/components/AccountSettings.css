@@ -262,7 +262,8 @@
   padding: 16px;
 }
 
-.settings-edit-box input {
+.settings-edit-box input,
+.settings-edit-box textarea {
   width: 100%;
   border: 1px solid rgba(18, 40, 63, 0.14);
   border-radius: 14px;
@@ -275,7 +276,8 @@
   outline: none;
 }
 
-.settings-edit-box input:focus {
+.settings-edit-box input:focus,
+.settings-edit-box textarea:focus {
   border-color: #e46630;
   box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.11);
 }

@@ -44,21 +44,6 @@ function BackButton() {
   );
 }
 
-const footerColumns = [
-  {
-    title: "Platforma",
-    links: ["Joy qidirish", "Katalog", "Hamkorlar", "FAQ"]
-  },
-  {
-    title: "Hamkorlik",
-    links: ["Joy qo'shish", "Partner qo'llanmasi", "Moderatsiya", "Bron qoidalari"]
-  },
-  {
-    title: "Kompaniya",
-    links: ["Biz haqimizda", "Kontaktlar", "Shartlar", "Maxfiylik"]
-  }
-];
-
 function AboutUsPage() {
   const { cms } = useSiteContent();
   return (
@@ -443,76 +428,4 @@ function TariffPlansSection() {
 }
 
 
-function FooterVariantPage() {
-  return (
-    <main className="static-page footer-variant-page">
-      <BackButton />
-      <section className="footer-variant-intro">
-        <span className="static-kicker">Footer varianti</span>
-        <h1>Minimal, lekin kuchli yakuniy blok.</h1>
-        <p>
-          Bu variant home sahifadagi hozirgi futerni almashtirmaydi. Timlid uchun alohida ko'rinish:
-          jiddiyroq kompozitsiya, aniq navigatsiya, kontaktlar va kuchli CTA bitta joyda.
-        </p>
-      </section>
-
-      <section className="footer-showcase" aria-label="Joyzone footer varianti">
-        <footer className="footer-concept">
-          <div className="footer-concept-main">
-            <div className="footer-brand-block">
-              <a className="footer-concept-logo" href="/" aria-label="Joyzone bosh sahifa">
-                <img src={logoImage} alt="Joyzone" />
-              </a>
-              <h2>Joy topish va bron qilishni tartibli qilamiz.</h2>
-              <p>
-                Ofis, kovorking, uchrashuv xonasi va tadbir maydonlari uchun aniq kartalar,
-                tez aloqa va ishonchli bron oqimi.
-              </p>
-              <div className="footer-concept-actions">
-                <a href="/filter">
-                  Joy qidirish
-                  <PageIcon type="arrow" />
-                </a>
-                <a href="/partner-guide">Hamkor bo'lish</a>
-              </div>
-            </div>
-
-            <div className="footer-navigation-panel">
-              {footerColumns.map((column) => (
-                <nav key={column.title} aria-label={column.title}>
-                  <strong>{column.title}</strong>
-                  {column.links.map((link) => (
-                    <a key={link} href="/">{link}</a>
-                  ))}
-                </nav>
-              ))}
-            </div>
-          </div>
-
-          <div className="footer-contact-strip">
-            <a href="tel:+998770444000">
-              <PageIcon type="phone" />
-              +998 77 044 40 00
-            </a>
-            <a href="mailto:info@joyzone.uz">
-              <PageIcon type="mail" />
-              info@joyzone.uz
-            </a>
-            <span>Toshkent, Uzbekistan</span>
-          </div>
-
-          <div className="footer-concept-bottom">
-            <span>2026 JOY HUB. Barcha huquqlar himoyalangan.</span>
-            <div className="footer-social-row" aria-label="Joyzone ijtimoiy tarmoqlari">
-              <a href="#instagram" aria-label="Instagram"><PageIcon type="instagram" /></a>
-              <a href="#telegram" aria-label="Telegram"><PageIcon type="telegram" /></a>
-              <a href="#linkedin" aria-label="LinkedIn"><PageIcon type="linkedin" /></a>
-            </div>
-          </div>
-        </footer>
-      </section>
-    </main>
-  );
-}
-
-export { AboutUsPage, PartnerGuidePage, FooterVariantPage };
+export { AboutUsPage, PartnerGuidePage };

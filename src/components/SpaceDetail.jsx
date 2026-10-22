@@ -1,4 +1,4 @@
-import { formatMoney, weekdayLabels, hourlySlots, toDateKey, fromDateKey, addDays, addMonths, getDefaultBookingDate, getMonthOffset, buildCalendarDays, buildDateRange, getDayDiff, formatShortDate, normalizeReview, getReviewFallback, isBlockingBooking } from "./spaceDetail/helpers.js";
+import { formatMoney, weekdayLabels, buildHourlySlots, formatWorkingHours, toDateKey, fromDateKey, addDays, addMonths, getDefaultBookingDate, getMonthOffset, buildCalendarDays, buildDateRange, getDayDiff, formatShortDate, normalizeReview, getReviewFallback, isBlockingBooking } from "./spaceDetail/helpers.js";
 import { Icon, DetailStat, Stars } from "./spaceDetail/parts.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
@@ -152,6 +152,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   );
   const [space, setSpace] = useState(() => normalizePlace(EMPTY_PLACE));
   const [placeLoading, setPlaceLoading] = useState(true);
+  const placeHourlySlots = useMemo(() => buildHourlySlots(space.opens_at, space.closes_at), [space.opens_at, space.closes_at]);
 
   useEffect(() => {
     if (placeLoading || !space?.title) return;
@@ -1297,6 +1298,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 );
               })}
 
+            <DetailStat icon="clock" label={lang === 'uz' ? "Ish vaqti" : "Часы работы"} value={formatWorkingHours(space.opens_at, space.closes_at)} />
             <DetailStat icon="clock" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
             <DetailStat icon="shield" label="Status" value={space.status === "approved" ? (lang === 'uz' ? "Faol" : "Активен") : (lang === 'uz' ? "Tekshirilmoqda" : "Модерация")} />
           </div>
@@ -1565,7 +1567,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                     <small>Band / Bo'sh</small>
                   </div>
                   <div className="sd-hour-slots">
-                    {hourlySlots.map((slot) => {
+                    {placeHourlySlots.map((slot) => {
                       const status = getSlotStatus(hourPanelDate, slot);
                       const selected = selectedTimeSlots.includes(slot);
                       const unavailable = isAvailabilityStatusBlocked(status) || !availabilityReady;

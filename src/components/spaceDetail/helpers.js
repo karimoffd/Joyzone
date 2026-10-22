@@ -6,7 +6,29 @@ export function formatMoney(value) {
 
 export const weekdayLabels = ["D", "S", "Ch", "P", "J", "Sh", "Ya"];
 
-export const hourlySlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"];
+export const hourlySlots = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
+
+// "HH:MM[:SS]" -> hour number, or the fallback for missing/invalid values.
+// roundUp: 08:30 -> 9 (first full hour after opening); otherwise 20:30 -> 20.
+export function parseHour(value, fallback, roundUp = false) {
+  const match = String(value || "").match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return fallback;
+  return Number(match[1]) + (roundUp && Number(match[2]) > 0 ? 1 : 0);
+}
+
+// Bookable hourly slots that fit fully between opening and closing time.
+export function buildHourlySlots(opensAt, closesAt) {
+  const start = parseHour(opensAt, 9, true);
+  const end = parseHour(closesAt, 18);
+  const slots = [];
+  for (let hour = Math.floor(start); hour < end; hour += 1) slots.push(`${String(hour).padStart(2, "0")}:00`);
+  return slots.length ? slots : hourlySlots;
+}
+
+export function formatWorkingHours(opensAt, closesAt) {
+  const short = (value, fallback) => (String(value || fallback).slice(0, 5));
+  return `${short(opensAt, "09:00")} – ${short(closesAt, "18:00")}`;
+}
 
 export function toDateKey(date) {
   return date.toISOString().split("T")[0];

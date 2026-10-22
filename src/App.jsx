@@ -41,11 +41,9 @@ const UserProfile = lazy(() => import("./components/UserProfile.jsx"));
 const ProfileQuestionnaireEdit = named(() => import("./components/UserProfile.jsx"), "ProfileQuestionnaireEdit");
 const AccountSettings = lazy(() => import("./components/AccountSettings.jsx"));
 const HostDashboard = lazy(() => import("./components/HostDashboard.jsx"));
-const CardVariants = lazy(() => import("./components/CardVariants.jsx"));
 const AdminRouteGuard = lazy(() => import("./admin/AdminRouteGuard.jsx"));
 const AboutUsPage = named(() => import("./components/StaticInfoPages.jsx"), "AboutUsPage");
 const PartnerGuidePage = named(() => import("./components/StaticInfoPages.jsx"), "PartnerGuidePage");
-const FooterVariantPage = named(() => import("./components/StaticInfoPages.jsx"), "FooterVariantPage");
 const MobileInfoPage = lazy(() => import("./components/MobileInfoPage.jsx"));
 const BookingCheckout = lazy(() => import("./components/BookingCheckout.jsx"));
 
@@ -466,17 +464,6 @@ function AppContent() {
     );
   }
 
-  if (displayedRoute === "card-variants") {
-    return (
-      <>
-        <div className="route-screen route-screen-card-variants app-route-shell">
-          <CardVariants />
-        </div>
-        <JoyLoader active={bootLoading} />
-      </>
-    );
-  }
-
   if (displayedRoute === "about-us") {
     return (
       <>
@@ -504,17 +491,6 @@ function AppContent() {
       <>
         <div className="route-screen route-screen-partner-guide app-route-shell">
           <PartnerGuidePage />
-        </div>
-        <JoyLoader active={bootLoading} />
-      </>
-    );
-  }
-
-  if (displayedRoute === "footer-variant") {
-    return (
-      <>
-        <div className="route-screen route-screen-footer-variant app-route-shell">
-          <FooterVariantPage />
         </div>
         <JoyLoader active={bootLoading} />
       </>

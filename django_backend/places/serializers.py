@@ -160,6 +160,14 @@ class PlaceSerializer(serializers.ModelSerializer):
             logs = obj.moderation_logs.select_related('actor').all()[:10]
         return PlaceModerationLogSerializer(logs, many=True).data
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        opens_at = attrs.get('opens_at', getattr(self.instance, 'opens_at', None))
+        closes_at = attrs.get('closes_at', getattr(self.instance, 'closes_at', None))
+        if opens_at and closes_at and closes_at <= opens_at:
+            raise serializers.ValidationError({'closes_at': 'Closing time must be after opening time.'})
+        return attrs
+
     def validate_images(self, value):
         """Limit to max 10 images per place."""
         if not isinstance(value, list):

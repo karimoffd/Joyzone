@@ -6,6 +6,17 @@ import { cacheProfile, normalizeProfile, profileToUserState, splitFullName } fro
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../utils/storageKeys.js";
 import "./AccountSettings.css";
 
+// Shown only to partners: the public profile from the "Joyzone hamkorlari" block.
+const companySection = {
+  id: "company",
+  title: "Профиль компании",
+  description: "Так вас видят клиенты в блоке партнёров на главной и на вашей странице.",
+  items: [
+    { key: "companyName", title: "Название компании", value: "", empty: "Не указано", action: "Редактировать", type: "text" },
+    { key: "partnerBio", title: "Описание", value: "", empty: "Не указано", action: "Редактировать", type: "textarea", note: "Коротко: какие пространства вы предлагаете." },
+  ],
+};
+
 const settingsSections = [
   {
     id: "personal",
@@ -93,6 +104,7 @@ function SettingsIcon({ type }) {
     payments: ["M4 7h16v12H4z", "M4 11h16", "M8 15h3"],
     language: ["M4 5h9M9 3v2c0 4-2 7-5 9", "M5 9c1 3 3 5 7 6", "M13 21l4-9 4 9M15 17h4"],
     booking: ["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01M3 12h.01M3 18h.01"],
+    company: ["M4 21V7l8-4 8 4v14", "M9 21v-6h6v6", "M9 10h.01M15 10h.01"],
     chevron: ["m9 18 6-6-6-6"],
     close: ["M18 6 6 18", "M6 6l12 12"]
   };
@@ -106,14 +118,28 @@ function SettingsIcon({ type }) {
   );
 }
 
-const BACKEND_PROFILE_KEYS = new Set(["legalName", "email", "phone"]);
+const BACKEND_PROFILE_KEYS = new Set(["legalName", "email", "phone", "companyName", "partnerBio"]);
+
+function profileValues(data, normalized) {
+  return {
+    legalName: normalized.full_name,
+    email: normalized.email,
+    phone: normalized.phone_number,
+    companyName: data?.company_name || "",
+    partnerBio: data?.partner_bio || "",
+  };
+}
 
 function AccountSettings({ userState, setUserState }) {
+  const sections = useMemo(
+    () => (userState?.isPartner ? [companySection, ...settingsSections] : settingsSections),
+    [userState?.isPartner]
+  );
   const [activeSectionId, setActiveSectionId] = useState("personal");
   const [editingKey, setEditingKey] = useState("");
   const [values, setValues] = useState(() => {
     const initial = {};
-    settingsSections.forEach((section) => {
+    [companySection, ...settingsSections].forEach((section) => {
       section.items.forEach((item) => {
         initial[item.key] = item.value;
       });
@@ -126,8 +152,8 @@ function AccountSettings({ userState, setUserState }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const activeSection = useMemo(
-    () => settingsSections.find((section) => section.id === activeSectionId) || settingsSections[0],
-    [activeSectionId]
+    () => sections.find((section) => section.id === activeSectionId) || sections[0],
+    [activeSectionId, sections]
   );
 
   useEffect(() => {
@@ -143,9 +169,7 @@ function AccountSettings({ userState, setUserState }) {
         setValues((current) => ({
           ...current,
           ...localValues,
-          legalName: normalized.full_name,
-          email: normalized.email,
-          phone: normalized.phone_number,
+          ...profileValues(response.data, normalized),
         }));
       } catch (requestError) {
         if (active) setError(getApiErrorMessage(requestError, "Не удалось загрузить профиль"));
@@ -178,15 +202,12 @@ function AccountSettings({ userState, setUserState }) {
         if (editingKey === "legalName") payload = splitFullName(draftValue);
         if (editingKey === "email") payload = { email: draftValue.trim() };
         if (editingKey === "phone") payload = { phone_number: draftValue.trim() };
+        if (editingKey === "companyName") payload = { company_name: draftValue.trim() };
+        if (editingKey === "partnerBio") payload = { partner_bio: draftValue.trim() };
         const response = await api.patch("/api/auth/profile/", payload);
         const normalized = cacheProfile(response.data);
         setUserState?.(profileToUserState(normalized, userState));
-        setValues((current) => ({
-          ...current,
-          legalName: normalized.full_name,
-          email: normalized.email,
-          phone: normalized.phone_number,
-        }));
+        setValues((current) => ({ ...current, ...profileValues(response.data, normalized) }));
       } else {
         const nextValues = { ...values, [editingKey]: draftValue };
         const localOnly = Object.fromEntries(
@@ -217,7 +238,7 @@ function AccountSettings({ userState, setUserState }) {
         <aside className="settings-sidebar" aria-label="Настройки аккаунта">
           <h1>Настройки аккаунта</h1>
           <div className="settings-nav-list">
-            {settingsSections.map((section) => (
+            {sections.map((section) => (
               <button
                 key={section.id}
                 type="button"
@@ -261,12 +282,21 @@ function AccountSettings({ userState, setUserState }) {
 
                   {isEditing ? (
                     <div className="settings-edit-box">
-                      <input
-                        type={item.type === "password" ? "text" : item.type}
-                        value={draftValue}
-                        placeholder={item.empty || item.title}
-                        onChange={(event) => setDraftValue(event.target.value)}
-                      />
+                      {item.type === "textarea" ? (
+                        <textarea
+                          rows={4}
+                          value={draftValue}
+                          placeholder={item.title}
+                          onChange={(event) => setDraftValue(event.target.value)}
+                        />
+                      ) : (
+                        <input
+                          type={item.type === "password" ? "text" : item.type}
+                          value={draftValue}
+                          placeholder={item.empty || item.title}
+                          onChange={(event) => setDraftValue(event.target.value)}
+                        />
+                      )}
                       <div>
                         <button type="button" className="settings-save" onClick={saveEditing} disabled={saving}>
                           {saving ? "Сохранение..." : "Сохранить"}

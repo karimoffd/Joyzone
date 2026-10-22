@@ -259,11 +259,14 @@ class BookingSerializer(serializers.ModelSerializer):
         if self.instance is None and not attrs.get('place'):
             raise serializers.ValidationError({'place': 'This field is required.'})
 
+        place_for_hours = attrs.get('place') or getattr(self.instance, 'place', None)
+        opens_at = getattr(place_for_hours, 'opens_at', None) or time(hour=9)
+        closes_at = getattr(place_for_hours, 'closes_at', None) or time(hour=18)
         if not attrs.get('start_time') and start_date:
-            attrs['start_time'] = self._combine_date_time(start_date, time(hour=9))
+            attrs['start_time'] = self._combine_date_time(start_date, opens_at)
 
         if not attrs.get('end_time') and end_date:
-            attrs['end_time'] = self._combine_date_time(end_date, time(hour=18))
+            attrs['end_time'] = self._combine_date_time(end_date, closes_at)
 
         requires_complete_interval = self.instance is None or not self.partial
         required_errors = {}
@@ -295,8 +298,33 @@ class BookingSerializer(serializers.ModelSerializer):
             })
 
         self._validate_place_capacity(attrs)
+        self._validate_working_hours(attrs, start_time, end_time)
 
         return attrs
+
+    def _validate_working_hours(self, attrs, start_time, end_time):
+        """Hourly bookings must fit inside the place's opening hours."""
+        if self.context.get('allow_admin_booking_assignment') or self.context.get('allow_booking_status_action'):
+            return
+        place = attrs.get('place') or getattr(self.instance, 'place', None)
+        duration_type = attrs.get('duration_type') or getattr(self.instance, 'duration_type', None)
+        booking_status = attrs.get('status', getattr(self.instance, 'status', 'pending'))
+        if not place or duration_type != 'hourly' or booking_status == 'blocked' or not start_time or not end_time:
+            return
+        local_start = timezone.localtime(start_time)
+        local_end = timezone.localtime(end_time)
+        same_day = local_start.date() == local_end.date()
+        if (
+            not same_day
+            or local_start.time() < place.opens_at
+            or local_end.time() > place.closes_at
+        ):
+            raise serializers.ValidationError({
+                'start_time': (
+                    f'Hourly bookings must be within working hours '
+                    f'{place.opens_at:%H:%M}-{place.closes_at:%H:%M}.'
+                )
+            })
 
     def _validate_place_capacity(self, attrs):
         place = attrs.get('place') or getattr(self.instance, 'place', None)

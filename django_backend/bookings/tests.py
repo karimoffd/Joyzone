@@ -1627,3 +1627,60 @@ class BookingServerPricingTests(TestCase):
         self.assertIn(response.status_code, (200, 400))
         booking.refresh_from_db()
         self.assertEqual(str(booking.amount), '140000.00')
+
+
+class PlaceWorkingHoursTests(TestCase):
+    def setUp(self):
+        import datetime as dt
+
+        User = get_user_model()
+        self.client_api = APIClient()
+        self.client_user = User.objects.create_user(username='hours-client', password='pass', role='client')
+        partner = User.objects.create_user(username='hours-partner', password='pass', role='partner')
+        self.place = Place.objects.create(
+            owner=partner, title='Evening hall', location='Tashkent', area=40, people=10,
+            status='approved', price_hourly='50000', price_daily='300000',
+            opens_at=dt.time(12, 0), closes_at=dt.time(22, 0),
+        )
+        self.client_api.force_authenticate(self.client_user)
+
+    def test_hourly_booking_outside_working_hours_is_rejected(self):
+        response = self.client_api.post('/api/bookings/', {
+            'place': self.place.id,
+            'start_time': aware_dt(2027, 10, 5, 10).isoformat(),
+            'end_time': aware_dt(2027, 10, 5, 13).isoformat(),
+            'duration_type': 'hourly',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('12:00-22:00', str(response.data['start_time']))
+
+    def test_hourly_booking_inside_working_hours_is_accepted(self):
+        response = self.client_api.post('/api/bookings/', {
+            'place': self.place.id,
+            'start_time': aware_dt(2027, 10, 5, 20).isoformat(),
+            'end_time': aware_dt(2027, 10, 5, 22).isoformat(),
+            'duration_type': 'hourly',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201)
+
+    def test_daily_booking_by_dates_uses_place_hours(self):
+        response = self.client_api.post('/api/bookings/', {
+            'place': self.place.id,
+            'start_date': '2027-10-05',
+            'end_date': '2027-10-06',
+            'duration_type': 'daily',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        booking = Booking.objects.get(pk=response.data['id'])
+        self.assertEqual(timezone.localtime(booking.start_time).hour, 12)
+        self.assertEqual(timezone.localtime(booking.end_time).hour, 22)
+
+    def test_closing_time_must_be_after_opening(self):
+        self.client_api.force_authenticate(self.place.owner)
+        response = self.client_api.patch(f'/api/places/{self.place.id}/', {'opens_at': '18:00', 'closes_at': '09:00'}, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('closes_at', response.data)

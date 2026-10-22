@@ -15,7 +15,7 @@ const ROUTE_META = {
   forgot: { title: "Kirishni tiklash", robots: "noindex" },
   verify: { title: "Kodni tasdiqlash", robots: "noindex" },
 };
-const PRIVATE_ROUTE = /^(profile|profile-edit|settings|host-|book-|admin|card-variants|footer-variant)/;
+const PRIVATE_ROUTE = /^(profile|profile-edit|settings|host-|book-|admin)/;
 
 function upsertMeta(attribute, key, content) {
   let element = document.head.querySelector(`meta[${attribute}="${key}"]`);

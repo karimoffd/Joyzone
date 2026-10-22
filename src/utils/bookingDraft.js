@@ -41,7 +41,17 @@ function localDateTimeToIso(date, hour, minute = 0) {
   return parsed.toISOString();
 }
 
-function buildBookingTimes({ durationType, startDate, endDate, slots = [] }) {
+function placeHour(value, fallback) {
+  const hour = Number(String(value || "").split(":")[0]);
+  return Number.isFinite(hour) && String(value || "").includes(":") ? hour : fallback;
+}
+
+function placeMinute(value) {
+  const minute = Number(String(value || "").split(":")[1]);
+  return Number.isFinite(minute) ? minute : 0;
+}
+
+function buildBookingTimes({ durationType, startDate, endDate, slots = [], opensAt, closesAt }) {
   const start = datePart(startDate);
   const end = datePart(endDate || start);
 
@@ -56,8 +66,9 @@ function buildBookingTimes({ durationType, startDate, endDate, slots = [] }) {
     };
   }
 
-  const startTime = localDateTimeToIso(start, 9);
-  let endTime = localDateTimeToIso(end, 18);
+  // Daily/weekly/monthly bookings run from opening to closing time of the place.
+  const startTime = localDateTimeToIso(start, placeHour(opensAt, 9), placeMinute(opensAt));
+  let endTime = localDateTimeToIso(end, placeHour(closesAt, 18), placeMinute(closesAt));
   if (new Date(endTime).getTime() <= new Date(startTime).getTime()) {
     endTime = new Date(new Date(startTime).getTime() + 60 * 60 * 1000).toISOString();
   }
@@ -114,7 +125,14 @@ export function createBookingDraft({ place, selection = {}, user = null }) {
   const startDate = datePart(selection.startDate || selection.start_date);
   const endDate = datePart(selection.endDate || selection.end_date || startDate);
   const slots = Array.isArray(selection.slots) ? [...selection.slots].sort() : [];
-  const times = buildBookingTimes({ durationType, startDate, endDate, slots });
+  const times = buildBookingTimes({
+    durationType,
+    startDate,
+    endDate,
+    slots,
+    opensAt: place?.opens_at,
+    closesAt: place?.closes_at,
+  });
   const subtotal = money(selection.subtotal ?? selection.total ?? selection.amount);
   const tax = money(selection.tax ?? Math.round(subtotal * Number(selection.taxRate || 0)));
   const amount = money(selection.amount ?? subtotal + tax);

@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from django.db import models
@@ -123,6 +124,11 @@ class Place(models.Model):
     price_monthly = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default='UZS')
     
+    # Working hours (local Tashkent time). Hourly slots and the default time of
+    # daily bookings follow them.
+    opens_at = models.TimeField(default=datetime.time(9, 0))
+    closes_at = models.TimeField(default=datetime.time(18, 0))
+
     # Booking preference
     booking_type = models.CharField(max_length=50, default='request', choices=[('instant', 'Instant Booking'), ('request', 'By Request')])
     discounts = models.ManyToManyField("Discount", related_name="places", blank=True)

@@ -20,7 +20,6 @@ const EXTERNAL_FETCH_ALLOWLIST = [
 
 const MOCK_SCAN_EXEMPT_FILES = new Set([
   "src/data/content.js", // Demo fixture definitions, not a production screen.
-  "src/components/CardVariants.jsx", // Explicit internal card-design showcase.
 ]);
 
 function read(path) {

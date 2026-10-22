@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 // keep working: they are rewritten to the matching path on load and on click.
 
 export const STATIC_ROUTES = new Set([
-  "home", "filter", "partner", "profile", "profile-edit", "settings", "card-variants",
-  "about-us", "mobile-info", "partner-guide", "footer-variant", "host-today",
+  "home", "filter", "partner", "profile", "profile-edit", "settings",
+  "about-us", "mobile-info", "partner-guide", "host-today",
   "host-calendar", "host-listings", "host-messages", "host-tariffs", "register",
   "login", "forgot", "verify", "admin",
 ]);

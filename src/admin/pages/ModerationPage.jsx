@@ -750,6 +750,7 @@ export default function ModerationPage() {
                     <div className="meta-item"><span className="meta-label">Подкатегория:</span><span className="meta-val">{place.subcategory_name || 'Не указана'}</span></div>
                     <div className="meta-item"><span className="meta-label">Владелец:</span><span className="meta-val">{place.owner_name || 'Неизвестно'} {place.owner_phone ? `· ${place.owner_phone}` : ''}</span></div>
                     <div className="meta-item"><span className="meta-label">Адрес:</span><span className="meta-val">{place.location}</span></div>
+                    <div className="meta-item"><span className="meta-label">Часы работы:</span><span className="meta-val">{String(place.opens_at || "09:00").slice(0, 5)} – {String(place.closes_at || "18:00").slice(0, 5)}</span></div>
                     <div className="meta-item"><span className="meta-label">Цена:</span><span className="meta-val">{getPriceDetails(place).map(row => row.value).join(' / ') || place.price}</span></div>
                     <div className="meta-item"><span className="meta-label">Площадь:</span><span className="meta-val">{place.area} м²</span></div>
                     <div className="meta-item"><span className="meta-label">Вместимость:</span><span className="meta-val">{place.people} чел.</span></div>

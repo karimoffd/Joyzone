@@ -55,6 +55,8 @@ export default function PartnerOnboarding() {
   
   const [photos, setPhotos] = useState([]);
   const [bookingType, setBookingType] = useState("request");
+  const [opensAt, setOpensAt] = useState("09:00");
+  const [closesAt, setClosesAt] = useState("18:00");
   const [selectedDiscountIds, setSelectedDiscountIds] = useState([]);
   const [apiDiscounts, setApiDiscounts] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -125,6 +127,8 @@ export default function PartnerOnboarding() {
         setCapacity(p.people || 0);
         setArea(p.area || 0);
         setBookingType(p.booking_type || "request");
+        setOpensAt(String(p.opens_at || "09:00").slice(0, 5));
+        setClosesAt(String(p.closes_at || "18:00").slice(0, 5));
         setAmenities(p.amenities || []);
         
         const counters = {};
@@ -229,6 +233,8 @@ export default function PartnerOnboarding() {
     prices,
     enabledPrices,
     bookingType,
+    opensAt,
+    closesAt,
     selectedDiscountIds,
   });
 
@@ -1126,6 +1132,16 @@ export default function PartnerOnboarding() {
                  <strong>По запросу</strong>
                  <small>Администратор проверяет заявку вручную.</small>
                </button>
+               <div className="booking-card" style={{ cursor: "default" }}>
+                 <strong>Часы работы</strong>
+                 <small>Почасовые брони доступны только в это время; дневные — с открытия до закрытия.</small>
+                 <div style={{ display: "flex", gap: 12, marginTop: 10, alignItems: "center" }}>
+                   <input data-testid="onboarding-opens-at" type="time" step="1800" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} />
+                   <span>—</span>
+                   <input data-testid="onboarding-closes-at" type="time" step="1800" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} />
+                 </div>
+                 {closesAt <= opensAt ? <small style={{ color: "#dc2626" }}>Время закрытия должно быть позже открытия.</small> : null}
+               </div>
             </div>
            </div>
         )}

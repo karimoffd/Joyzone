@@ -259,7 +259,8 @@ export const profileMenuLinks = [
   { id: "profile", href: "/profile", label: "Profilim", num: "01", desc: "Shaxsiy ma'lumotlar", icon: "user" },
   { id: "listings", href: "/host-listings", label: "Mening joylarim", num: "02", desc: "Mulklar va ofislar", icon: "partner" },
   { id: "saved", href: "/profile", label: "Saqlangan", num: "03", desc: "Yoqtirgan joylar", icon: "heart" },
-  { id: "search", href: "/filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar katalogi", icon: "search" }
+  { id: "search", href: "/filter", label: "Joy qidirish", num: "04", desc: "Ofis va kovorkinglar katalogi", icon: "search" },
+  { id: "settings", href: "/settings", label: "Sozlamalar", num: "05", desc: "Akkaunt va kompaniya profili", icon: "settings" }
 ];
 
 /* SVG icons for profile actions */
@@ -327,7 +328,8 @@ export const profileNavIcons = {
   "Profilim": <IconUser />,
   "Mening joylarim": <IconBriefcase />,
   "Saqlangan": <IconHeart />,
-  "Joy qidirish": <IconSearch />
+  "Joy qidirish": <IconSearch />,
+  "Sozlamalar": <IconSettings />
 };
 
 export const menuIconMap = {
