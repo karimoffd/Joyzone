@@ -35,6 +35,8 @@ export function profileToUserState(profile, current = {}) {
     email: normalized.email,
     phone: normalized.phone_number,
     avatar: normalized.avatar,
+    role: normalized.role || current.role,
+    dateJoined: normalized.date_joined || current.dateJoined,
     profileDetails: normalized.profile_details || {},
   };
 }

@@ -5,14 +5,14 @@ import React from "react";
 export function TodayPage({ todayBookings = [], upcomingBookings = [], stats, usingFallback = false }) {
   const hasBookings = todayBookings.length > 0;
   const statCards = [
+    { label: "Доход", value: `${formatMoneyShort(stats.approximateRevenue)} UZS`, icon: "price", tone: "accent", wide: true },
     { label: "Активные места", value: stats.activeListings, icon: "listing" },
-    { label: "Места на модерации", value: stats.pendingPlaces, icon: "clock" },
-    { label: "Отклонённые места", value: stats.rejectedPlaces, icon: "empty" },
-    { label: "Ожидающие брони", value: stats.pendingBookings, icon: "clock" },
-    { label: "Подтверждённые брони", value: stats.confirmedBookings, icon: "check" },
-    { label: "Завершённые брони", value: stats.completedBookings, icon: "check" },
+    { label: "На модерации", value: stats.pendingPlaces, icon: "clock", tone: stats.pendingPlaces ? "warn" : "" },
+    { label: "Отклонённые", value: stats.rejectedPlaces, icon: "empty", tone: stats.rejectedPlaces ? "bad" : "" },
+    { label: "Ждут ответа", value: stats.pendingBookings, icon: "clock", tone: stats.pendingBookings ? "warn" : "" },
+    { label: "Подтверждённые", value: stats.confirmedBookings, icon: "check", tone: "good" },
+    { label: "Завершённые", value: stats.completedBookings, icon: "check" },
     { label: "Закрытые слоты", value: stats.blockedSlots, icon: "calendar" },
-    { label: "Доход", value: `${formatMoneyShort(stats.approximateRevenue)} UZS`, icon: "price" },
   ];
 
   return (
@@ -51,18 +51,24 @@ export function TodayPage({ todayBookings = [], upcomingBookings = [], stats, us
       <aside className="host-side-surface">
         <div className="host-section-head compact">
           <div>
-            <span>Ближайшее</span>
-            <h2>Предстоящие</h2>
+            <span>Кабинет</span>
+            <h2>Сводка</h2>
           </div>
         </div>
-        <div className="host-upcoming-list" style={{ marginBottom: 18 }}>
+        <div className="host-stat-grid">
           {statCards.map((item) => (
-            <article key={item.label}>
-              <span><DashboardIcon type={item.icon} /></span>
-              <strong>{item.value}</strong>
+            <article key={item.label} className={`${item.tone ? `is-${item.tone}` : ""}${item.wide ? " is-wide" : ""}`}>
+              <span className="host-stat-icon"><DashboardIcon type={item.icon} /></span>
               <small>{item.label}</small>
+              <strong>{item.value}</strong>
             </article>
           ))}
+        </div>
+        <div className="host-section-head compact host-side-subhead">
+          <div>
+            <span>Ближайшее</span>
+            <h2>Предстоящие брони</h2>
+          </div>
         </div>
         <div className="host-upcoming-list">
           {upcomingBookings.length > 0 ? (

@@ -197,8 +197,10 @@ function HostDashboard({ page = "today", userState, setUserState }) {
         {normalizedPage === "calendar" ? (
           <CalendarPage
             listings={listings}
+            bookings={normalizedBookings}
             usingFallback={usingListingsFallback}
             onBookingCreated={fetchBookings}
+            onEditPlace={handleEdit}
           />
         ) : null}
         {normalizedPage === "listings" ? (

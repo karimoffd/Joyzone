@@ -122,11 +122,18 @@ export function ProfileIcon({ type }) {
     empty: ["M4 5h16v14H4z", "M8 9h8M8 13h5"],
     arrow: ["M5 12h14", "m13 6 6 6-6 6"],
     close: ["M18 6 6 18", "M6 6l12 12"],
-    listing: ["M4 5h16v14H4z", "M8 9h8M8 13h8M8 17h4"]
+    listing: ["M4 5h16v14H4z", "M8 9h8M8 13h8M8 17h4"],
+    clock: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M12 7v5l3 2"],
+    pin: ["M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z", "M12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"],
+    globe: ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M3 12h18", "M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"],
+    phone: ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"],
+    mail: ["M4 5h16v14H4z", "m4 7 8 6 8-6"],
+    star: ["m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9Z"]
   };
 
+  // Explicit size: Tailwind's preflight makes unsized SVGs fill their container.
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {(paths[type] || paths.user).map((path) => (
         <path key={path} d={path} />
       ))}
@@ -178,12 +185,74 @@ export function formatBookingAmount(booking) {
 
 export function bookingStatusLabel(status) {
   const value = String(status || "pending").toLowerCase();
-  return `${BOOKING_STATUS_LABELS[value] || value} (${value})`;
+  return BOOKING_STATUS_LABELS[value] || value;
 }
 
 export function paymentStatusLabel(status) {
   const value = String(status || "unpaid").toLowerCase();
-  return `${PAYMENT_STATUS_LABELS[value] || value} (${value})`;
+  return PAYMENT_STATUS_LABELS[value] || value;
+}
+
+// Colour tone of a status pill: good / warn / bad / muted.
+const BOOKING_STATUS_TONES = { pending: "warn", confirmed: "good", cancelled: "bad", completed: "muted", blocked: "muted" };
+const PAYMENT_STATUS_TONES = { paid: "good", test_paid: "good", created: "warn", unpaid: "warn", failed: "bad", refunded: "muted" };
+
+export function bookingStatusTone(status) {
+  return BOOKING_STATUS_TONES[String(status || "pending").toLowerCase()] || "muted";
+}
+
+export function paymentStatusTone(status) {
+  return PAYMENT_STATUS_TONES[String(status || "unpaid").toLowerCase()] || "muted";
+}
+
+export const PAID_PAYMENT_STATUSES = new Set(["paid", "test_paid"]);
+
+export const DURATION_LABELS_UZ = {
+  hourly: "Soatlik bron",
+  daily: "Kunlik bron",
+  weekly: "Haftalik ijara",
+  monthly: "Oylik ijara",
+};
+
+const PROVIDER_LABELS = { test: "Test to'lov", click: "Click", payme: "Payme", uzum: "Uzum", cash: "Naqd" };
+
+export function paymentProviderLabel(provider) {
+  const value = String(provider || "").toLowerCase();
+  return PROVIDER_LABELS[value] || provider || "—";
+}
+
+export function formatMoney(value, currency = "UZS") {
+  return `${new Intl.NumberFormat("ru-RU").format(Math.round(Number(value) || 0))} ${currency}`;
+}
+
+function toDate(value) {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+
+const UZ_MONTHS = ["yan", "fev", "mar", "apr", "may", "iyun", "iyul", "avg", "sen", "okt", "noy", "dek"];
+
+export function formatShortDate(value, withYear = false) {
+  const date = toDate(value);
+  if (!date) return "—";
+  const base = `${date.getDate()} ${UZ_MONTHS[date.getMonth()]}`;
+  return withYear ? `${base} ${date.getFullYear()}` : base;
+}
+
+export function formatClock(value) {
+  const date = toDate(value);
+  return date ? `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}` : "";
+}
+
+// "23 okt · 09:00–19:00" for one day, "10 okt – 12 okt" for longer stays.
+export function formatBookingPeriod(booking) {
+  const start = toDate(booking.start_time);
+  const end = toDate(booking.end_time);
+  if (!start) return "—";
+  if (!end) return `${formatShortDate(start)} · ${formatClock(start)}`;
+  const sameDay = start.toDateString() === new Date(end.getTime() - 1).toDateString();
+  if (sameDay) return `${formatShortDate(start)} · ${formatClock(start)}–${formatClock(end)}`;
+  return `${formatShortDate(start)} – ${formatShortDate(new Date(end.getTime() - 1))}`;
 }
 
 export function normalizeBookingResponse(data) {

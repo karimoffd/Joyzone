@@ -182,11 +182,13 @@ export function DashboardIcon({ type }) {
     arrow: ["M5 12h14", "m13 6 6 6-6 6"],
     chevronLeft: ["m15 18-6-6 6-6"],
     chevronRight: ["m9 18 6-6-6-6"],
+    close: ["M18 6 6 18", "M6 6l12 12"],
     empty: ["M5 5h14v14H5z", "M9 9h6M9 13h4"]
   };
 
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    // Explicit size: Tailwind's preflight makes unsized SVGs fill their container.
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {(paths[type] || paths.listing).map((path) => (
         <path key={path} d={path} />
       ))}

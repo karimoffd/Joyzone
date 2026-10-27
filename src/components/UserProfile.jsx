@@ -1,4 +1,5 @@
-import { initialProfile, CANCELLABLE_BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, ProfileIcon, EmptyState, buildProfileBookingView, formatBookingDateTime, formatBookingAmount, bookingStatusLabel, paymentStatusLabel, normalizeBookingResponse, normalizePaymentResponse, paymentSubject, formatPaymentAmount } from "./userProfile/helpers.jsx";
+import { initialProfile, CANCELLABLE_BOOKING_STATUSES, ACTIVE_BOOKING_STATUSES, PAID_PAYMENT_STATUSES, ProfileIcon, buildProfileBookingView, bookingStatusLabel, paymentStatusLabel, normalizeBookingResponse, normalizePaymentResponse, getCompletion, formatBookingPeriod, formatShortDate } from "./userProfile/helpers.jsx";
+import { BookingHistory, PaymentHistory, ProfileDetailsCard, ProfileStats, isActiveBooking } from "./userProfile/HistoryTabs.jsx";
 import { ProfileQuestionnaireEdit } from "./userProfile/ProfileQuestionnaireEdit.jsx";
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
@@ -80,7 +81,14 @@ function UserProfile({ userState, setUserState }) {
       phone: activePhone
     };
   }, [userState]);
-  const completion = 50;
+  const completion = useMemo(() => getCompletion(profileData), [profileData]);
+  const missingFields = useMemo(() => {
+    const labels = { firstName: "Ism", lastName: "Familiya", role: "Qisqa tavsif", city: "Shahar", birthYear: "Tug'ilgan yil", languages: "Tillar", email: "Email", phone: "Telefon", work: "Ish", company: "Kompaniya", interests: "Qiziqishlar", about: "O'zim haqimda" };
+    return Object.keys(labels).filter((key) => !String(profileData[key] || "").trim()).map((key) => labels[key]);
+  }, [profileData]);
+  const roleLabel = { admin: "Administrator", moderator: "Moderator", partner: "Hamkor", client: "Mijoz" }[userState?.role] || "Joyzone foydalanuvchisi";
+  const memberSince = userState?.dateJoined ? formatShortDate(userState.dateJoined, true).replace(/^\d+ /, "") : "";
+  const initials = (profileData.name || "").split(/\s+/).map((part) => part.replace(/[^\p{L}]/gu, "")[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "JZ";
   const [profileError, setProfileError] = useState("");
   const [avatarSaving, setAvatarSaving] = useState(false);
 
@@ -442,7 +450,7 @@ function UserProfile({ userState, setUserState }) {
                         overflow: "hidden"
                       }}>
                         {!userState?.avatar && (
-                          userState?.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "AK"
+                          initials
                         )}
                       </div>
 
@@ -452,7 +460,7 @@ function UserProfile({ userState, setUserState }) {
                     </div>
 
                     <div className="profile-heading">
-                      <span>Joyzone profile</span>
+                      <span>{roleLabel}{memberSince ? ` · A'zo: ${memberSince}` : ""}</span>
                       <h1>{profileData.name}</h1>
                       <p>{profileData.role}</p>
 
@@ -538,6 +546,14 @@ function UserProfile({ userState, setUserState }) {
                   </div>
                 </section>
 
+                <ProfileStats
+                  bookingsCount={displayedBookings.length}
+                  activeCount={displayedBookings.filter(isActiveBooking).length}
+                  paidTotal={payments.filter((payment) => PAID_PAYMENT_STATUSES.has(payment.status)).reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0)}
+                  favoritesCount={likedSpaces.length}
+                  onOpen={setActiveTab}
+                />
+
                 {activeBookingObj && (
                   <section className="profile-active-booking-section" style={{ marginTop: "32px" }}>
                     <div className="profile-section-head">
@@ -576,10 +592,7 @@ function UserProfile({ userState, setUserState }) {
                           </span>
                           <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "12px" }}>
                             <div style={{ fontSize: "13px", color: "#64748b" }}>
-                              Sana: <strong style={{ color: "#1e293b" }}>{activeBookingObj.date}</strong>
-                            </div>
-                            <div style={{ fontSize: "13px", color: "#64748b" }}>
-                              Vaqt: <strong style={{ color: "#1e293b" }}>{activeBookingObj.time}</strong>
+                              Vaqt: <strong style={{ color: "#1e293b" }}>{formatBookingPeriod(activeBookingObj)}</strong>
                             </div>
                             <div style={{ fontSize: "13px", color: "#64748b" }}>
                               To'lov holati: <strong style={{ color: "#1e293b" }}>{paymentStatusLabel(activeBookingObj.payment_status)}</strong>
@@ -590,155 +603,26 @@ function UserProfile({ userState, setUserState }) {
                     </div>
                   </section>
                 )}
+
+                <ProfileDetailsCard profileData={profileData} missing={missingFields} />
               </div>
             ) : null}
 
             {activeTab === "history" ? (
-              <div className="profile-tab-panel" key="history">
-                <div className="profile-section-head">
-                  <div>
-                    <span>Tarix</span>
-                    <h2>Bronlar tarixi</h2>
-                  </div>
-                  <a href="/filter">Joy bron qilish</a>
-                </div>
-
-                {bookingsSuccess ? (
-                  <div className="profile-bookings-state is-success" role="status">{bookingsSuccess}</div>
-                ) : null}
-                {bookingActionError ? (
-                  <div className="profile-bookings-state is-error" role="alert">{bookingActionError}</div>
-                ) : null}
-
-                {bookingsLoading ? (
-                  <div className="profile-bookings-state" role="status">Bronlar yuklanmoqda...</div>
-                ) : bookingsError ? (
-                  <div className="profile-bookings-state is-error" role="alert">
-                    <p>{bookingsError}</p>
-                    <button type="button" className="profile-booking-link" onClick={fetchUserData}>Qayta urinish</button>
-                  </div>
-                ) : displayedBookings.length === 0 ? (
-                  <EmptyState
-                    title="Hozircha bronlar yo'q"
-                    text="Birinchi joyingizni tanlaganingizdan keyin bron shu yerda backend ma'lumotlari bilan ko'rinadi."
-                    action="Joy tanlash"
-                    href="/filter"
-                  />
-                ) : (
-                  <div className="profile-bookings-grid">
-                    {displayedBookings.map((booking) => (
-                      <article key={booking.id} className="profile-booking-card">
-                        <div>
-                          <span>{bookingStatusLabel(booking.status)}</span>
-                          <h3>{booking.place_title}</h3>
-                          <p>{booking.durationLabel} ({booking.duration_type})</p>
-                        </div>
-                        <dl>
-                          <div>
-                            <dt>Boshlanish</dt>
-                            <dd>{formatBookingDateTime(booking.start_time)}</dd>
-                          </div>
-                          <div>
-                            <dt>Tugash</dt>
-                            <dd>{formatBookingDateTime(booking.end_time)}</dd>
-                          </div>
-                          <div>
-                            <dt>Muddat</dt>
-                            <dd>{booking.durationLabel} ({booking.duration_type})</dd>
-                          </div>
-                          <div>
-                            <dt>Summa</dt>
-                            <dd>{formatBookingAmount(booking)}</dd>
-                          </div>
-                          <div>
-                            <dt>Bron holati</dt>
-                            <dd>{bookingStatusLabel(booking.status)}</dd>
-                          </div>
-                          <div>
-                            <dt>To'lov</dt>
-                            <dd>{paymentStatusLabel(booking.payment_status)}</dd>
-                          </div>
-                          <div>
-                            <dt>Izoh</dt>
-                            <dd>{booking.note || "Izoh yo'q"}</dd>
-                          </div>
-                        </dl>
-                        <div className="profile-booking-actions">
-                          <a className="profile-booking-link" href={booking.href}>
-                            Maydonni ochish
-                            <ProfileIcon type="arrow" />
-                          </a>
-                          {CANCELLABLE_BOOKING_STATUSES.has(booking.status) ? (
-                            <button
-                              type="button"
-                              className="profile-booking-cancel"
-                              disabled={cancellingBookingId === booking.id}
-                              onClick={() => openCancelBookingModal(booking)}
-                            >
-                              {cancellingBookingId === booking.id ? "Bekor qilinmoqda..." : "Bronni bekor qilish"}
-                            </button>
-                          ) : null}
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <BookingHistory
+                bookings={displayedBookings}
+                loading={bookingsLoading}
+                error={bookingsError}
+                success={bookingsSuccess}
+                actionError={bookingActionError}
+                cancellingId={cancellingBookingId}
+                onRetry={fetchUserData}
+                onCancel={openCancelBookingModal}
+              />
             ) : null}
 
             {activeTab === "payments" ? (
-              <div className="profile-tab-panel" key="payments">
-                <div className="profile-section-head">
-                  <div>
-                    <span>To'lovlar</span>
-                    <h2>To'lovlar tarixi</h2>
-                  </div>
-                </div>
-
-                {paymentsLoading ? (
-                  <div className="profile-bookings-state" role="status">To'lovlar yuklanmoqda...</div>
-                ) : paymentsError ? (
-                  <div className="profile-bookings-state is-error" role="alert">
-                    <p>{paymentsError}</p>
-                    <button type="button" className="profile-booking-link" onClick={fetchUserData}>Qayta urinish</button>
-                  </div>
-                ) : payments.length === 0 ? (
-                  <EmptyState
-                    title="Hozircha to'lovlar yo'q"
-                    text="Bron yoki tarif uchun backend orqali amalga oshirilgan to'lovlar shu yerda ko'rinadi."
-                  />
-                ) : (
-                  <div className="profile-bookings-grid profile-payments-grid">
-                    {payments.map((payment) => (
-                      <article key={payment.id} className="profile-booking-card profile-payment-card">
-                        <div>
-                          <span>{paymentStatusLabel(payment.status)}</span>
-                          <h3>{paymentSubject(payment)}</h3>
-                          <p>{payment.provider === "test" ? "Test payment provider" : payment.provider}</p>
-                        </div>
-                        <dl>
-                          <div>
-                            <dt>Summa</dt>
-                            <dd>{formatPaymentAmount(payment)}</dd>
-                          </div>
-                          <div>
-                            <dt>Holat</dt>
-                            <dd>{paymentStatusLabel(payment.status)}</dd>
-                          </div>
-                          <div>
-                            <dt>Sana</dt>
-                            <dd>{formatBookingDateTime(payment.created_at)}</dd>
-                          </div>
-                          <div>
-                            <dt>Tranzaksiya</dt>
-                            <dd>{payment.external_id || `#${payment.id}`}</dd>
-                          </div>
-                        </dl>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <PaymentHistory payments={payments} loading={paymentsLoading} error={paymentsError} onRetry={fetchUserData} />
             ) : null}
 
             {activeTab === "likes" ? (
