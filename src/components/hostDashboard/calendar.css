@@ -176,7 +176,19 @@
 }
 
 .hcal-edit:hover { background: #294a6d; }
-.hcal-edit + .hcal-hint { margin-top: -8px; text-align: center; }
+.hcal-edit-link {
+  margin-top: -6px;
+  border: 0;
+  background: none;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.hcal-edit-link:hover { color: #12283f; }
 
 .hcal-month-stats {
   display: grid;

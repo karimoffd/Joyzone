@@ -32,9 +32,10 @@ const baseContent = {
     how_step2: "Sizga mos joyni tanlang. Manzil, narx va qulayliklarni ko'rib, o'z uchrashuvingiz yoki ish kuningiz uchun eng mukammal muhitni belgilang.",
     how_step3: "Bron so'rovini yuboring. Sana va vaqtni tanlab, qisqacha izoh qoldiring. Partnerimiz so'rovni darhol ko'rib, tasdiqlash uchun javob beradi.",
     
-    agent_title: "Joyzone hamkorlari",
-    agent_sub: "Katta brendlar va ishonchli hamkorlar o'z ofis, kovorking, uy va tadbir maydonlarini Joyzone orqali joylashtiradi.",
-    agent_premium: "Premium hamkor",
+    agent_title: "Top agentlar",
+    agent_sub: "Joyzone'dagi eng faol va ishonchli joy egalari.",
+    agent_badge_premium: "Premium agent",
+    agent_badge_comfort: "Comfort agent",
     agent_reviews: "ta sharh",
     agent_profile: "Profil",
 
@@ -117,9 +118,10 @@ const baseContent = {
     how_step2: "Выберите подходящее место. Изучите адрес, цену и удобства для вашей идеальной рабочей среды.",
     how_step3: "Отправьте запрос. Выберите дату и время, оставьте комментарий. Партнер мгновенно подтвердит заявку.",
     
-    agent_title: "Партнеры Joyzone",
-    agent_sub: "Крупные бренды и надежные партнеры размещают свои офисы и залы через Joyzone.",
-    agent_premium: "Премиум партнер",
+    agent_title: "Топ агенты",
+    agent_sub: "Самые активные и надёжные владельцы мест на Joyzone.",
+    agent_badge_premium: "Premium агент",
+    agent_badge_comfort: "Comfort агент",
     agent_reviews: "отзывов",
     agent_profile: "Профиль",
 
@@ -202,9 +204,10 @@ const baseContent = {
     how_step2: "Choose a suitable space. Review address, price, and amenities for your perfect environment.",
     how_step3: "Send a request. Pick a date and time, leave a comment. Our partner will confirm instantly.",
     
-    agent_title: "Joyzone Partners",
-    agent_sub: "Top brands and reliable partners list their spaces on Joyzone.",
-    agent_premium: "Premium Partner",
+    agent_title: "Top agents",
+    agent_sub: "The most active and trusted space owners on Joyzone.",
+    agent_badge_premium: "Premium agent",
+    agent_badge_comfort: "Comfort agent",
     agent_reviews: "reviews",
     agent_profile: "Profile",
 

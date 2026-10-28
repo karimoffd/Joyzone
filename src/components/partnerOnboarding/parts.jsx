@@ -47,8 +47,47 @@ export const iconPaths = {
   upload: ["M12 15V4", "M7 9l5-5 5 5", "M5 19h14"],
   chevronsDown: ["M7 7l5 5 5-5", "M7 13l5 5 5-5"],
   square: ["M5 5h14v14H5z"],
+  image: ["M4 5h16v14H4z", "M4 16l5-5 4 4 3-3 4 4", "M15 9h.01"],
+  area: ["M4 4h16v16H4z", "M4 9h3M4 14h3M9 4v3M14 4v3"],
+  tag: ["M3 12V4h8l10 10-8 8L3 12Z", "M7.5 7.5h.01"],
+  chevronLeft: ["m15 18-6-6 6-6"],
+  chevronRight: ["m9 18 6-6-6-6"],
+  projector: ["M3 8h18v8H3z", "M15 12h.01", "M8 12a2 2 0 1 0 0 .01", "M6 16l-1 3M18 16l1 3"],
+  restroom: ["M8 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M16 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M6 21v-6H5l1-7h4l1 7h-1v6", "M14 21v-7l-1-6h6l-1 6v7", "M12 3v18"],
+  stairs: ["M4 20h4v-4h4v-4h4V8h4", "M4 20V4"],
   "check-circle": ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "M22 4L12 14.01l-3-3"]
 };
+
+// Category / parameter icons in the database are emoji or empty, so pick the
+// line icon from the slug (or name) instead.
+const SLUG_ICONS = [
+  [/ofis|office/, "building"],
+  [/kovork|cowork/, "users"],
+  [/zal|tadbir|event|konferens|hall/, "presentation"],
+  [/muzokara|meeting/, "meeting"],
+  [/kabinet|cabinet|room|xona/, "door"],
+  [/hot-desk|flex/, "spark"],
+  [/fixed-desk|desk|stol/, "desk"],
+  [/wifi|internet/, "wifi"],
+  [/parking|parkovka/, "parking"],
+  [/projector|proyektor/, "projector"],
+  [/coffee|tea|kofe|choy/, "coffee"],
+  [/24|access/, "clock"],
+  [/workplace|desks|o'rin/, "desk"],
+  [/restroom|wc|hojat/, "restroom"],
+  [/floor|qavat/, "stairs"],
+  [/capacity|people/, "users"],
+  [/area|maydon/, "area"],
+  [/print/, "printer"],
+];
+
+export function resolveIconName(item = {}) {
+  const icon = String(item.icon || "");
+  if (iconPaths[icon] || iconAliases[icon]) return icon;
+  const key = `${item.slug || ""} ${item.name_en || ""}`.toLowerCase();
+  const match = SLUG_ICONS.find(([pattern]) => pattern.test(key));
+  return match ? match[1] : "building";
+}
 
 export function Icon({ name }) {
   const paths = iconPaths[iconAliases[name] || name] || iconPaths.square;
@@ -83,27 +122,30 @@ export function Header({ profile }) {
       )}
 
       <div className="partner-onboarding-actions">
-        <a href="/">Есть вопросы?</a>
-        <a href="/">Выйти</a>
+        <a href="/partner-guide">Есть вопросы?</a>
+        <a href={profile?.role === "partner" ? "/host-listings" : "/"}>{profile?.role === "partner" ? "В кабинет" : "На главную"}</a>
       </div>
     </header>
   );
 }
 
-export function SelectionCard({ item, active, onClick }) {
+export function SelectionCard({ item, active, onClick, hint }) {
   return (
     <button
       type="button"
       data-testid={`onboarding-selection-${item.slug || item.id}`}
-      className={`selection-card ${active ? "is-selected" : ""}`}
+      className={`pow-choice ${active ? "is-selected" : ""}`}
+      aria-pressed={active}
       onClick={onClick}
     >
-      <span className="selection-icon" aria-hidden="true">
-        <Icon name={item.icon || "building"} />
+      <span className="pow-choice-icon" aria-hidden="true">
+        <Icon name={resolveIconName(item)} />
       </span>
-      <span>
+      <span className="pow-choice-text">
         <strong>{item.name_ru || item.name}</strong>
+        {hint ? <small>{hint}</small> : null}
       </span>
+      <i className="pow-choice-check" aria-hidden="true">{active ? "✓" : ""}</i>
     </button>
   );
 }
@@ -113,9 +155,9 @@ export function CounterRow({ label, value, onChange }) {
     <div className="counter-row">
       <span>{label}</span>
       <div className="counter-controls">
-        <button type="button" onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+        <button type="button" aria-label={`Меньше: ${label}`} onClick={() => onChange(Math.max(0, value - 1))}>−</button>
         <strong>{value}</strong>
-        <button type="button" onClick={() => onChange(value + 1)}>+</button>
+        <button type="button" aria-label={`Больше: ${label}`} onClick={() => onChange(value + 1)}>+</button>
       </div>
     </div>
   );

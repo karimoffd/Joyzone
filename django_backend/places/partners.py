@@ -1,11 +1,12 @@
-"""Public partner profiles ("Joyzone hamkorlari" block and /agent-<id> page).
+"""Public partner profiles ("Top agentlar" block and /agent-<id> page).
 
 Only partners with at least one approved place are public. Phone numbers and
 usernames are never exposed here.
 """
 
 from django.contrib.auth import get_user_model
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Case, Count, DecimalField, F, Q, Value, When
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, serializers
@@ -21,16 +22,36 @@ User = get_user_model()
 APPROVED_PLACES = Q(places__status=PUBLIC_PLACE_STATUS)
 
 
+def _active_tariff_q(now):
+    return Q(tariff__isnull=False) & (Q(tariff_expires_at__isnull=True) | Q(tariff_expires_at__gt=now))
+
+
+def has_active_paid_tariff(user, now=None):
+    tariff = getattr(user, 'tariff', None)
+    if tariff is None or tariff.is_free:
+        return False
+    expires = user.tariff_expires_at
+    return expires is None or expires > (now or timezone.now())
+
+
 def public_partners():
+    """Top agents first: featured, then by active paid tariff, then by catalogue size."""
+    now = timezone.now()
     return (
         User.objects.filter(role='partner', is_active=True)
+        .select_related('tariff')
         .annotate(
             places_count=Count('places', filter=APPROVED_PLACES, distinct=True),
             reviews_count=Count('places__reviews', filter=APPROVED_PLACES, distinct=True),
             rating_avg=Avg('places__reviews__rating', filter=APPROVED_PLACES),
+            tariff_rank=Case(
+                When(_active_tariff_q(now), then=F('tariff__price')),
+                default=Value(0),
+                output_field=DecimalField(max_digits=10, decimal_places=2),
+            ),
         )
         .filter(places_count__gt=0)
-        .order_by('-is_featured_partner', '-places_count', 'id')
+        .order_by('-is_featured_partner', '-tariff_rank', '-places_count', 'id')
     )
 
 
@@ -45,9 +66,17 @@ class PublicPartnerSerializer(serializers.Serializer):
     rating_avg = serializers.SerializerMethodField()
     city = serializers.SerializerMethodField()
     cover_image = serializers.SerializerMethodField()
+    # Active paid tariff ({slug, name}) or null — drives the badge on the card.
+    tariff = serializers.SerializerMethodField()
 
     def get_name(self, user):
         return user.company_name or user.get_full_name() or 'Joyzone hamkori'
+
+    def get_tariff(self, user):
+        if not has_active_paid_tariff(user):
+            return None
+        tariff = user.tariff
+        return {'slug': tariff.slug, 'name': tariff.name, 'name_ru': tariff.name_ru or tariff.name}
 
     def get_rating_avg(self, user):
         return round(float(user.rating_avg), 1) if user.rating_avg is not None else 0

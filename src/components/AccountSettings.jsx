@@ -6,7 +6,7 @@ import { cacheProfile, normalizeProfile, profileToUserState, splitFullName } fro
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from "../utils/storageKeys.js";
 import "./AccountSettings.css";
 
-// Shown only to partners: the public profile from the "Joyzone hamkorlari" block.
+// Shown only to partners: the public profile from the "Top agentlar" block.
 const companySection = {
   id: "company",
   title: "Профиль компании",

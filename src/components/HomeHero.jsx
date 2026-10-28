@@ -3,6 +3,7 @@ export { Header } from "./home/HeaderNav.jsx";
 import { Banner } from "./home/HeroBanner.jsx";
 import React, { useEffect, useState, useContext } from "react";
 import { gsap } from "gsap";
+import { revealText } from "../utils/textReveal.js";
 import api, { getApiErrorMessage } from "../api/client.js";
 import { LanguageContext } from "../context/LanguageContext.jsx";
 
@@ -103,18 +104,7 @@ export default function HomeHero({ userState, setUserState, slides }) {
     gsap.fromTo(".banner .info, .infoForReg", { opacity: 0 }, { opacity: 1, duration: 0.72, ease: "power3.out" });
 
     const heroTexts = gsap.utils.toArray(".banner .info h1, .banner .info p.desc, .infoForReg .info-text h2.title, .infoForReg .desc p");
-    heroTexts.forEach(text => {
-      gsap.fromTo(text,
-        { clipPath: "inset(0 100% 0 0)", opacity: 0 },
-        {
-          clipPath: "inset(0 0% 0 0)",
-          opacity: 1,
-          duration: 1.2,
-          ease: "power3.inOut",
-          delay: 0.1
-        }
-      );
-    });
+    heroTexts.forEach(text => revealText(text, { delay: 0.1 }));
     const hero = document.querySelector(".home-viewport");
     const image = document.querySelector(".banner .img-slider");
     const info = document.querySelector(".banner .info");

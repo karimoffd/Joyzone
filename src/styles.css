@@ -53,7 +53,8 @@ textarea {
   min-height: 100vh;
   min-height: 100dvh;
   transform-origin: center top;
-  will-change: opacity, transform, filter, clip-path;
+  /* No permanent will-change: it would make this wrapper the containing block
+     for position:fixed children (bottom bars, modals) and push them off-screen. */
 }
 
 .joy-auth-shell {
@@ -1166,7 +1167,8 @@ textarea {
 }
 
 .catalog-trail b::before {
-  content: "120+ joy";
+  /* Real number of public places, set by the component. */
+  content: attr(data-count);
   font-size: 13px;
   animation: trailCount 3.2s ease-in-out infinite;
 }

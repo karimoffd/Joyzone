@@ -560,7 +560,10 @@ export default function App() {
   const [activeChatId, setActiveChatId] = useState(null);
   const [sessionMessage, setSessionMessage] = useState("");
   // The admin panel has its own task bell and chat inbox.
-  const isAdminRoute = useRoute() === "admin";
+  const routeKey = useRoute();
+  const isAdminRoute = routeKey === "admin";
+  // The partner wizard is a focused full-screen flow; the floating bell would cover its nav.
+  const hideBell = isAdminRoute || routeKey === "partner";
 
   useEffect(() => {
     // Determine if we are inside an iframe
@@ -639,7 +642,7 @@ export default function App() {
       <Suspense fallback={<JoyLoader active={true} />}>
         <AppContent />
       </Suspense>
-      {isAdminRoute ? null : <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />}
+      {hideBell ? null : <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />}
       <ChatNotificationToast activeChatId={activeChatId} onOpenChat={(id) => setActiveChatId(id)} />
       {activeChatId && (
         <DirectChatDrawer

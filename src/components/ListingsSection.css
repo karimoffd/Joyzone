@@ -432,7 +432,8 @@
 }
 
 .catalog-trail b::before {
-  content: "120+ joy";
+  /* Real number of public places, set by the component. */
+  content: attr(data-count);
   font-size: 13px;
   animation: trailCount 3.2s ease-in-out infinite;
 }
@@ -544,6 +545,17 @@
   overflow: hidden;
 }
 
+.brand-logo-initials {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: var(--brand-tone, #294a6d);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
 .brand-logo-mark img {
   width: 100%;
   height: 100%;
@@ -571,6 +583,14 @@
   background: #e46630;
   border-radius: 50%;
 }
+
+/* Comfort agents get a calmer blue badge; Premium keeps the brand orange. */
+.brand-badge.is-comfort {
+  background: rgba(41, 74, 109, 0.1);
+  color: #294a6d;
+}
+
+.brand-badge.is-comfort::before { background: #294a6d; }
 
 .agent-copy {
   min-height: 78px;

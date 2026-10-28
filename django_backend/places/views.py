@@ -231,6 +231,43 @@ class PlaceViewSet(viewsets.ModelViewSet):
         qs = self._with_place_stats(qs)
         return self._apply_place_filters(qs)
 
+    POPULAR_LIMIT = 8
+    POPULAR_AD_SLOTS = (1, 5)  # second card of each row of four
+
+    @extend_schema(
+        responses=inline_serializer(
+            name='PopularPlacesResponse',
+            fields={
+                'results': PlaceSerializer(many=True),
+                'total': serializers.IntegerField(),
+            },
+        ),
+        tags=['places'],
+    )
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def popular(self, request):
+        """Home "popular places": 8 public places, up to two of them paid ads.
+
+        Ads (promoted places) rotate randomly between requests; the rest are
+        ranked by real activity — bookings, rating, reviews, then freshness.
+        """
+        base = self._with_place_stats(
+            publicly_visible_places().select_related('owner', 'subcategory__category').prefetch_related('discounts')
+        )
+        ads = list(base.filter(promoted=True).order_by('?')[:len(self.POPULAR_AD_SLOTS)])
+        organic = list(
+            base.exclude(pk__in=[place.pk for place in ads])
+            .order_by('-bookings_count', '-rating_avg', '-reviews_count', '-created_at')[:self.POPULAR_LIMIT - len(ads)]
+        )
+        places = organic[:]
+        for slot, ad in zip(self.POPULAR_AD_SLOTS, ads):
+            places.insert(min(slot, len(places)), ad)
+        data = PlaceSerializer(places, many=True, context={'request': request}).data
+        ad_ids = {place.pk for place in ads}
+        for item in data:
+            item['is_ad'] = item['id'] in ad_ids
+        return Response({'results': data, 'total': publicly_visible_places().count()})
+
     def _apply_place_filters(self, qs):
         params = self.request.query_params
 

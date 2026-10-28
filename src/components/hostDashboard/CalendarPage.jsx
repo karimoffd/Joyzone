@@ -3,7 +3,9 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import api, { getApiErrorMessage } from "../../api/client.js";
 import { fetchPlaceAvailability, getAvailabilityDay, getAvailabilitySlotStatus, getCalendarAvailabilityRange } from "../../utils/availability.js";
 import { buildBlockedBookingPayload, isDateInSelectedRange, selectCalendarDate } from "../../utils/partnerCalendar.js";
+import { PlacePricingModal } from "./PlacePricingModal.jsx";
 import "./calendar.css";
+import "./pricingModal.css";
 
 const PRICE_ROWS = [
   { key: "price_hourly", label: "За час" },
@@ -68,12 +70,16 @@ function Pill({ tone, children }) {
   return <span className={`hcal-pill is-${tone}`}>{children}</span>;
 }
 
-export function CalendarPage({ listings = [], bookings = [], usingFallback = false, onBookingCreated, onEditPlace }) {
+export function CalendarPage({ listings = [], bookings = [], usingFallback = false, onBookingCreated, onPlaceUpdated, onEditPlace }) {
   const displayListings = useMemo(
     () => listings.length > 0 ? listings : (usingFallback && import.meta.env.DEV ? FALLBACK_HOST_LISTINGS : []),
     [listings, usingFallback],
   );
-  const [activeSpace, setActiveSpace] = useState(displayListings[0] || null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState(null);
+  // Derived from the list so a refreshed place (after saving prices) shows up at once.
+  const activeSpace = displayListings.find((item) => item.id === selectedSpaceId) || displayListings[0] || null;
+  const setActiveSpace = (space) => setSelectedSpaceId(space?.id ?? null);
+  const [pricingOpen, setPricingOpen] = useState(false);
   const today = useMemo(() => new Date(), []);
   const todayKey = toDateKey(today);
   const [calendarYear, setCalendarYear] = useState(() => today.getFullYear());
@@ -90,16 +96,6 @@ export function CalendarPage({ listings = [], bookings = [], usingFallback = fal
   const [busyBookingId, setBusyBookingId] = useState(null);
   const [calendarNotice, setCalendarNotice] = useState("");
   const [discounts, setDiscounts] = useState([]);
-
-  useEffect(() => {
-    if (displayListings.length === 0) {
-      if (activeSpace) setActiveSpace(null);
-      return;
-    }
-    if (!activeSpace || !displayListings.some((item) => item.id === activeSpace.id)) {
-      setActiveSpace(displayListings[0]);
-    }
-  }, [displayListings, activeSpace]);
 
   useEffect(() => {
     let alive = true;
@@ -370,13 +366,17 @@ export function CalendarPage({ listings = [], bookings = [], usingFallback = fal
                   </div>
                 ) : <p>Скидки не подключены</p>}
               </div>
-              {onEditPlace ? (
+              {!usingFallback ? (
                 <>
-                  <button type="button" className="hcal-edit" onClick={() => onEditPlace(activeSpace)}>
+                  <button type="button" className="hcal-edit" onClick={() => setPricingOpen(true)}>
                     <DashboardIcon type="price" />
                     Изменить цены и часы
                   </button>
-                  <p className="hcal-hint">После изменения место снова проходит модерацию.</p>
+                  {onEditPlace ? (
+                    <button type="button" className="hcal-edit-link" onClick={() => onEditPlace(activeSpace)}>
+                      Редактировать всё объявление
+                    </button>
+                  ) : null}
                 </>
               ) : null}
             </section>
@@ -576,6 +576,20 @@ export function CalendarPage({ listings = [], bookings = [], usingFallback = fal
             )}
           </section>
         </div>
+      ) : null}
+
+      {pricingOpen && activeSpace ? (
+        <PlacePricingModal
+          place={activeSpace}
+          onClose={() => setPricingOpen(false)}
+          onSaved={async (place) => {
+            setPricingOpen(false);
+            await onPlaceUpdated?.();
+            setCalendarNotice(place?.status === "pending"
+              ? "Цены и часы сохранены. Место отправлено на модерацию."
+              : "Цены и часы сохранены.");
+          }}
+        />
       ) : null}
     </div>
   );

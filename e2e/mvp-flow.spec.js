@@ -43,8 +43,6 @@ async function createPlaceThroughOnboarding(page) {
   await page.getByTestId("onboarding-address").fill("Tashkent, E2E Street 1");
   await page.getByTestId("onboarding-address-confirm").click();
   await page.getByTestId("onboarding-next").click();
-  await page.getByTestId("onboarding-street").fill("E2E Street 1");
-  await page.getByTestId("onboarding-next").click();
 
   const tinyPng = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",

@@ -166,6 +166,14 @@ class PlaceSerializer(serializers.ModelSerializer):
         closes_at = attrs.get('closes_at', getattr(self.instance, 'closes_at', None))
         if opens_at and closes_at and closes_at <= opens_at:
             raise serializers.ValidationError({'closes_at': 'Closing time must be after opening time.'})
+        for field_name in PRICE_FIELDS:
+            value = attrs.get(field_name)
+            if value is not None and value <= 0:
+                raise serializers.ValidationError({field_name: 'Price must be greater than zero.'})
+        # An edit that touches prices must leave at least one of them set.
+        if self.instance is not None and any(name in attrs for name in PRICE_FIELDS):
+            if all(attrs.get(name, getattr(self.instance, name)) is None for name in PRICE_FIELDS):
+                raise serializers.ValidationError({'prices': 'At least one price is required.'})
         return attrs
 
     def validate_images(self, value):

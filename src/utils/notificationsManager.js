@@ -1,6 +1,6 @@
 import api, { getAccessToken } from "../api/client.js";
 import { getStorageItem, setStorageItem, STORAGE_KEYS } from "./storageKeys.js";
-import { navigate } from "./router.js";
+import { navigate, partnerEditPath } from "./router.js";
 
 const NOTIFICATIONS_URL = "/api/notifications/";
 
@@ -74,7 +74,7 @@ export function getNotificationTarget(notification = {}, role = "client") {
   }
 
   if (role === "partner" && type === "place_rejected") {
-    return { hash: "/partner", editPlaceId: placeId };
+    return { hash: partnerEditPath(placeId) };
   }
 
   if (placeId && role === "partner") {
@@ -92,9 +92,6 @@ export function openNotificationTarget(notification = {}) {
 
   if (target.adminPage) {
     setStorageItem(STORAGE_KEYS.workflow.adminPage, target.adminPage);
-  }
-  if (target.editPlaceId) {
-    setStorageItem(STORAGE_KEYS.workflow.editPlaceId, String(target.editPlaceId));
   }
   if (target.highlightPlaceId) {
     setStorageItem(STORAGE_KEYS.workflow.highlightPlaceId, String(target.highlightPlaceId));

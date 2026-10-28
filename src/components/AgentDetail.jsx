@@ -243,7 +243,7 @@ function AgentDetail({ route, userState, setUserState }) {
 
         <section className="agent-detail-section agent-extra-section">
           <div className="agent-extra-card">
-            <span>Premium support</span>
+            <span>Joyzone yordami</span>
             <h2>Joy tanlashda agent yordam beradi</h2>
             <p>Maydon ko'rigi, bron va hujjat masalalarini bitta joyda kelishtiring. Joyzone profili orqali barcha muloqot tarixini saqlab borasiz.</p>
           </div>

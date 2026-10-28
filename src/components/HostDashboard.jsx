@@ -13,7 +13,7 @@ import { buildPartnerStats, selectTodayBookings, selectUpcomingBookings } from "
 import { setStorageItem, STORAGE_KEYS } from "../utils/storageKeys.js";
 import { cacheProfile } from "../utils/profileMapper.js";
 import "./HostDashboard.css";
-import { navigate } from "../utils/router.js";
+import { navigate, partnerEditPath } from "../utils/router.js";
 
 function HostDashboard({ page = "today", userState, setUserState }) {
   const normalizedPage = pageMeta[page] ? page : "today";
@@ -151,8 +151,8 @@ function HostDashboard({ page = "today", userState, setUserState }) {
   }, [normalizedBookings, usingBookingsFallback]);
 
   const handleEdit = (item) => {
-    setStorageItem(STORAGE_KEYS.workflow.editPlaceId, item.id);
-    navigate("/partner");
+    setStorageItem(STORAGE_KEYS.workflow.editPlaceReturnHash, window.location.pathname);
+    navigate(partnerEditPath(item.id));
   };
 
   const askDelete = (item) => {
@@ -200,6 +200,7 @@ function HostDashboard({ page = "today", userState, setUserState }) {
             bookings={normalizedBookings}
             usingFallback={usingListingsFallback}
             onBookingCreated={fetchBookings}
+            onPlaceUpdated={fetchListings}
             onEditPlace={handleEdit}
           />
         ) : null}

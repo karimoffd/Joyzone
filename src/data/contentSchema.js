@@ -176,7 +176,8 @@ export const CONTENT_SCHEMA = [
         fields: [
           { key: "agent_title", label: "Заголовок", type: "text" },
           { key: "agent_sub", label: "Подзаголовок", type: "textarea" },
-          { key: "agent_premium", label: "Метка на карточке", type: "text" },
+          { key: "agent_badge_premium", label: "Метка агента с тарифом Premium", type: "text", hint: "Показывается только у агентов с активным тарифом Premium." },
+          { key: "agent_badge_comfort", label: "Метка агента с тарифом Comfort", type: "text", hint: "У агентов на бесплатном тарифе метки нет." },
           { key: "agent_reviews", label: "Слово после числа отзывов", type: "text", hint: "Например: «12 ta sharh»." },
           { key: "agent_profile", label: "Кнопка «Профиль»", type: "text" },
         ],

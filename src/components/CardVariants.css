@@ -979,3 +979,11 @@
     height: 14px;
   }
 }
+
+/* Paid placement marker (home "popular" block and catalogue). */
+.variant-pill.is-ad {
+  background: #e46630;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

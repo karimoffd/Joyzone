@@ -107,10 +107,6 @@ export function validateOnboardingStep(step, data) {
     if (!Number.isFinite(Number(data.lng))) errors.push(error("longitude", "Не удалось определить долготу."));
   }
 
-  if (step === 4 && !value(data.addressDetails?.street)) {
-    errors.push(error("street", "Укажите улицу и номер дома."));
-  }
-
   if (step === 5) {
     const count = Array.isArray(data.photos) ? data.photos.length : 0;
     if (count < 4) errors.push(error("images", "Загрузите минимум 4 фотографии."));

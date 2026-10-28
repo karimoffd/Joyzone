@@ -655,6 +655,52 @@ class PlacePriceNormalizationTests(TestCase):
         self.assertEqual(str(place.price_daily), '800000.00')
         self.assertEqual(response.data['price_daily'], '800000.00')
 
+    def _approved_place(self):
+        return Place.objects.create(
+            owner=self.partner, title='Quick edit place', location='Tashkent',
+            price_hourly=50000, price_daily=300000, area=20, people=4, status='approved',
+        )
+
+    def test_quick_price_edit_can_switch_formats_and_returns_to_moderation(self):
+        place = self._approved_place()
+
+        response = self.client.patch(f'/api/places/{place.id}/', {
+            'price_hourly': None,
+            'price_weekly': 1500000,
+            'opens_at': '08:30',
+            'closes_at': '20:00',
+            'booking_type': 'instant',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 200, response.data)
+        place.refresh_from_db()
+        self.assertIsNone(place.price_hourly)
+        self.assertEqual(str(place.price_weekly), '1500000.00')
+        self.assertEqual(str(place.opens_at), '08:30:00')
+        self.assertEqual(place.booking_type, 'instant')
+        self.assertEqual(place.status, 'pending')
+
+    def test_price_edit_cannot_clear_every_price(self):
+        place = self._approved_place()
+
+        response = self.client.patch(f'/api/places/{place.id}/', {
+            'price_hourly': None,
+            'price_daily': None,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('prices', response.data)
+        place.refresh_from_db()
+        self.assertEqual(place.status, 'approved')
+
+    def test_price_must_be_positive(self):
+        place = self._approved_place()
+
+        response = self.client.patch(f'/api/places/{place.id}/', {'price_daily': 0}, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('price_daily', response.data)
+
 
 class ReviewApiTests(TestCase):
     def setUp(self):
@@ -942,6 +988,37 @@ class PublicPartnerApiTests(TestCase):
         self.assertEqual(len(response.data['reviews']), 1)
         self.assertEqual(hidden.status_code, 404)
 
+    def test_tariff_badge_follows_active_paid_tariff_and_ranks_partners(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from tariffs.models import TariffPlan
+
+        User = get_user_model()
+        free = TariffPlan.objects.create(slug='standard', name='Standard', price=0)
+        premium = TariffPlan.objects.create(slug='premium', name='Premium', price=500000)
+        self.partner.is_featured_partner = False
+        self.partner.tariff = free
+        self.partner.save()
+        paid = User.objects.create_user(
+            username='+998901234005', password='pass', role='partner', company_name='Paid Co',
+            tariff=premium, tariff_expires_at=timezone.now() + timedelta(days=10),
+        )
+        expired = User.objects.create_user(
+            username='+998901234006', password='pass', role='partner', company_name='Expired Co',
+            tariff=premium, tariff_expires_at=timezone.now() - timedelta(days=1),
+        )
+        for owner in (paid, expired):
+            Place.objects.create(owner=owner, title=f'{owner.company_name} hub', location='Toshkent', area=10, people=2, status='approved')
+
+        response = self.client.get('/api/partners/')
+
+        self.assertEqual(response.status_code, 200)
+        by_name = {item['name']: item for item in response.data}
+        self.assertEqual(by_name['Paid Co']['tariff']['slug'], 'premium')
+        self.assertIsNone(by_name['Acme Offices']['tariff'])
+        self.assertIsNone(by_name['Expired Co']['tariff'])
+        self.assertEqual(response.data[0]['name'], 'Paid Co')
+
 
 class PublicReviewsFilterTests(TestCase):
     def setUp(self):
@@ -963,3 +1040,59 @@ class PublicReviewsFilterTests(TestCase):
         self.assertEqual(response.status_code, 200)
         rows = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
         self.assertEqual([row['comment'] for row in rows], ["Zo'r"])
+
+
+class PopularPlacesApiTests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        self.client = APIClient()
+        self.owner = get_user_model().objects.create_user(username='popular-owner', password='pass', role='partner')
+        self.guest = get_user_model().objects.create_user(username='popular-guest', password='pass', role='client')
+
+    def _place(self, title, **extra):
+        extra.setdefault('status', 'approved')
+        return Place.objects.create(owner=self.owner, title=title, location='Toshkent', area=10, people=2, **extra)
+
+    def test_returns_eight_places_with_at_most_two_ads_in_fixed_slots(self):
+        organic = [self._place(f'Organic {index}') for index in range(9)]
+        ads = [self._place(f'Ad {index}', promoted=True) for index in range(3)]
+        self._place('Hidden', status='pending')
+        Review.objects.create(user=self.guest, place=organic[4], rating=5, comment='Zo\'r')
+
+        response = self.client.get('/api/places/popular/')
+
+        self.assertEqual(response.status_code, 200)
+        results = response.data['results']
+        self.assertEqual(len(results), 8)
+        self.assertEqual(response.data['total'], 12)
+        ad_positions = [index for index, item in enumerate(results) if item['is_ad']]
+        self.assertEqual(ad_positions, [1, 5])
+        self.assertTrue(all(item['id'] in {ad.id for ad in ads} for item in results if item['is_ad']))
+        self.assertEqual(results[0]['title'], 'Organic 4')
+        self.assertNotIn('Hidden', [item['title'] for item in results])
+
+    def test_without_ads_all_slots_are_organic(self):
+        for index in range(3):
+            self._place(f'Organic {index}')
+
+        response = self.client.get('/api/places/popular/')
+
+        self.assertEqual(len(response.data['results']), 3)
+        self.assertFalse(any(item['is_ad'] for item in response.data['results']))
+
+    def test_many_ads_rotate_between_requests(self):
+        for index in range(6):
+            self._place(f'Organic {index}')
+        ads = {self._place(f'Ad {index}', promoted=True).id for index in range(10)}
+
+        seen = set()
+        for _ in range(25):
+            results = self.client.get('/api/places/popular/').data['results']
+            shown = [item['id'] for item in results if item['is_ad']]
+            self.assertEqual(len(shown), 2)
+            self.assertTrue(set(shown) <= ads)
+            seen.update(shown)
+
+        # 25 random draws of 2 out of 10 ads practically always cover more than one pair.
+        self.assertGreater(len(seen), 2)

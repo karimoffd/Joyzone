@@ -117,3 +117,33 @@ export function installLinkInterceptor() {
   document.addEventListener("click", onClick);
   return () => document.removeEventListener("click", onClick);
 }
+
+function readQueryParam(name) {
+  try {
+    return new URLSearchParams(window.location.search).get(name);
+  } catch (error) {
+    return null;
+  }
+}
+
+/** Live value of one ?query parameter; updates on navigate() and back/forward. */
+export function useQueryParam(name) {
+  const [value, setValue] = useState(() => readQueryParam(name));
+
+  useEffect(() => {
+    const sync = () => setValue(readQueryParam(name));
+    window.addEventListener("popstate", sync);
+    window.addEventListener(ROUTE_CHANGE_EVENT, sync);
+    return () => {
+      window.removeEventListener("popstate", sync);
+      window.removeEventListener(ROUTE_CHANGE_EVENT, sync);
+    };
+  }, [name]);
+
+  return value;
+}
+
+/** The partner wizard edits an existing place only when the URL says so. */
+export function partnerEditPath(placeId) {
+  return `/partner?edit=${encodeURIComponent(placeId)}`;
+}

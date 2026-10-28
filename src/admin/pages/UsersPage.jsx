@@ -286,7 +286,7 @@ function UserEditModal({ user, onClose, onSave }) {
               <div data-testid="partner-public-profile" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div className="adm-role-selector-head">
                   <h4>Публичный профиль партнёра</h4>
-                  <p>Показывается в блоке «Joyzone hamkorlari» и на странице партнёра</p>
+                  <p>Показывается в блоке «Top agentlar» и на странице агента</p>
                 </div>
                 <input
                   className="adm-input"

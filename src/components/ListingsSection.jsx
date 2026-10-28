@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
+import { revealText } from "../utils/textReveal.js";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -47,16 +48,59 @@ function usePublicPartners() {
       image: partner.avatar || partner.cover_image || AGENT_PHOTO_PLACEHOLDER,
       tone: partner.tone || AGENT_TONES[index % AGENT_TONES.length],
       href: `/agent-${partner.id}`,
+      tariff: partner.tariff || null,
     }));
   }, [partners]);
 }
 
 const DURATION_LABELS = {
-  soatlik: "/ soat",
-  kunlik: "/ kun",
-  haftalik: "/ hafta",
-  oylik: "/ oy"
+  soatlik: "soatlik",
+  kunlik: "kunlik",
+  haftalik: "haftalik",
+  oylik: "oylik"
 };
+
+// Same priority as getPrimaryPlacePriceValue: the card's default price is the
+// daily one, then hourly, weekly, monthly — the label must name that period.
+const PRIMARY_PRICE_ORDER = [
+  ["kunlik", "price_daily"],
+  ["soatlik", "price_hourly"],
+  ["haftalik", "price_weekly"],
+  ["oylik", "price_monthly"],
+];
+
+function primaryPriceLabel(item) {
+  const found = PRIMARY_PRICE_ORDER.find(([key, field]) => Number(item[field] ?? item.prices?.[key]) > 0);
+  return DURATION_LABELS[found ? found[0] : "kunlik"];
+}
+
+// Real room / seat count from the place characteristics; nothing when unknown.
+function placeUnitsLabel(item) {
+  const traits = item.characteristics || {};
+  const rooms = Number(traits.rooms || traits.meeting_rooms);
+  if (rooms > 0) return `${rooms} xona`;
+  const seats = Number(traits.workplaces || traits.desks);
+  if (seats > 0) return `${seats} o'rin`;
+  return "";
+}
+
+// Falls back to initials when the logo URL is missing or broken.
+function AgentLogo({ src, name }) {
+  const [failed, setFailed] = useState(!src);
+  if (failed) {
+    const initials = String(name || "J").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
+    return <span className="brand-logo-initials">{initials}</span>;
+  }
+  return <img src={src} alt={name} loading="lazy" onError={() => setFailed(true)} />;
+}
+
+// Badge reflects the agent's active paid tariff; free-plan agents get none.
+function agentBadge(tariff, cms) {
+  if (!tariff) return "";
+  if (tariff.slug === "premium") return cms.agent_badge_premium || "Premium agent";
+  if (tariff.slug === "comfort") return cms.agent_badge_comfort || "Comfort agent";
+  return `${tariff.name} agent`;
+}
 
 function HighlightedTitle({ text, highlight = "Joyzone" }) {
   const value = String(text || "");
@@ -95,14 +139,14 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
   // Resolve displayed price and label
   const { displayPrice, priceLabel, priceUnavailable } = (() => {
     if (!selectedDuration) {
-      return { displayPrice: item.price, priceLabel: "/ kun", priceUnavailable: false };
+      return { displayPrice: item.price, priceLabel: primaryPriceLabel(item), priceUnavailable: false };
     }
     const specificPrice = item.prices?.[selectedDuration];
     if (specificPrice) {
       return { displayPrice: specificPrice, priceLabel: DURATION_LABELS[selectedDuration], priceUnavailable: false };
     }
     // duration selected but this card doesn't have it
-    return { displayPrice: item.price, priceLabel: "/ kun", priceUnavailable: true };
+    return { displayPrice: item.price, priceLabel: primaryPriceLabel(item), priceUnavailable: true };
   })();
 
   useEffect(() => {
@@ -179,7 +223,7 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
           />
         ))}
         <span className="property-slide-glow" />
-        <span className="variant-pill">{item.promoted ? "Reklama" : "Guest favourite"}</span>
+        {item.is_ad || item.promoted ? <span className="variant-pill is-ad">Reklama</span> : null}
         <div className="variant-dots" aria-label="Rasmni tanlash" style={{ zIndex: 20 }}>
           {item.images.map((_, imageIndex) => (
             <button
@@ -212,10 +256,12 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
             {item.people} kishi
           </span>
-          <span className="variant-spec">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V5a3 3 0 0 1 6 0v1M5 10h16v2a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-2ZM8 21h8" /></svg>
-            2 xona
-          </span>
+          {placeUnitsLabel(item) ? (
+            <span className="variant-spec">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V5a3 3 0 0 1 6 0v1M5 10h16v2a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-2ZM8 21h8" /></svg>
+              {placeUnitsLabel(item)}
+            </span>
+          ) : null}
           <span className="variant-spec">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM8 8h8M8 12h5M8 16h8" /></svg>
             {item.area} m2
@@ -226,7 +272,7 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
   );
 }
 
-function CatalogTrail({ label }) {
+function CatalogTrail({ label, total = 0 }) {
   const liftCards = () => {
     gsap.to(".property-card", {
       y: (index) => (index % 2 === 0 ? -10 : -6),
@@ -251,7 +297,7 @@ function CatalogTrail({ label }) {
     <a className="catalog-trail" href="#spaces" onMouseEnter={liftCards} onFocus={liftCards} onMouseLeave={settleCards} onBlur={settleCards}>
       <span />
       <strong>{label || "Barcha joylarni ko'rish"}</strong>
-      <b aria-hidden="true">→</b>
+      <b aria-hidden="true" data-count={total > 0 ? `${total} ta joy` : "→"}>→</b>
     </a>
   );
 }
@@ -336,12 +382,12 @@ function PartnerAgents({ cms = {} }) {
     <section ref={sectionRef} className="agents-showcase" id="agents">
       <div className="agents-head">
         <h2>
-          <HighlightedTitle text={cms.agent_title || "Joyzone hamkorlari"} />
+          <HighlightedTitle text={cms.agent_title || "Top agentlar"} highlight="Top" />
         </h2>
         <svg className="agents-title-curve" width="160" height="14" viewBox="0 0 160 14" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M2 12C45 -3 115 -3 158 12" stroke="#E46630" strokeWidth="3" strokeLinecap="round"/>
         </svg>
-        <p>{cms.agent_sub || "Katta brendlar va ishonchli hamkorlar o'z joylarini Joyzone orqali joylashtiradi."}</p>
+        <p>{cms.agent_sub || "Joyzone'dagi eng faol va ishonchli joy egalari."}</p>
       </div>
       <div ref={viewportRef} className="agents-viewport">
         <div className="agents-track">
@@ -354,9 +400,11 @@ function PartnerAgents({ cms = {} }) {
               >
                 <div className="brand-card-top">
                   <div className="brand-logo-mark" aria-hidden="true">
-                    <img src={agent.image} alt={agent.name} loading="lazy" />
+                    <AgentLogo src={agent.image} name={agent.name} />
                   </div>
-                  <span className="brand-badge">{cms.agent_premium || "Premium hamkor"}</span>
+                  {agentBadge(agent.tariff, cms) ? (
+                    <span className={`brand-badge is-${agent.tariff.slug}`}>{agentBadge(agent.tariff, cms)}</span>
+                  ) : null}
                 </div>
                 <div className="agent-copy">
                   <h3>{agent.name}</h3>
@@ -858,18 +906,21 @@ export default function ListingsSection({
   const [placesError, setPlacesError] = useState("");
   const [empty, setEmpty] = useState(false);
   const [usingDevFallback, setUsingDevFallback] = useState(false);
+  const [totalPlaces, setTotalPlaces] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setPlacesError("");
 
-    api.get("/api/places/", { skipAuth: true })
+    // Backend picks 8 places: up to 2 paid ads plus the most booked / best rated.
+    api.get("/api/places/popular/", { skipAuth: true })
       .then((response) => {
         if (cancelled) return;
         const places = getPlacesFromApiResponse(response.data)
           .map(normalizePlace)
           .filter((place) => place.status === "approved");
+        setTotalPlaces(Number(response.data?.total) || places.length);
         setSpaces(places);
         setEmpty(places.length === 0);
         setUsingDevFallback(false);
@@ -879,7 +930,7 @@ export default function ListingsSection({
         setPlacesError(getApiErrorMessage(error, "Joyzone joylarini yuklab bo'lmadi."));
         if (import.meta.env.DEV) {
           // Never mutate the shared demo array; normalized copies are an offline development fallback only.
-          const fallbackPlaces = propertyCards.map((place) => normalizePlace({ ...place, status: "approved" }));
+          const fallbackPlaces = propertyCards.slice(0, 8).map((place) => normalizePlace({ ...place, status: "approved" }));
           setSpaces(fallbackPlaces);
           setEmpty(fallbackPlaces.length === 0);
           setUsingDevFallback(true);
@@ -912,20 +963,13 @@ export default function ListingsSection({
         );
         
         texts.forEach(text => {
-          gsap.fromTo(text,
-            { clipPath: "inset(0 100% 0 0)", opacity: 0 },
-            {
-              clipPath: "inset(0 0% 0 0)",
-              opacity: 1,
-              duration: 1.2,
-              ease: "power3.inOut",
-              scrollTrigger: {
-                trigger: text,
-                start: "top 92%",
-                toggleActions: "play none none none"
-              }
+          revealText(text, {
+            scrollTrigger: {
+              trigger: text,
+              start: "top 92%",
+              toggleActions: "play none none none"
             }
-          );
+          });
         });
 
         // Block fade-up animations
@@ -983,7 +1027,7 @@ export default function ListingsSection({
           ) : null}
         </div>
         <div className="more-row">
-          <CatalogTrail label={cms.card_view_all} />
+          <CatalogTrail label={cms.card_view_all} total={totalPlaces} />
         </div>
         <PartnerAgents cms={cms} />
         <div className="hide-on-mobile">
