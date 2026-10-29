@@ -2,9 +2,14 @@ import { useIsMobile } from "./HeaderNav.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import BottomSheet from "../ui/BottomSheet.jsx";
 
-export function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter }) {
+export function FilterSelect({ name, label, unit, options, openFilter, setOpenFilter, onChange }) {
   const isMobile = useIsMobile();
   const [value, setValue] = useState("");
+  const choose = (option) => {
+    setValue(option);
+    onChange?.(option);
+    setOpenFilter(null);
+  };
   const [openAbove, setOpenAbove] = useState(false);
   const containerRef = useRef(null);
   const isOpen = openFilter === name;
@@ -60,7 +65,7 @@ export function FilterSelect({ name, label, unit, options, openFilter, setOpenFi
                   <li 
                     key={option} 
                     className={`mobile-option-item ${isSelected ? "selected" : ""}`}
-                    onClick={() => { setValue(option); setOpenFilter(null); }}
+                    onClick={() => choose(option)}
                   >
                     <span>{option}</span>
                     {isSelected && (
@@ -76,7 +81,7 @@ export function FilterSelect({ name, label, unit, options, openFilter, setOpenFi
         <div ref={dropdownRef} className="filter-dropdown">
           <ul className="options">
             {options.map((option, i) => (
-              <li key={i} onClick={() => { setValue(option); setOpenFilter(null); }}>
+              <li key={i} onClick={() => choose(option)}>
                 {option}
               </li>
             ))}
@@ -170,12 +175,25 @@ export function MultiFilterSelect({ name, label, options, openFilter, setOpenFil
   );
 }
 
-export function PriceFilter() {
+export function PriceFilter({ onChange }) {
   const MIN = 0;
   const MAX = 3000000;
   const [minVal, setMinVal] = useState(0);
   const [maxVal, setMaxVal] = useState(1500000);
   const fillRef = useRef(null);
+  const touchedRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Only a range the visitor actually moved is passed on; the untouched
+  // default must not hide places that cost more than 1.5M.
+  useEffect(() => {
+    if (!touchedRef.current) {
+      touchedRef.current = true;
+      return;
+    }
+    onChangeRef.current?.([minVal, maxVal]);
+  }, [minVal, maxVal]);
 
   useEffect(() => {
     if (!fillRef.current) return;

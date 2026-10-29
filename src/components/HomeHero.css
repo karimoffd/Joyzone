@@ -112,6 +112,21 @@
   transform: rotate(270deg);
 }
 
+/* Scrolled: the bar docks to the top edge (no gap, square top corners)
+   so the blue tab reads as part of it instead of a floating notch. */
+.joy-header {
+  transition: padding-top 0.35s ease;
+}
+
+.joy-header.is-scrolled {
+  padding-top: 0;
+}
+
+.joy-header.is-scrolled .navbar {
+  border-radius: 0 0 22px 22px;
+  box-shadow: 0 12px 30px rgba(18, 40, 63, 0.14);
+}
+
 .nav-link {
   color: #ffffff !important;
   text-decoration: none;
@@ -487,13 +502,14 @@
 }
 
 .banner .info .desc {
-  max-width: 650px;
-  color: #294a6d;
+  max-width: 680px;
+  color: rgba(41, 74, 109, 0.82);
   padding-left: 23px;
   padding-right: 0;
-  font-weight: 400;
-  font-size: clamp(16px, 1.18vw, 22px);
-  line-height: 1.45;
+  font-weight: 500;
+  font-size: clamp(15px, 1vw, 18px);
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .banner .info .filter {
@@ -1442,20 +1458,11 @@
   max-width: 240px;
 }
 
-.menu-sidebar-tagline {
-  display: inline-block;
-  font-size: 10.5px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #e46630;
-}
-
 .menu-sidebar-quote h3 {
   font-size: 18px;
   font-weight: 700;
   line-height: 1.45;
-  margin: 12px 0 0;
+  margin: 0;
   color: rgba(255, 255, 255, 0.9);
   letter-spacing: -0.2px;
 }
@@ -2947,4 +2954,64 @@ body.is-menu-open .joy-floating-contact {
   pointer-events: none !important;
   transform: translateY(24px) scale(0.92) !important;
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
+}
+
+/* Desktop hero: the title is pinned from the top and the filter from the
+   bottom, so when a category opens its sub-filters the filter grows upward
+   into the gap and the title never jumps. */
+@media (min-width: 1181px) {
+  .banner .info {
+    justify-content: flex-start;
+  }
+
+  .banner .info .title {
+    margin-top: clamp(12px, calc(100svh - 790px), 230px);
+  }
+
+  .banner .info .filter {
+    margin-top: auto;
+  }
+}
+
+/* Sub-categories and the filters they unlock ease in instead of popping. */
+.banner .info .filter-subcats {
+  animation: none;
+}
+
+.banner .info .filter-subcats .subcat-pill {
+  animation: heroFilterItemIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 120ms);
+}
+
+.banner .info .filter-options > :not(:last-child),
+.banner .info .filter-hint {
+  animation: heroFilterItemIn 420ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+}
+
+.banner .info .filter-hint {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13.5px;
+}
+
+@keyframes heroFilterItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner .info .filter-subcats .subcat-pill,
+  .banner .info .filter-options > :not(:last-child),
+  .banner .info .filter-hint {
+    animation: none;
+  }
 }

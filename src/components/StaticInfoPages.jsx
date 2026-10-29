@@ -298,7 +298,7 @@ function TariffPlansSection() {
   };
 
   return (
-    <section className="tariff-section">
+    <section className="tariff-section" id="tariffs">
       <div className="tariff-head">
         <span className="static-kicker">{cms.tariffs_kicker || "Tariflar"}</span>
         <h2>{cms.tariffs_title || "O'zingizga mos tarifni tanlang"}</h2>

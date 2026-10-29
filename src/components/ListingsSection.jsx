@@ -11,9 +11,16 @@ import api, { getApiErrorMessage } from "../api/client.js";
 import { toggleFavoritePlace, isPlaceFavorited } from "../utils/favoritesManager.js";
 import { getPlacesFromApiResponse, normalizePlace, slugifyPlaceTitle } from "../utils/placeMapper.js";
 import logoImage from "../assets/img/Logo.png";
-import { cmsList, mailHref, phoneHref, socialLinks } from "../utils/cmsLinks.js";
+import { mailHref, phoneHref, socialLinks } from "../utils/cmsLinks.js";
 import "./ListingsSection.css";
 import "./CardVariants.css";
+import { useSiteContent } from "../context/LanguageContext.jsx";
+import { HowItWorksSection } from "./home/HowItWorks.jsx";
+import { ReviewsFaqSection } from "./home/ReviewsFaq.jsx";
+import { BenefitsSection } from "./home/Benefits.jsx";
+import "./home/ownerStrip.css";
+
+export { BenefitsSection, ReviewsFaqSection };
 
 function getSpaceHref(place = {}) {
   if (String(place.href || "").startsWith("/space-")) return place.href;
@@ -30,7 +37,7 @@ function usePublicPartners() {
   const [partners, setPartners] = useState(() => (import.meta.env.DEV ? null : []));
   useEffect(() => {
     let cancelled = false;
-    api.get("/api/partners/", { params: { limit: 12 }, skipAuth: true })
+    api.get("/api/partners/", { params: { home: 1 }, skipAuth: true })
       .then((res) => { if (!cancelled) setPartners(Array.isArray(res.data) ? res.data : []); })
       .catch(() => { if (!cancelled) setPartners([]); });
     return () => { cancelled = true; };
@@ -41,14 +48,15 @@ function usePublicPartners() {
       id: partner.id,
       name: partner.name,
       service: partner.bio ?? partner.service ?? "",
-      city: partner.city || "",
       spaces: partner.places_count ?? partner.spaces ?? 0,
       rating: partner.rating_avg ?? partner.rating ?? 0,
       reviews: partner.reviews_count ?? partner.reviews ?? 0,
-      image: partner.avatar || partner.cover_image || AGENT_PHOTO_PLACEHOLDER,
+      avatar: partner.avatar || "",
+      cover: partner.cover_image || partner.avatar || AGENT_PHOTO_PLACEHOLDER,
       tone: partner.tone || AGENT_TONES[index % AGENT_TONES.length],
       href: `/agent-${partner.id}`,
       tariff: partner.tariff || null,
+      isAd: Boolean(partner.is_ad),
     }));
   }, [partners]);
 }
@@ -84,14 +92,30 @@ function placeUnitsLabel(item) {
   return "";
 }
 
-// Falls back to initials when the logo URL is missing or broken.
+// Falls back to a neutral user icon when the logo URL is missing or broken.
 function AgentLogo({ src, name }) {
   const [failed, setFailed] = useState(!src);
   if (failed) {
-    const initials = String(name || "J").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-    return <span className="brand-logo-initials">{initials}</span>;
+    return (
+      <span className="brand-logo-fallback">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <circle cx="12" cy="8.2" r="4.2" />
+          <path d="M3.8 20.4c.9-4 4.2-6.4 8.2-6.4s7.3 2.4 8.2 6.4a1 1 0 0 1-1 1.2H4.8a1 1 0 0 1-1-1.2Z" />
+        </svg>
+      </span>
+    );
   }
   return <img src={src} alt={name} loading="lazy" onError={() => setFailed(true)} />;
+}
+
+// The verified tick stays glued to the last word so it never wraps alone.
+function agentNameHead(name) {
+  const words = String(name || "").trim().split(/\s+/);
+  return words.length > 1 ? `${words.slice(0, -1).join(" ")} ` : "";
+}
+
+function agentNameTail(name) {
+  return String(name || "").trim().split(/\s+/).pop();
 }
 
 // Badge reflects the agent's active paid tariff; free-plan agents get none.
@@ -100,6 +124,15 @@ function agentBadge(tariff, cms) {
   if (tariff.slug === "premium") return cms.agent_badge_premium || "Premium agent";
   if (tariff.slug === "comfort") return cms.agent_badge_comfort || "Comfort agent";
   return `${tariff.name} agent`;
+}
+
+// Small orange underline for section headings (positioned by .title-curve).
+function TitleCurve() {
+  return (
+    <svg className="title-curve" width="80" height="10" viewBox="0 0 80 10" fill="none" aria-hidden="true">
+      <path d="M2 8C22 1 58 1 78 8" stroke="#E46630" strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
 }
 
 function HighlightedTitle({ text, highlight = "Joyzone" }) {
@@ -223,7 +256,7 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
           />
         ))}
         <span className="property-slide-glow" />
-        {item.is_ad || item.promoted ? <span className="variant-pill is-ad">Reklama</span> : null}
+        {(item.is_ad ?? item.promoted) ? <span className="variant-pill is-ad">Reklama</span> : null}
         <div className="variant-dots" aria-label="Rasmni tanlash" style={{ zIndex: 20 }}>
           {item.images.map((_, imageIndex) => (
             <button
@@ -294,10 +327,10 @@ function CatalogTrail({ label, total = 0 }) {
   };
 
   return (
-    <a className="catalog-trail" href="#spaces" onMouseEnter={liftCards} onFocus={liftCards} onMouseLeave={settleCards} onBlur={settleCards}>
+    <a className="catalog-trail" href="/filter" onMouseEnter={liftCards} onFocus={liftCards} onMouseLeave={settleCards} onBlur={settleCards}>
       <span />
       <strong>{label || "Barcha joylarni ko'rish"}</strong>
-      <b aria-hidden="true" data-count={total > 0 ? `${total} ta joy` : "→"}>→</b>
+      <b aria-hidden="true" data-count={total > 0 ? `${total}+ ta joy` : "→"}>→</b>
     </a>
   );
 }
@@ -383,10 +416,8 @@ function PartnerAgents({ cms = {} }) {
       <div className="agents-head">
         <h2>
           <HighlightedTitle text={cms.agent_title || "Top agentlar"} highlight="Top" />
+          <TitleCurve />
         </h2>
-        <svg className="agents-title-curve" width="160" height="14" viewBox="0 0 160 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M2 12C45 -3 115 -3 158 12" stroke="#E46630" strokeWidth="3" strokeLinecap="round"/>
-        </svg>
         <p>{cms.agent_sub || "Joyzone'dagi eng faol va ishonchli joy egalari."}</p>
       </div>
       <div ref={viewportRef} className="agents-viewport">
@@ -395,29 +426,54 @@ function PartnerAgents({ cms = {} }) {
             return (
               <article
                 key={agent.id}
-                className={`agent-card ${index >= active && index < active + visible ? "is-visible" : ""}`}
+                className={`agent-card ${index >= active && index < active + visible ? "is-visible" : ""} ${agent.tariff ? `has-tariff is-${agent.tariff.slug}` : ""}`}
                 style={{ "--brand-tone": agent.tone }}
               >
-                <div className="brand-card-top">
-                  <div className="brand-logo-mark" aria-hidden="true">
-                    <AgentLogo src={agent.image} name={agent.name} />
-                  </div>
+                <a className="agent-cover" href={agent.href} tabIndex={-1} aria-hidden="true">
+                  <img src={agent.cover} alt="" loading="lazy" />
+                  {agent.isAd ? <span className="agent-ad-pill">Reklama</span> : null}
                   {agentBadge(agent.tariff, cms) ? (
                     <span className={`brand-badge is-${agent.tariff.slug}`}>{agentBadge(agent.tariff, cms)}</span>
                   ) : null}
-                </div>
-                <div className="agent-copy">
-                  <h3>{agent.name}</h3>
-                  <p>{agent.service}</p>
-                </div>
-                <div className="brand-trust">
-                  <span>{agent.rating}</span>
-                  <p>{agent.reviews} {cms.agent_reviews || "ta sharh"}</p>
-                </div>
-                <a className="agent-bottom-btn" href={agent.href} aria-label={`${agent.name} profilini ochish`}>
-                  <span className="agent-btn-text">{cms.agent_profile || "Profil"}</span>
-                  <strong className="agent-btn-count">{agent.spaces}</strong>
                 </a>
+                <div className="agent-body">
+                  <div className="brand-logo-wrap">
+                    <div className="brand-logo-mark" aria-hidden="true">
+                      <AgentLogo src={agent.avatar} name={agent.name} />
+                    </div>
+                    {agent.tariff ? (
+                      <span className="brand-logo-crown" title={agentBadge(agent.tariff, cms)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7.5 7.6 11 12 4.5 16.4 11 21 7.5 19.2 18H4.8Z" /><rect x="4.8" y="19.2" width="14.4" height="2.3" rx="1" /></svg>
+                      </span>
+                    ) : null}
+                  </div>
+                  <h3 className="agent-name">
+                    {agentNameHead(agent.name)}
+                    <span className="agent-name-tail">
+                      {agentNameTail(agent.name)}
+                      <svg className="agent-verified" width="18" height="18" viewBox="0 0 24 24" role="img" aria-label="Tekshirilgan"><path fill="currentColor" d="M12 2 14.6 4.1 18 3.8 18.9 7.1 21.8 9 20.6 12.2 21.8 15.4 18.9 17.3 18 20.6 14.6 20.3 12 22.4 9.4 20.3 6 20.6 5.1 17.3 2.2 15.4 3.4 12.2 2.2 9 5.1 7.1 6 3.8 9.4 4.1Z"/><path d="m8.2 12.3 2.5 2.5 5.1-5.2" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </span>
+                  </h3>
+                  <p className="agent-bio">{agent.service || "Joyzone'dagi ishonchli joy egasi."}</p>
+                  <dl className="agent-stats">
+                    <div>
+                      <dt>Reyting</dt>
+                      <dd className="is-rating">{agent.reviews > 0 ? Number(agent.rating).toFixed(1) : "Yangi"}</dd>
+                    </div>
+                    <div>
+                      <dt>Sharhlar</dt>
+                      <dd>{agent.reviews}</dd>
+                    </div>
+                    <div>
+                      <dt>E'lonlar</dt>
+                      <dd>{agent.spaces}</dd>
+                    </div>
+                  </dl>
+                  <a className="agent-bottom-btn" href={agent.href} aria-label={`${agent.name} profilini ochish`}>
+                    <span>{cms.agent_profile || "Profil"}</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+                  </a>
+                </div>
               </article>
             );
           })}
@@ -447,319 +503,6 @@ function PartnerAgents({ cms = {} }) {
   );
 }
 
-function BenefitIcon({ type }) {
-  const paths = {
-    interface: ["M4 5h16v12H4z", "M8 21h8", "M12 17v4", "M8 9h4M8 12h8"],
-    search: ["M11 19a8 8 0 1 1 5.7-2.4L21 21", "M7.5 10.5h7"],
-    building: ["M5 21V8l7-4 7 4v13", "M9 21v-5h6v5", "M9 10h.01M12 10h.01M15 10h.01M9 13h.01M12 13h.01M15 13h.01", "M18 3v4M16 5h4"],
-    shield: ["M12 3 20 6v6c0 5-3.4 8.1-8 9-4.6-.9-8-4-8-9V6z", "m9 12 2 2 4-5"],
-    crown: ["M4 8l4 4 4-7 4 7 4-4v10H4z"],
-    megaphone: ["M4 13h3l10-5v12L7 15H4z", "M7 15l2 6", "M20 10v8"]
-  };
-
-  return (
-    <svg width="33" height="33" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {paths[type].map((path) => (
-        <path key={path} d={path} />
-      ))}
-    </svg>
-  );
-}
-
-export function BenefitsSection({ cms = {} }) {
-  const benefitsRef = useRef(null);
-
-  useEffect(() => {
-    const section = benefitsRef.current;
-    if (!section) return undefined;
-    
-    gsap.fromTo(
-      section.querySelectorAll(".benefit-bento-card"),
-      { y: 40, opacity: 0 },
-      { 
-        y: 0, 
-        opacity: 1, 
-        duration: 0.8, 
-        stagger: 0.1, 
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: section,
-          start: "top 80%",
-        }
-      }
-    );
-    return undefined;
-  }, []);
-
-  return (
-    <section ref={benefitsRef} className="benefits-section" id="about">
-      <div className="benefits-head">
-        <h2>
-          <HighlightedTitle text={cms.about_title || "Joyzone qulayliklari"} />
-        </h2>
-        <i aria-hidden="true" />
-        <p>{cms.about_text || "Har kim uchun oddiy va qulay platforma"}</p>
-      </div>
-      <div className="benefits-grid bento">
-        {cmsList(cms, "benefits_arr").map((benefit, index) => (
-          <article key={benefit.title} className={`benefit-bento-card card-index-${index}`}>
-            <div className="benefit-bento-icon">
-              <BenefitIcon type={benefit.icon} />
-            </div>
-            <div className="benefit-bento-text">
-              <h3>{benefit.title}</h3>
-              <p>{benefit.text}</p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PartnerStartSection({ cms = {} }) {
-  const sectionRef = useRef(null);
-  const containerRef = useRef(null);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return undefined;
-
-    const ctx = gsap.context(() => {
-      const cards = section.querySelectorAll(".soul-step-card");
-      
-      gsap.fromTo(
-        cards,
-        { y: 30, opacity: 0 },
-        { 
-          y: 0, opacity: 1, 
-          duration: 0.6, stagger: 0.1, 
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: section,
-            start: "top 75%",
-          }
-        }
-      );
-      
-      gsap.to(section.querySelector(".soul-bg-glow-orange"), {
-        rotate: 360,
-        duration: 40,
-        repeat: -1,
-        ease: "linear"
-      });
-    }, section);
-
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    <section ref={sectionRef} className="soul-partner-section" id="partner">
-      <div className="soul-bg-glow-orange"></div>
-      <div className="soul-bg-glow-blue"></div>
-      
-      <div className="soul-partner-inner">
-        <div className="soul-partner-head">
-          <span className="soul-badge">{cms.how_title || "Bron qilish jarayoni"}</span>
-          <h2>
-            {(cms.partner_title || "Sizning joyingiz, bizning platforma").split(",")[0]}, <br />
-            <span>{(cms.partner_title || "Sizning joyingiz, bizning platforma").split(",").slice(1).join(",").trim()}</span>
-          </h2>
-          <p>{cms.partner_subtitle || "Joyzone bilan bron qilish oddiy va qulay."}</p>
-          
-          <div className="soul-stats">
-            <div className="soul-stat">
-              <strong>{cms.how_stat1_value || "2 daqiqa"}</strong>
-              <span>{cms.how_stat1_label || "Ro'yxatdan o'tish"}</span>
-            </div>
-            <div className="soul-stat">
-              <strong>{cms.how_stat2_value || "1 so'rov"}</strong>
-              <span>{cms.how_stat2_label || "Bron jarayoni"}</span>
-            </div>
-          </div>
-          
-          <a className="soul-cta" href="/filter">
-            <span>{cms.partner_cta || "Hozir boshlash"}</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-          </a>
-        </div>
-        
-        <div ref={containerRef} className="soul-steps-container">
-          
-          <div className="soul-step-card">
-            <div className="soul-step-number">01</div>
-            <div className="soul-step-content">
-              <h3>{cms.how_step1_title || "Akkaunt yarating"}</h3>
-              <p>{cms.how_step1 || "Akkaunt yarating va Joyzone profilini ishga tushiring."}</p>
-            </div>
-            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-          
-          <div className="soul-step-card">
-            <div className="soul-step-number">02</div>
-            <div className="soul-step-content">
-              <h3>{cms.how_step2_title || "Sizga mos joyni tanlang"}</h3>
-              <p>{cms.how_step2 || "Manzil, narx va qulayliklar bo'yicha mos joyni tanlang."}</p>
-            </div>
-            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-          
-          <div className="soul-step-card">
-            <div className="soul-step-number">03</div>
-            <div className="soul-step-content">
-              <h3>{cms.how_step3_title || "Bron so'rovini yuboring"}</h3>
-              <p>{cms.how_step3 || "Sana va vaqtni tanlab, bron so'rovini yuboring."}</p>
-            </div>
-            <svg className="soul-step-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const reviewHighlights = [
-  {
-    name: "Malika",
-    text: "Vorkshop uchun zalni 7 daqiqada topdik. Joy, narx va sig'im bir qarashda tushunarli.",
-    tone: "light"
-  },
-  {
-    name: "Akmal",
-    text: "Kartochkalar aniq: darhol narx, joylashuv va imkoniyatlarni ko'rasan.",
-    tone: "dark"
-  },
-  {
-    name: "Dilshod",
-    text: "Partner sifatida joy qo'shdik va birinchi so'rovlar o'sha kuniyoq keldi.",
-    tone: "light"
-  },
-  {
-    name: "Sevara",
-    text: "FAQ va bron oqimi oddiy, mijozlarga ortiqcha tushuntirish kerak bo'lmadi.",
-    tone: "dark"
-  },
-  {
-    name: "Jasur",
-    text: "Bir nechta joyni solishtirib, uchrashuv uchun eng qulay variantni tez tanladik.",
-    tone: "light"
-  }
-];
-
-export function ReviewsFaqSection({ cms = {} }) {
-  const [openIndex, setOpenIndex] = useState(0);
-  const [firstReview, setFirstReview] = useState(0);
-  const [isReviewSliding, setIsReviewSliding] = useState(false);
-  const sectionRef = useRef(null);
-  const reviewTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        section.classList.add("is-visible");
-        observer.disconnect();
-      },
-      { threshold: 0.28 }
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
-
-  // Real 4-5 star reviews of approved places; demo quotes only in local dev.
-  const [reviews, setReviews] = useState(() => (import.meta.env.DEV ? reviewHighlights : []));
-  useEffect(() => {
-    let cancelled = false;
-    api.get("/api/reviews/", { params: { min_rating: 4, limit: 12 }, skipAuth: true })
-      .then((res) => {
-        if (cancelled) return;
-        const rows = getPlacesFromApiResponse(res.data);
-        if (rows.length || !import.meta.env.DEV) {
-          setReviews(rows.map((review, index) => ({
-            id: review.id,
-            name: review.user_name,
-            text: review.comment,
-            rating: review.rating,
-            tone: index % 2 ? "dark" : "light",
-          })));
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    if (reviews.length < 2) return undefined;
-    const timer = window.setInterval(() => {
-      setIsReviewSliding(true);
-      reviewTimeoutRef.current = window.setTimeout(() => {
-        setFirstReview((current) => (current + 1) % reviews.length);
-        setIsReviewSliding(false);
-      }, 560);
-    }, 3400);
-
-    return () => {
-      window.clearInterval(timer);
-      if (reviewTimeoutRef.current) {
-        window.clearTimeout(reviewTimeoutRef.current);
-      }
-    };
-  }, [reviews.length]);
-
-  const visibleReviews = Array.from({ length: Math.min(4, reviews.length) }, (_, position) => ({
-    position,
-    review: reviews[(firstReview + position) % reviews.length]
-  }));
-
-  return (
-    <section ref={sectionRef} className="reviews-faq-section" id="faq">
-      <div className="reviews-faq-inner">
-        {visibleReviews.length ? <div className="reviews-panel" aria-label="Joyzone foydalanuvchi sharhlari">
-          <div className="reviews-label">{cms.rev_title || "Sharhlar"}</div>
-          <div className={`review-stage ${isReviewSliding ? "is-sliding" : ""}`}>
-            {visibleReviews.map(({ review, position }) => (
-              <article
-                key={`${review.id ?? review.name}-${position}`}
-                className={`review-bubble review-position-${position} ${review.tone === "dark" ? "is-dark" : ""}`}
-              >
-                <strong>{review.name}</strong>
-                <p>{review.text}</p>
-                <span aria-label={`${review.rating || 5} yulduzli baho`}>{"★".repeat(review.rating || 5)}</span>
-              </article>
-            ))}
-          </div>
-        </div> : null}
-
-        <div className="faq-panel">
-          <p className="section-kicker">{cms.faq_kicker || "FAQ"}</p>
-          <h2>{cms.faq_title || "Qisqacha asosiylari"}</h2>
-          <div className="faq-list">
-            {cmsList(cms, "faq_arr").map((item, index) => {
-              const isOpen = openIndex === index;
-              return (
-                <article key={item.question} className={`faq-item ${isOpen ? "is-open" : ""}`}>
-                  <button type="button" onClick={() => setOpenIndex(isOpen ? -1 : index)} aria-expanded={isOpen}>
-                    <span>{item.question}</span>
-                    <b aria-hidden="true">{isOpen ? "-" : "+"}</b>
-                  </button>
-                  <div className="faq-answer">
-                    <p>{item.answer}</p>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function FooterIcon({ type }) {
   const paths = {
@@ -804,23 +547,55 @@ export function SimpleFooter() {
   );
 }
 
-export function FooterQuestionStrip({ cms = {} }) {
+// Above the footer on every page: an invitation for space owners. The free
+// Standard plan (one listing) is a real offer, so it leads.
+export function FooterQuestionStrip({ cms: cmsProp }) {
+  const cms = useFooterCms(cmsProp);
+  const points = [
+    cms.owner_point1 || "Standard tarifda 1 ta e'lon bepul",
+    cms.owner_point2 || "Rasm, narx va ish vaqti — 10 daqiqada tayyor",
+    cms.owner_point3 || "Bron so'rovlari va chat bitta kabinetda",
+  ];
   return (
-    <div className="footer-question-strip">
-      <div>
-        <span>{cms.help_kicker || "Joyzone yordam markazi"}</span>
-        <h2>{cms.help_title || "Savolingiz bormi?"}</h2>
-        <p>{cms.help_text || "Ofis, kovorking yoki zal tanlashda yordam beramiz."}</p>
+    <div className="owner-strip">
+      <div className="owner-strip-art" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 21V9l8-5 8 5v12" /><path d="M9 21v-6h6v6" /><path d="M12 8v4M10 10h4" />
+        </svg>
       </div>
-      <a href="#contact">
-        {cms.help_cta || "Biz bilan bog'laning"}
-        <FooterIcon type="arrow" />
-      </a>
+      <div className="owner-strip-copy">
+        <span>{cms.owner_kicker || "Joy egalari uchun"}</span>
+        <h2>{cms.owner_title || "Bo'sh joyingiz bormi?"}</h2>
+        <p>{cms.owner_text || "Ofis, kovorking yoki zalingizni Joyzone'da joylashtiring va mijozlardan bron so'rovlarini qabul qiling."}</p>
+      </div>
+      <ul className="owner-strip-points">
+        {points.map((point) => (
+          <li key={point}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+            {point}
+          </li>
+        ))}
+      </ul>
+      <div className="owner-strip-actions">
+        <a className="owner-strip-btn" href="/partner">
+          {cms.owner_cta || "Joy qo'shish"}
+          <FooterIcon type="arrow" />
+        </a>
+        <a className="owner-strip-link" href="/partner-guide#tariffs">{cms.owner_cta2 || "Tariflarni ko'rish"}</a>
+      </div>
     </div>
   );
 }
 
-export function JoyFooter({ cms = {} }) {
+// Pages that render the footer without passing texts still get the CMS values
+// (phone / email links were empty on the catalog and place pages).
+function useFooterCms(cmsProp) {
+  const { cms: siteCms } = useSiteContent();
+  return cmsProp && Object.keys(cmsProp).length ? cmsProp : siteCms;
+}
+
+export function JoyFooter({ cms: cmsProp }) {
+  const cms = useFooterCms(cmsProp);
   const socials = socialLinks(cms).map(([type, , href]) => [type, href]);
 
   return (
@@ -853,7 +628,6 @@ export function JoyFooter({ cms = {} }) {
             <a href="/about-us">{cms.footer_link_about || "Biz haqimizda"}</a>
             <a href="/filter">{cms.footer_link_dirs || "Yo'nalishlar"}</a>
             <a href="#contact">{cms.footer_link_contact || "Kontaktlar"}</a>
-            <a href="#policy">{cms.footer_link_privacy || "Maxfiylik siyosati"}</a>
           </nav>
           <nav aria-label="Xizmatlar">
             <strong>{cms.footer_nav2 || "Xizmatlar"}</strong>
@@ -956,10 +730,8 @@ export default function ListingsSection({
         const texts = gsap.utils.toArray(
           ".listings-head h2, .listings-head p, " +
           ".agents-head h2, .agents-head p, " +
-          ".benefits-head h2, .benefits-head p, " +
-          ".soul-partner-head h2, .soul-partner-head p, " +
-          ".benefit-bento-text h3, .benefit-bento-text p, " +
-          ".faq-panel h2, .property-body h3, .property-body p, .agent-copy h3, .agent-copy p"
+          ".rfq h2, .rfq-head p, " +
+          ".property-body h3, .property-body p, .agent-name, .agent-bio"
         );
         
         texts.forEach(text => {
@@ -973,7 +745,7 @@ export default function ListingsSection({
         });
 
         // Block fade-up animations
-        const blocks = gsap.utils.toArray(".property-card, .benefit-bento-card, .faq-item, .soul-step-card");
+        const blocks = gsap.utils.toArray(".property-card, .rfq-item");
         
         blocks.forEach(block => {
           gsap.fromTo(block,
@@ -983,6 +755,8 @@ export default function ListingsSection({
               y: 0,
               duration: 0.8,
               ease: "power3.out",
+              // Hand transform back to CSS so the cards' hover lift works.
+              clearProps: "transform",
               scrollTrigger: {
                 trigger: block,
                 start: "top 90%",
@@ -1000,9 +774,11 @@ export default function ListingsSection({
     <section className="listings-section" id="home-listings">
       <div className="listings-inner">
         <div className="listings-head">
-          <p>{cms.popular_kicker || "Joyzone tanlovi"}</p>
-          <h2><HighlightedTitle text={cms.popular_title || "Ommabop joylar"} highlight="" /></h2>
-          <p>{cms.popular_subtitle || "Eng ko'p izlangan va band qilingan joylar"}</p>
+          <h2>
+            <HighlightedTitle text={cms.popular_title || "Ommabop joylar"} highlight="" />
+            <TitleCurve />
+          </h2>
+          <p className="listings-sub">{cms.popular_subtitle || "Eng ko'p izlangan va band qilingan joylar"}</p>
           {usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV fallback places</small> : null}
           {placesError && !usingDevFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>{placesError}</small> : null}
         </div>
@@ -1033,7 +809,7 @@ export default function ListingsSection({
         <div className="hide-on-mobile">
           <BenefitsSection cms={cms} />
         </div>
-        <PartnerStartSection cms={cms} />
+        <HowItWorksSection cms={cms} />
         <div className="hide-on-mobile">
           <ReviewsFaqSection cms={cms} />
         </div>

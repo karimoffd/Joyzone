@@ -1,16 +1,12 @@
+import logoImage from "../../assets/img/Logo.png";
 import React, { useEffect, useRef, useState } from "react";
 import { getStorageItem, getStoredLanguage, setStorageItem, setStoredLanguage, STORAGE_KEYS } from "../../utils/storageKeys.js";
 
 export function Logo() {
   return (
-    <div className="flex items-center text-[22px] font-extrabold leading-none text-joyBlue logo-mark xl:text-[28px]">
-      JOY
-      <span className="relative mx-[1px] inline-flex h-[20px] w-[17px] items-center justify-center">
-        <span className="logo-pin absolute" />
-        <span className="relative h-[5px] w-[5px] rounded-full bg-joyBlue" />
-      </span>
-      ZONE
-    </div>
+    <a href="/" className="auth-logo inline-flex items-center" aria-label="Joyzone">
+      <img src={logoImage} alt="Joyzone" className="h-[30px] w-auto xl:h-[36px]" />
+    </a>
   );
 }
 

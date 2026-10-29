@@ -220,3 +220,26 @@
 
 
 
+
+/* Local testing only: the OTP the server returned while SMS is not connected. */
+.auth-dev-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px dashed rgba(228, 102, 48, 0.55);
+  border-radius: 14px;
+  background: rgba(228, 102, 48, 0.07);
+  color: #294a6d;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.auth-dev-code b {
+  color: #e46630;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}

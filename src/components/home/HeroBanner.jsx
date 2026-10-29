@@ -5,6 +5,49 @@ import { LanguageContext } from "../../context/LanguageContext.jsx";
 import BottomSheet from "../ui/BottomSheet.jsx";
 import JoySlider from "../JoySlider.jsx";
 import kvIcon from "../../assets/img/kv.svg";
+import { navigate } from "../../utils/router.js";
+
+// When the filter card changes size (sub-categories / their filters appear),
+// glide between the old and new height instead of snapping.
+function useSmoothHeight(ref) {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let last = element.getBoundingClientRect().height;
+    let animation = null;
+    const observer = new ResizeObserver(() => {
+      if (animation) return;
+      const next = element.getBoundingClientRect().height;
+      if (Math.abs(next - last) < 2) {
+        last = next;
+        return;
+      }
+      const from = last;
+      last = next;
+      element.style.overflow = "hidden";
+      animation = element.animate(
+        [{ height: `${from}px` }, { height: `${next}px` }],
+        { duration: 460, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+      );
+      const done = () => {
+        animation = null;
+        element.style.overflow = "";
+        last = element.getBoundingClientRect().height;
+      };
+      animation.onfinish = done;
+      animation.oncancel = done;
+    });
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      animation?.cancel();
+    };
+  }, [ref]);
+}
+
+// "Больше N" in the hero means strictly more than N people.
+const HERO_MIN_PEOPLE = { "Больше 1": 2, "Больше 5": 6, "Больше 10": 11 };
 
 export function Banner({
   slides,
@@ -37,15 +80,19 @@ export function Banner({
   const [locationOpenAbove, setLocationOpenAbove] = useState(false);
   const [openFilter, setOpenFilter] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [heroCapacity, setHeroCapacity] = useState("");
+  const [heroPrice, setHeroPrice] = useState(null);
   const typingRef = useRef(null);
   const cursorRef = useRef(null);
   const wordIndexRef = useRef(0);
   const charIndexRef = useRef(7);
   const isDeletingRef = useRef(false);
   const locationSelectRef = useRef(null);
+  const filterRef = useRef(null);
+  useSmoothHeight(filterRef);
   
   const [heroTitle, setHeroTitle] = useState("O'zbekiston bo'ylab\nqulay");
-  const [heroSubtitle, setHeroSubtitle] = useState("Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab");
+  const [heroSubtitle, setHeroSubtitle] = useState("Ofis, kovorking va zallarni bir joyda toping va onlayn bron qiling.");
   const wordsRef = useRef(["ofislar", "kovorking", "zallar", "joylar"]);
 
   useEffect(() => {
@@ -162,6 +209,20 @@ export function Banner({
 
   const [expandedRegion, setExpandedRegion] = useState(null);
 
+  const openCatalog = () => {
+    const params = new URLSearchParams();
+    if (activeTab !== "barchasi") params.set("category", String(activeTab));
+    if (selectedSubCat) params.set("subcategory", String(selectedSubCat));
+    if (selectedLocation) params.set("location", selectedLocation);
+    if (HERO_MIN_PEOPLE[heroCapacity]) params.set("min_people", String(HERO_MIN_PEOPLE[heroCapacity]));
+    if (heroPrice) {
+      params.set("min_price", String(heroPrice[0]));
+      params.set("max_price", String(heroPrice[1]));
+    }
+    const query = params.toString();
+    navigate(query ? `/filter?${query}` : "/filter");
+  };
+
   return (
     <section className="banner-section">
       <div className="banner">
@@ -185,7 +246,7 @@ export function Banner({
                   {heroSubtitle}
                 </p>
 
-                <div className="filter">
+                <div className="filter" ref={filterRef}>
                   <div className="filter-tabs">
                     {tabs.map((tab) => (
                       <button
@@ -208,11 +269,12 @@ export function Banner({
 
                   {/* Sub-categories */}
                   {activeCategory?.subcategories && activeCategory.subcategories.length > 0 && (
-                    <div className="filter-subcats">
-                      {activeCategory.subcategories.map((sub) => (
+                    <div className="filter-subcats" key={activeTab}>
+                      {activeCategory.subcategories.map((sub, subIndex) => (
                         <button
                           key={sub.id}
                           type="button"
+                          style={{ "--i": subIndex }}
                           className={`subcat-pill ${selectedSubCat === sub.id ? "active" : ""}`}
                           onClick={() => setSelectedSubCat(selectedSubCat === sub.id ? "" : sub.id)}
                         >
@@ -230,7 +292,7 @@ export function Banner({
                       <div className="filter-options">
                         {activeTab === "barchasi" && (
                           <>
-                            <FilterSelect name="capacity" label="Вместимость" unit="чел" options={["Любой", "Больше 1", "Больше 5", "Больше 10"]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                            <FilterSelect name="capacity" label="Вместимость" unit="чел" options={["Любой", "Больше 1", "Больше 5", "Больше 10"]} openFilter={openFilter} setOpenFilter={setOpenFilter} onChange={setHeroCapacity} />
                             <FilterSelect name="area" label="Площадь" unit="м²" options={["Любой", "Больше 10", "Больше 50", "Больше 100"]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
                           </>
                         )}
@@ -267,9 +329,9 @@ export function Banner({
                         })()}
 
                         {!selectedSubCat && activeTab !== "barchasi" && (
-                           <div style={{ padding: "0 16px", color: "#64748b", fontSize: "14px", display: "flex", alignItems: "center" }}>Выберите подкатегорию для фильтров</div>
+                           <div className="filter-hint">{lang === "ru" ? "Выберите подкатегорию для фильтров" : lang === "en" ? "Choose a subcategory to see filters" : "Filtrlar uchun turini tanlang"}</div>
                         )}
-                        <PriceFilter />
+                        <PriceFilter onChange={setHeroPrice} />
                       </div>
                     </div>
                   </div>
@@ -447,7 +509,7 @@ export function Banner({
                         </div>
                       )}
                     </div>
-                    <button className="search-btn btn-shine" type="button">{content?.[lang]?.hero_cta || "Hozir boshlash"}</button>
+                    <button className="search-btn btn-shine" type="button" onClick={openCatalog}>{content?.[lang]?.hero_cta || "Hozir boshlash"}</button>
                   </div>
                 </div>
               </div>

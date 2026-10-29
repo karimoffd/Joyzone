@@ -128,6 +128,32 @@ function getBackendMinPeople(filters) {
   return selectedMins.length ? Math.min(...selectedMins) : null;
 }
 
+// Filters passed in the URL, e.g. /filter?category=3&location=Toshkent&min_people=6
+function initialFilterQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const numberParam = (key) => {
+    const value = Number(params.get(key));
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  };
+  const minPrice = numberParam("min_price");
+  const maxPrice = numberParam("max_price");
+  const category = params.get("category") || "";
+  const subcategory = params.get("subcategory") || "";
+  return {
+    category: /^\d+$/.test(category) ? Number(category) : category,
+    subcategory: /^\d+$/.test(subcategory) ? Number(subcategory) : subcategory,
+    filters: {
+      search: params.get("search") || "",
+      location: params.getAll("location").filter(Boolean),
+      price: minPrice || maxPrice ? [minPrice, maxPrice || MAX_PRICE_LIMIT] : [],
+      capacity: [],
+      exactCapacity: numberParam("min_people"),
+      extra: [],
+      amenities: [],
+    },
+  };
+}
+
 function buildPlaceFilterParams({ filters, selectedCategory, selectedSubCat, amenitySlugByLabel }) {
   const params = new URLSearchParams();
   const search = filters.search.trim();
@@ -700,10 +726,10 @@ export default function FilterPage({ userState, setUserState }) {
   const [viewMode, setViewMode] = useState("grid");
   const [sortOption, setSortOption] = useState("Relevans");
   
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubCat, setSelectedSubCat] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(() => initialFilterQuery().category);
+  const [selectedSubCat, setSelectedSubCat] = useState(() => initialFilterQuery().subcategory);
   const [selectedDuration, setSelectedDuration] = useState("");
-  const [filters, setFilters] = useState({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
+  const [filters, setFilters] = useState(() => initialFilterQuery().filters);
   const debouncedSearch = useDebouncedValue(filters.search, 350);
   const [spaces, setSpaces] = useState([]);
   const requestQuery = useMemo(() => {
@@ -732,8 +758,13 @@ export default function FilterPage({ userState, setUserState }) {
     [spaces]
   );
 
-  // Reset subcategory when category changes
+  // Reset subcategory when category changes (not for the category the URL opened with).
+  const categoryFromUrlRef = useRef(true);
   useEffect(() => {
+    if (categoryFromUrlRef.current) {
+      categoryFromUrlRef.current = false;
+      return;
+    }
     setSelectedSubCat("");
   }, [selectedCategory]);
 
@@ -911,7 +942,7 @@ export default function FilterPage({ userState, setUserState }) {
 
   return (
     <main className="filter-shell">
-      <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+      <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={2} />
 
       <section className="filter-bar-section">
         <div className="filter-bar-head">

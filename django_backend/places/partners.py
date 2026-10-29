@@ -105,8 +105,34 @@ class PartnerListView(APIView):
             limit = max(1, min(int(request.query_params.get('limit', 12)), 50))
         except ValueError:
             limit = 12
+        if request.query_params.get('home'):
+            return Response(home_partners())
         partners = public_partners()[:limit]
         return Response(PublicPartnerSerializer(partners, many=True).data)
+
+
+HOME_PARTNERS_LIMIT = 8
+HOME_PARTNER_AD_SLOTS = 2  # ads lead the slider
+
+
+def home_partners():
+    """Home "Top agentlar" slider: 8 partners, the first two of them ads.
+
+    Featured partners and partners on an active paid tariff are the ad pool;
+    both the ads and the rest are picked at random on every request.
+    """
+    now = timezone.now()
+    base = public_partners()
+    ad_q = Q(is_featured_partner=True) | (_active_tariff_q(now) & Q(tariff__is_free=False))
+    ads = list(base.filter(ad_q).order_by('?')[:HOME_PARTNER_AD_SLOTS])
+    rest = list(
+        base.exclude(pk__in=[partner.pk for partner in ads])
+        .order_by('?')[:HOME_PARTNERS_LIMIT - len(ads)]
+    )
+    data = PublicPartnerSerializer(ads + rest, many=True).data
+    for index, item in enumerate(data):
+        item['is_ad'] = index < len(ads)
+    return data
 
 
 class PartnerDetailView(APIView):

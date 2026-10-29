@@ -1,4 +1,5 @@
 import React from "react";
+import { PackIcon } from "../ui/iconPack.jsx";
 
 export function Icon({ type, className = "" }) {
   const paths = {
@@ -40,7 +41,7 @@ export function DetailStat({ icon, label, value }) {
   return (
     <div className="sd-stat">
       <span>
-        <Icon type={icon} />
+        <PackIcon name={icon} />
       </span>
       <div>
         <small>{label}</small>

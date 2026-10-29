@@ -536,6 +536,30 @@ class OTPDeliveryConfigTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertFalse(OTPVerification.objects.exists())
 
+    @override_settings(DEBUG=True, DEV_OTP_CONSOLE_LOG_ENABLED=True)
+    def test_local_debug_returns_code_for_registration_screen(self):
+        response = self.client.post(
+            '/api/auth/send-otp/',
+            {'phone_number': '+998901230001'},
+            format='json',
+            REMOTE_ADDR='127.0.40.2',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(response.data['dev_code'], r'^\d{6}$')
+
+    @override_settings(DEBUG=False, SMS_PROVIDER='test', DEV_OTP_CONSOLE_LOG_ENABLED=True)
+    def test_production_never_returns_code(self):
+        response = self.client.post(
+            '/api/auth/send-otp/',
+            {'phone_number': '+998901230002'},
+            format='json',
+            REMOTE_ADDR='127.0.40.3',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('dev_code', response.data)
+
 
 @override_settings(SMS_PROVIDER='test')
 class OTPThrottleSecurityTests(TestCase):

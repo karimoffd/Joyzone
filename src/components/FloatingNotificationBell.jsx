@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { PackIcon } from "./ui/iconPack.jsx";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { chatPartnerName, getStoredChats } from "../utils/chatManager.js";
@@ -29,6 +30,38 @@ function typeLabel(type) {
   return labels[type] || "Уведомление";
 }
 
+// Icon and colour tone per notification type.
+const TYPE_LOOK = {
+  place_approved: ["check", "green"],
+  place_rejected: ["cancel", "red"],
+  place_submitted: ["building", "orange"],
+  booking_created: ["calendar", "orange"],
+  booking_paid: ["wallet", "green"],
+  booking_confirmed: ["check", "green"],
+  booking_cancelled: ["cancel", "red"],
+  booking_blocked: ["lock", "blue"],
+  tariff_activated: ["star", "orange"],
+};
+
+// Wheel over the open panel scrolls only the panel's lists, never the page
+// (the home page also listens to wheel events for its section snapping).
+function useContainWheel(ref, active) {
+  useEffect(() => {
+    const panel = ref.current;
+    if (!active || !panel) return undefined;
+    const onWheel = (event) => {
+      event.stopPropagation();
+      const list = event.target.closest?.(".fnb-notifications-list");
+      const canScroll = list && (event.deltaY < 0
+        ? list.scrollTop > 0
+        : list.scrollTop + list.clientHeight < list.scrollHeight - 1);
+      if (!canScroll) event.preventDefault();
+    };
+    panel.addEventListener("wheel", onWheel, { passive: false });
+    return () => panel.removeEventListener("wheel", onWheel);
+  }, [ref, active]);
+}
+
 export function FloatingNotificationBell({ onOpenChat }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,6 +71,7 @@ export function FloatingNotificationBell({ onOpenChat }) {
   const [notificationError, setNotificationError] = useState("");
   const [authEnabled, setAuthEnabled] = useState(() => canUseBackendNotifications());
   const dropdownRef = useRef(null);
+  useContainWheel(dropdownRef, isOpen);
 
   const unreadChats = chats.filter((chat) => chat.unread);
 
@@ -207,19 +241,21 @@ export function FloatingNotificationBell({ onOpenChat }) {
                   key={notification.id}
                   type="button"
                   data-testid={`notification-${notification.type}-${notification.id}`}
-                  className={`fnb-item ${notification.isRead ? "" : "is-unread"}`}
+                  className={`fnb-item tone-${(TYPE_LOOK[notification.type] || ["bell", "blue"])[1]} ${notification.isRead ? "" : "is-unread"}`}
                   onClick={() => handleNotificationClick(notification)}
                 >
-                  <div className="fnb-item-avatar">
-                    {typeLabel(notification.type).slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="fnb-item-info">
-                    <div className="fnb-item-top">
-                      <strong>{notification.title}</strong>
-                      <small>{notification.time}</small>
-                    </div>
-                    <p>{notification.message || typeLabel(notification.type)}</p>
-                  </div>
+                  <span className="fnb-item-icon">
+                    <PackIcon name={(TYPE_LOOK[notification.type] || ["bell"])[0]} size={18} />
+                  </span>
+                  <span className="fnb-item-info">
+                    <span className="fnb-item-top">
+                      <small>{typeLabel(notification.type)}</small>
+                      <time>{notification.time}</time>
+                    </span>
+                    <strong>{notification.title}</strong>
+                    {notification.message ? <p>{notification.message}</p> : null}
+                  </span>
+                  {notification.isRead ? null : <i className="fnb-dot" aria-label="Новое" />}
                 </button>
               ))
             )}
@@ -246,16 +282,18 @@ export function FloatingNotificationBell({ onOpenChat }) {
                         if (onOpenChat) onOpenChat(chat.id);
                       }}
                     >
-                      <div className="fnb-item-avatar" style={{ background: chat.color || "#e46630" }}>
+                      <span className="fnb-item-icon is-avatar" style={{ background: chat.color || "#e46630" }}>
                         {(chatPartnerName(chat) || "J").slice(0, 2).toUpperCase()}
-                      </div>
-                      <div className="fnb-item-info">
-                        <div className="fnb-item-top">
-                          <strong>{chatPartnerName(chat)}</strong>
-                          <small>{chat.time || "Hozir"}</small>
-                        </div>
+                      </span>
+                      <span className="fnb-item-info">
+                        <span className="fnb-item-top">
+                          <small>Чат</small>
+                          <time>{chat.time || "Hozir"}</time>
+                        </span>
+                        <strong>{chatPartnerName(chat)}</strong>
                         <p>{lastMsg?.text || chat.preview || "Chat ochilgan"}</p>
-                      </div>
+                      </span>
+                      <i className="fnb-dot" aria-label="Новое" />
                     </button>
                   );
                 })

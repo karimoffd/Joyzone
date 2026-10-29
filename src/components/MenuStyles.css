@@ -76,20 +76,11 @@
   max-width: 240px;
 }
 
-.menu-sidebar-tagline {
-  display: inline-block;
-  font-size: 10.5px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #e46630;
-}
-
 .menu-sidebar-quote h3 {
   font-size: 18px;
   font-weight: 700;
   line-height: 1.45;
-  margin: 12px 0 0;
+  margin: 0;
   color: rgba(255, 255, 255, 0.9);
   letter-spacing: -0.2px;
 }

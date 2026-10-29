@@ -777,7 +777,7 @@ textarea {
   border-radius: 34px 34px 0 0;
   background:
     radial-gradient(circle at 16% 12%, rgba(228, 102, 48, 0.08), transparent 26rem),
-    #ffffff;
+    #f6f1ee;
   box-shadow: 0 -34px 84px rgba(7, 20, 35, 0.22);
 }
 
@@ -789,12 +789,12 @@ textarea {
   left: 0;
   height: 72px;
   background:
-    radial-gradient(72px 42px at calc(8% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%),
-    radial-gradient(96px 48px at calc(23% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%),
-    radial-gradient(80px 40px at calc(39% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%),
-    radial-gradient(110px 52px at calc(58% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%),
-    radial-gradient(78px 44px at calc(76% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%),
-    radial-gradient(90px 46px at calc(94% + var(--wave-shift)) 100%, #ffffff 62%, transparent 63%);
+    radial-gradient(72px 42px at calc(8% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%),
+    radial-gradient(96px 48px at calc(23% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%),
+    radial-gradient(80px 40px at calc(39% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%),
+    radial-gradient(110px 52px at calc(58% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%),
+    radial-gradient(78px 44px at calc(76% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%),
+    radial-gradient(90px 46px at calc(94% + var(--wave-shift)) 100%, #f6f1ee 62%, transparent 63%);
   pointer-events: none;
 }
 
@@ -809,14 +809,6 @@ textarea {
   text-align: center;
 }
 
-.listings-head p:first-child {
-  color: #e46630;
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 .listings-head h2 {
   margin-top: 4px;
   color: #294a6d;
@@ -829,7 +821,7 @@ textarea {
   color: #e46630;
 }
 
-.listings-head p:last-child {
+.listings-head .listings-sub {
   max-width: 560px;
   margin-top: 7px;
   color: rgba(18, 40, 63, 0.68);
@@ -1431,7 +1423,7 @@ textarea {
     font-size: 31px;
   }
 
-  .listings-head p:last-child {
+  .listings-head .listings-sub {
     display: none;
   }
 
@@ -1741,3 +1733,12 @@ textarea {
 
 /* Tailwind utilities last, as the former CDN build injected them after this file. */
 @tailwind utilities;
+
+/* Section links (#faq, #about...) land below the fixed navbar. */
+#about,
+#agents,
+#partner,
+#faq,
+#tariffs {
+  scroll-margin-top: 84px;
+}

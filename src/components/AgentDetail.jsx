@@ -21,13 +21,12 @@ function demoPartner(route) {
   const slug = route.replace(/^agent-/, "");
   const index = Math.max(0, partnerAgents.findIndex((agent) => agent.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") === slug));
   const agent = partnerAgents[index];
-  return { id: slug, name: agent.name, bio: agent.service, city: agent.city, places_count: agent.spaces, rating_avg: agent.rating, reviews_count: agent.reviews, places: [], reviews: [] };
+  return { id: slug, name: agent.name, bio: agent.service, places_count: agent.spaces, rating_avg: agent.rating, reviews_count: agent.reviews, places: [], reviews: [] };
 }
 import "./AgentDetail.css";
 
 function AgentIcon({ type }) {
   const paths = {
-    city: ["M4 21V7l8-4 8 4v14", "M8 21v-6h8v6", "M8 10h.01M12 10h.01M16 10h.01"],
     calendar: ["M7 3v4M17 3v4", "M4 8h16v13H4z", "M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01"],
     language: ["M4 5h9M9 3v2c0 4-2 7-5 9", "M5 9c1 3 3 5 7 6", "M13 21l4-9 4 9M15 17h4"],
     star: ["M12 3l2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.9z"],
@@ -129,7 +128,6 @@ function AgentDetail({ route, userState, setUserState }) {
   const agent = useMemo(() => ({
     name: partner?.name || "",
     service: partner?.bio || "",
-    city: partner?.city || "",
     rating: partner?.rating_avg || 0,
     reviews: partner?.reviews_count || 0,
     spaces: partner?.places_count || 0,
@@ -150,7 +148,6 @@ function AgentDetail({ route, userState, setUserState }) {
   }, [partner, image]);
 
   const profileStats = [
-    { icon: "city", label: "Shahar", value: agent.city || "—" },
     { icon: "flag", label: "Faol e'lonlar", value: agent.spaces },
     { icon: "star", label: "Reyting", value: agent.rating || "—" },
     { icon: "review", label: "Sharhlar", value: agent.reviews },

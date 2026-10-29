@@ -253,7 +253,7 @@
 
 .agent-profile-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
   max-width: none;
   margin: 0;
@@ -578,7 +578,6 @@
     grid-template-columns: 1fr;
   }
 
-  .agent-profile-grid,
   .agent-listings-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

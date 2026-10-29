@@ -14,7 +14,7 @@ const baseContent = {
     nav_profile: "Kabinet",
 
     hero_title: "O'zbekiston bo'ylab\nqulay",
-    hero_subtitle: "Tadbirkorlardan tortib global korxonalargacha butun dunyo bo'ylab yarim million a'zoga ega",
+    hero_subtitle: "Ofis, kovorking va zallarni bir joyda toping va onlayn bron qiling.",
     hero_cta: "Hozir boshlash",
     hero_animated_words: "ofislar, kovorking, zallar, joylar",
     home_partner_title: "Joyzone — bu faqat ijara emas.",
@@ -27,10 +27,9 @@ const baseContent = {
     popular_title: "Ommabop joylar",
     popular_subtitle: "Eng ko'p izlangan va band qilingan joylar",
     
-    how_title: "Bron qilish jarayoni",
-    how_step1: "Akkaunt yarating. Telefon yoki email orqali kiring, tasdiqlash kodini kiriting va Joyzone profilini soniyalar ichida ishga tushiring.",
-    how_step2: "Sizga mos joyni tanlang. Manzil, narx va qulayliklarni ko'rib, o'z uchrashuvingiz yoki ish kuningiz uchun eng mukammal muhitni belgilang.",
-    how_step3: "Bron so'rovini yuboring. Sana va vaqtni tanlab, qisqacha izoh qoldiring. Partnerimiz so'rovni darhol ko'rib, tasdiqlash uchun javob beradi.",
+    how_step1: "Telefon raqamingiz bilan kiring — SMS-koddan so'ng profilingiz tayyor.",
+    how_step2: "Format, narx va qulayliklar bo'yicha saralang va o'zingizga mos joyni tanlang.",
+    how_step3: "Sana va vaqtni belgilang, izoh qoldiring — joy egasi so'rovni tasdiqlaydi.",
     
     agent_title: "Top agentlar",
     agent_sub: "Joyzone'dagi eng faol va ishonchli joy egalari.",
@@ -41,11 +40,8 @@ const baseContent = {
 
     rev_title: "Sharhlar",
     faq_kicker: "FAQ",
-    faq_title: "Qisqacha asosiylari",
+    faq_title: "Ko'p beriladigan savollar",
 
-    partner_title: "Sizning joyingiz, bizning platforma",
-    partner_subtitle: "Joyzone bilan bron qilish endi shunchaki tugmani bosish emas, balki butun bir tajriba. Biz bilan har bir qadam jonli, issiq va qulay.",
-    partner_cta: "Hozir boshlash",
     
     auth_login_title: "Hush kelibsiz!",
     auth_login_sub: "Hisobingizga kirish uchun telefon raqamingiz yoki e-mail manzilingizni kiriting.",
@@ -85,7 +81,6 @@ const baseContent = {
     footer_link_about: "Biz haqimizda",
     footer_link_dirs: "Yo'nalishlar",
     footer_link_contact: "Kontaktlar",
-    footer_link_privacy: "Maxfiylik siyosati",
     
   },
   ru: {
@@ -100,7 +95,7 @@ const baseContent = {
     nav_profile: "Кабинет",
 
     hero_title: "По всему Узбекистану\nудобно",
-    hero_subtitle: "От предпринимателей до глобальных предприятий, полмиллиона пользователей по всему миру",
+    hero_subtitle: "Офисы, коворкинги и залы в одном месте — найдите и забронируйте онлайн.",
     hero_cta: "Начать сейчас",
     hero_animated_words: "офисы, коворкинги, залы, места",
     home_partner_title: "Joyzone — это больше, чем аренда.",
@@ -113,10 +108,9 @@ const baseContent = {
     popular_title: "Популярные места",
     popular_subtitle: "Самые просматриваемые и бронируемые места",
     
-    how_title: "Процесс бронирования",
-    how_step1: "Создайте аккаунт. Войдите через телефон или email и активируйте профиль за считанные секунды.",
-    how_step2: "Выберите подходящее место. Изучите адрес, цену и удобства для вашей идеальной рабочей среды.",
-    how_step3: "Отправьте запрос. Выберите дату и время, оставьте комментарий. Партнер мгновенно подтвердит заявку.",
+    how_step1: "Войдите по номеру телефона — после SMS-кода профиль готов.",
+    how_step2: "Отфильтруйте по формату, цене и удобствам и выберите подходящее место.",
+    how_step3: "Укажите дату и время, оставьте комментарий — владелец подтвердит заявку.",
     
     agent_title: "Топ агенты",
     agent_sub: "Самые активные и надёжные владельцы мест на Joyzone.",
@@ -127,11 +121,8 @@ const baseContent = {
 
     rev_title: "Отзывы",
     faq_kicker: "FAQ",
-    faq_title: "Самое важное",
+    faq_title: "Частые вопросы",
 
-    partner_title: "Ваше место, наша платформа",
-    partner_subtitle: "С Joyzone бронирование — это не просто клик, это целый опыт. С нами каждый шаг живой, теплый и удобный.",
-    partner_cta: "Начать сейчас",
     
     auth_login_title: "Добро пожаловать!",
     auth_login_sub: "Введите ваш номер телефона или e-mail для входа в систему.",
@@ -171,7 +162,6 @@ const baseContent = {
     footer_link_about: "О нас",
     footer_link_dirs: "Направления",
     footer_link_contact: "Контакты",
-    footer_link_privacy: "Политика конфиденциальности",
     
   },
   en: {
@@ -186,7 +176,7 @@ const baseContent = {
     nav_profile: "Profile",
 
     hero_title: "Across Uzbekistan\nconveniently",
-    hero_subtitle: "From entrepreneurs to global enterprises, half a million users worldwide",
+    hero_subtitle: "Find and book offices, coworkings and halls online — all in one place.",
     hero_cta: "Start Now",
     hero_animated_words: "offices, coworkings, halls, spaces",
     home_partner_title: "Joyzone is more than rental.",
@@ -199,10 +189,9 @@ const baseContent = {
     popular_title: "Popular Spaces",
     popular_subtitle: "Most viewed and booked spaces",
     
-    how_title: "Booking Process",
-    how_step1: "Create an account. Log in via phone or email and activate your profile in seconds.",
-    how_step2: "Choose a suitable space. Review address, price, and amenities for your perfect environment.",
-    how_step3: "Send a request. Pick a date and time, leave a comment. Our partner will confirm instantly.",
+    how_step1: "Sign in with your phone number — your profile is ready after the SMS code.",
+    how_step2: "Filter by format, price and amenities and pick the space that fits.",
+    how_step3: "Choose the date and time, add a note — the owner confirms your request.",
     
     agent_title: "Top agents",
     agent_sub: "The most active and trusted space owners on Joyzone.",
@@ -213,11 +202,8 @@ const baseContent = {
 
     rev_title: "Reviews",
     faq_kicker: "FAQ",
-    faq_title: "The Essentials",
+    faq_title: "Frequently asked questions",
 
-    partner_title: "Your space, our platform",
-    partner_subtitle: "With Joyzone, booking isn't just a click—it's an experience. Every step is lively, warm, and convenient.",
-    partner_cta: "Start Now",
     
     auth_login_title: "Welcome Back!",
     auth_login_sub: "Enter your phone number or email to log into your account.",
@@ -257,7 +243,6 @@ const baseContent = {
     footer_link_about: "About Us",
     footer_link_dirs: "Categories",
     footer_link_contact: "Contact",
-    footer_link_privacy: "Privacy Policy",
     
   }
 };

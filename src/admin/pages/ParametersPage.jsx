@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
+import { IconPicker } from "../IconPicker.jsx";
+import { PackIcon, resolveIconName } from "../../components/ui/iconPack.jsx";
 
 const API = "/api";
 const getHeaders = () => ({
@@ -238,6 +240,10 @@ function ParameterModal({ initial, groupId, groupName, onSave, onClose }) {
         )}
       </div>
 
+      <FormField label="Иконка" hint="Выберите из пакета Joyzone">
+        <IconPicker value={form.icon} hint={`${form.slug} ${form.name_ru} ${form.name_uz}`} onChange={(name) => set("icon", name)} />
+      </FormField>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <FormField label="Slug (URL ID параметра)" hint="Только латинские буквы и дефисы">
           <input className="param-input" value={form.slug} onChange={e => set("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder="wifi" />
@@ -314,7 +320,7 @@ function GroupCard({ group, onEdit, onDelete, onRefresh }) {
               <div key={param.id} className="param-item-card">
                 <div>
                   <h4 className="param-item-title">
-                    {param.icon && <span>{param.icon}</span>}
+                    <span className="param-item-icon"><PackIcon name={resolveIconName(param.icon, param.slug, param.name_ru)} size={16} /></span>
                     {param.name_ru}
                   </h4>
                   <p className="param-item-meta">/{param.slug} · #{param.order}</p>

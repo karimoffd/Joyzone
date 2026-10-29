@@ -2312,3 +2312,505 @@
     font-size: 14px;
   }
 }
+
+/* ===== Hero: calmer title, long words wrap, gallery fits one screen ===== */
+.sd-hero-copy {
+  min-width: 0;
+}
+
+.sd-hero h1 {
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+@media (min-width: 701px) {
+  .sd-hero h1 {
+    max-width: 560px;
+    font-size: clamp(30px, 3.2vw, 50px);
+    line-height: 1.08;
+    font-weight: 850;
+    letter-spacing: -0.015em;
+  }
+
+  .sd-hero p {
+    max-width: 480px;
+    margin: 16px 0 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .sd-location {
+    min-height: 40px;
+    padding: 0 16px 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 14px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .sd-location svg {
+    color: #ff9a6c;
+  }
+}
+
+/* Desktop: same side edges as the navbar, and the gallery fills the screen
+   height under the navbar (photo stretches, thumbnails keep their size). */
+@media (min-width: 1081px) {
+  .sd-hero {
+    --sd-edge: clamp(18px, 5.7vw, 100px);
+    grid-template-columns: minmax(360px, 0.6fr) minmax(0, 1.4fr);
+    gap: clamp(28px, 3vw, 56px);
+    height: 100svh;
+    min-height: 600px;
+    max-height: 1100px;
+    align-items: stretch;
+    padding: 96px var(--sd-edge) 22px;
+  }
+
+  .sd-hero-copy {
+    align-self: center;
+  }
+
+  .sd-gallery {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .sd-main-photo {
+    flex: 1;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  .sd-gallery-dots {
+    margin-top: 10px;
+  }
+
+  .sd-thumbs {
+    margin-top: 10px;
+  }
+
+  .sd-thumbs button {
+    height: clamp(84px, 13svh, 132px);
+  }
+
+  .sd-content {
+    padding-inline: clamp(18px, 5.7vw, 100px) !important;
+  }
+}
+
+/* ----- left column: location link, quick facts, booking CTA, host ----- */
+a.sd-location {
+  max-width: 100%;
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+a.sd-location span {
+  min-width: 0;
+}
+
+a.sd-location em {
+  flex-shrink: 0;
+  margin-left: 4px;
+  color: #ffb38f;
+  font-size: 12.5px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+a.sd-location:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Phones show these details below (stats + booking card). */
+@media (max-width: 700px) {
+  .sd-hero-panel {
+    display: none;
+  }
+
+  a.sd-location {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  a.sd-location em {
+    color: #e46630;
+  }
+}
+
+/* ===== Booking card: price receipt and lighter typography ===== */
+.sd-total-box {
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+}
+
+.sd-receipt-period {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(41, 74, 109, 0.1);
+  border-radius: 16px;
+  background: #fbf8f6;
+}
+
+.sd-receipt-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(228, 102, 48, 0.1);
+  color: #e46630;
+}
+
+.sd-receipt-period > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.sd-receipt-period small {
+  color: #7a8794;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sd-receipt-period b {
+  overflow: hidden;
+  color: #12283f;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-receipt-period em {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #294a6d;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(41, 74, 109, 0.1);
+}
+
+.sd-receipt-lines {
+  display: grid;
+  gap: 10px;
+  padding: 2px 4px;
+}
+
+.sd-total-box p,
+.sd-total-box .sd-receipt-lines p {
+  color: #61707e;
+  font-size: 14px;
+  font-weight: 450;
+}
+
+.sd-total-box p b {
+  color: #294a6d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sd-total-box p span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sd-total-box p.is-discount b {
+  color: #16a34a;
+}
+
+.sd-total-box p.is-discount i {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.sd-total-box > strong {
+  margin: 0 4px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(41, 74, 109, 0.22);
+  color: #12283f;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.sd-total-box > strong b {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.sd-price-row span,
+.sd-booking-card label span {
+  font-weight: 500;
+  font-size: 12.5px;
+}
+
+.sd-price-row strong {
+  font-weight: 800;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.sd-rating {
+  font-weight: 650;
+}
+
+.sd-duration-selector span {
+  font-weight: 650;
+}
+
+.sd-duration-selector small {
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.sd-calendar-title span {
+  font-weight: 600;
+}
+
+.sd-calendar-title strong {
+  font-weight: 700;
+}
+
+.sd-calendar-title small {
+  font-weight: 500;
+}
+
+.sd-calendar-head span {
+  font-weight: 600;
+}
+
+.sd-calendar-head strong {
+  font-weight: 750;
+}
+
+.sd-weekdays {
+  font-weight: 600;
+}
+
+.sd-calendar-day {
+  font-weight: 550;
+}
+
+.sd-calendar-day.is-selected,
+.sd-calendar-day.is-range-start,
+.sd-calendar-day.is-range-end {
+  font-weight: 750;
+}
+
+.sd-hour-panel-head span,
+.sd-hour-panel-head small,
+.sd-hour-slot span {
+  font-weight: 500;
+}
+
+.sd-hour-panel-head strong,
+.sd-hour-slot strong {
+  font-weight: 700;
+}
+
+.sd-booking-card input {
+  font-weight: 600;
+}
+
+.sd-booking-warning {
+  font-weight: 600;
+}
+
+.sd-primary-btn,
+.sd-secondary-btn {
+  font-weight: 750;
+}
+
+.sd-stat small {
+  font-weight: 600;
+}
+
+.sd-stat strong {
+  font-weight: 750;
+}
+
+/* Price + host: one white card under the location. */
+.sd-hero-panel {
+  max-width: 520px;
+  margin-top: 28px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(7, 20, 35, 0.28);
+}
+
+.sd-hero-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 18px 18px 22px;
+}
+
+.sd-hero-price > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.sd-hero-price small {
+  color: #7a8794;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sd-hero-price b {
+  overflow: hidden;
+  color: #12283f;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-hero-book {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 15px;
+  background: #e46630;
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(228, 102, 48, 0.3);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.sd-hero-book:hover {
+  background: #cf5522;
+  transform: translateY(-1px);
+}
+
+.sd-hero-host {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(41, 74, 109, 0.08);
+  background: #f8f5f2;
+  color: #12283f;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.sd-hero-host:hover {
+  background: #f2ece7;
+}
+
+.sd-hero-host-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #294a6d;
+  color: #ffffff;
+}
+
+.sd-hero-host-name {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-hero-host small {
+  color: #7a8794;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.sd-hero-host b {
+  overflow: hidden;
+  font-size: 14.5px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-hero-host em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff6dc;
+  color: #8a6100;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.sd-hero-host em svg {
+  width: 14px !important;
+  height: 14px !important;
+  color: #f5b301;
+  fill: currentColor;
+}
+
+.sd-hero-host i {
+  color: #94a3b8;
+  font-style: normal;
+  font-weight: 600;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.sd-hero-host:hover i {
+  color: #e46630;
+  transform: translateX(3px);
+}
+
+/* The navbar turns compact below 1200px with ~3vw side edges; follow it. */
+@media (min-width: 1081px) and (max-width: 1199px) {
+  .sd-hero {
+    padding-inline: 3vw;
+  }
+
+  .sd-content {
+    padding-inline: 3vw !important;
+  }
+}
+
+/* Long prices ("Haftasiga 2,100,000 UZS") wrap instead of being cut. */
+.sd-hero-price b {
+  overflow: visible;
+  white-space: normal;
+  line-height: 1.2;
+}

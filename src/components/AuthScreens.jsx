@@ -6,6 +6,28 @@ import { Logo, GoogleIcon, LangButton } from "./ui/Shared.jsx";
 import "./AuthScreens.css";
 import { navigate } from "../utils/router.js";
 
+// Tell the user what actually went wrong instead of a generic "error".
+function authErrorText(err, lang, stage) {
+  const ru = lang === "ru";
+  const status = err?.response?.status;
+  if (!err?.response) {
+    return ru ? "Нет связи с сервером. Проверьте интернет и попробуйте снова." : "Server bilan aloqa yo'q. Internetni tekshirib, qaytadan urinib ko'ring.";
+  }
+  if (status === 429) {
+    return ru ? "Слишком много попыток. Подождите минуту и попробуйте снова." : "Juda ko'p urinish. Bir daqiqa kutib, qaytadan urinib ko'ring.";
+  }
+  if (status === 503) {
+    return ru ? "Отправка SMS пока не подключена." : "SMS yuborish hali ulanmagan.";
+  }
+  if (stage === "verify" && status === 400) {
+    return ru ? "Неверный код или срок его действия истёк." : "Noto'g'ri kod yoki muddati o'tgan.";
+  }
+  if (stage === "send" && status === 400) {
+    return getApiErrorMessage(err, ru ? "Проверьте номер телефона." : "Telefon raqamini tekshiring.");
+  }
+  return getApiErrorMessage(err, ru ? "Что-то пошло не так. Попробуйте снова." : "Xatolik yuz berdi. Qaytadan urinib ko'ring.");
+}
+
 function AuthTitle({ title, accent = "", centered = false, compact = false }) {
   return (
     <h1 className={`${centered ? "text-center" : ""} ${compact ? "text-[33px] xl:text-[42px] min-[1400px]:text-[48px]" : "text-[37px] sm:text-[40px] xl:text-[50px] min-[1400px]:text-[64px]"} font-extrabold leading-[0.95] tracking-normal text-joyBlue`}>
@@ -34,6 +56,9 @@ function PrimaryButton({ children, type = "button", onClick, ...buttonProps }) {
     </button>
   );
 }
+
+// Google sign-in has no backend yet; the button stays hidden until it does.
+const GOOGLE_SIGN_IN_READY = false;
 
 function GoogleButton({ label = "Google orqali kirish" }) {
   return (
@@ -94,6 +119,7 @@ export function AuthForm({ onSuccess }) {
   const [step, setStep] = useState("phone"); // phone, otp, profile"
   const [phone, setPhone] = useState("+998 ");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [devOtpCode, setDevOtpCode] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [tokens, setTokens] = useState(null);
@@ -121,7 +147,10 @@ export function AuthForm({ onSuccess }) {
     if (!val) return "+";
     let raw = val.replace(/[^\d+]/g, "");
     if (!raw.startsWith("+")) raw = "+" + raw.replace(/\+/g, "");
-    const digitsOnly = raw.replace(/\D/g, "");
+    let digitsOnly = raw.replace(/\D/g, "");
+    // The field starts with "+998"; typing or pasting the full number again
+    // ("+998 90 ...", "998 90 ...") must not double the country code.
+    while (digitsOnly.startsWith("998998")) digitsOnly = digitsOnly.slice(3);
 
     if (digitsOnly.length === 0) return "+";
 
@@ -162,10 +191,14 @@ export function AuthForm({ onSuccess }) {
     const cleanPhone = phone.replace(/\s+/g, "");
     if (cleanPhone.length < 11) return;
     try {
-      await api.post("/api/auth/send-otp/", { phone_number: cleanPhone }, { skipAuth: true });
+      const res = await api.post("/api/auth/send-otp/", { phone_number: cleanPhone }, { skipAuth: true });
+      // Local development only: SMS is not connected yet, the server returns the code.
+      const devCode = String(res.data?.dev_code || "");
+      setDevOtpCode(devCode);
+      if (devCode.length === 6) setOtp(devCode.split(""));
       setStep("otp");
     } catch (err) {
-      alert("Xatolik yuz berdi!");
+      alert(authErrorText(err, lang, "send"));
     }
   };
 
@@ -222,7 +255,7 @@ export function AuthForm({ onSuccess }) {
         onSuccess(data.profile);
       }
     } catch (err) {
-      alert("Noto'g'ri kod yoki muddat o'tgan!");
+      alert(authErrorText(err, lang, "verify"));
     }
   };
 
@@ -236,7 +269,7 @@ export function AuthForm({ onSuccess }) {
       const data = res.data;
       onSuccess(data);
     } catch (err) {
-      alert("Xatolik yuz berdi!");
+      alert(authErrorText(err, lang, "profile"));
     }
   };
 
@@ -342,6 +375,12 @@ export function AuthForm({ onSuccess }) {
         <div className="mb-4 xl:mb-5 min-[1400px]:mb-5">
           <AuthTitle title={otpText.title} accent={otpText.accent} compact />
           <AuthSubtitle>{otpSub}</AuthSubtitle>
+          {devOtpCode ? (
+            <p className="auth-dev-code" role="status">
+              <span>{lang === 'uz' ? "Test rejimi — SMS hali ulanmagan" : "Тестовый режим — SMS ещё не подключены"}</span>
+              <b>{devOtpCode}</b>
+            </p>
+          ) : null}
         </div>
         <form onSubmit={handleOtpSubmit} className="space-y-5 xl:space-y-6 min-[1400px]:space-y-8">
           <div className="flex justify-center gap-2 sm:gap-3">
@@ -383,8 +422,12 @@ export function AuthForm({ onSuccess }) {
           onChange={handlePhoneChange}
           required
         />
-        <Divider label={db.auth_or || "yoki"} />
-        <GoogleButton label={db.auth_google || "Google orqali kirish"} />
+        {GOOGLE_SIGN_IN_READY ? (
+          <>
+            <Divider label={db.auth_or || "yoki"} />
+            <GoogleButton label={db.auth_google || "Google orqali kirish"} />
+          </>
+        ) : null}
         <PrimaryButton data-testid="auth-send-otp" type="submit">{db.auth_get_code || "Kodni olish"}</PrimaryButton>
         {demoAvailable ? (
           <button

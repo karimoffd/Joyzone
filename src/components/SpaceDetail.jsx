@@ -1,5 +1,6 @@
 import { formatMoney, weekdayLabels, buildHourlySlots, formatWorkingHours, toDateKey, fromDateKey, addDays, addMonths, getDefaultBookingDate, getMonthOffset, buildCalendarDays, buildDateRange, getDayDiff, formatShortDate, normalizeReview, getReviewFallback, isBlockingBooking } from "./spaceDetail/helpers.js";
 import { Icon, DetailStat, Stars } from "./spaceDetail/parts.jsx";
+import { PackIcon, resolveIconName } from "./ui/iconPack.jsx";
 import React, { useCallback, useEffect, useMemo, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
@@ -1137,7 +1138,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   if (placeLoading) {
     return (
       <main className="space-detail-shell">
-        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={2} />
         <section className="sd-section" style={{ maxWidth: 1180, margin: "40px auto", padding: "28px" }}>
           <div className="sd-section-head">
             <p>Joyzone</p>
@@ -1152,13 +1153,13 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   if (placeEmpty) {
     return (
       <main className="space-detail-shell">
-        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+        <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={2} />
         <section className="sd-section" style={{ maxWidth: 1180, margin: "40px auto", padding: "28px" }}>
           <div className="sd-section-head">
             <p>Joy topilmadi</p>
             <h2>{placeError || "Место не найдено или ещё не опубликовано."}</h2>
           </div>
-          <a className="sd-primary-btn" href="#spaces">Barcha joylarni ko'rish</a>
+          <a className="sd-primary-btn" href="/filter">Barcha joylarni ko'rish</a>
         </section>
         <JoyFooter />
       </main>
@@ -1167,7 +1168,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
 
   return (
     <main className="space-detail-shell">
-      <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={1} />
+      <JoyNavbar userState={userState} setUserState={setUserState} activeIndex={2} />
 
       {[placeError, parametersError, discountError, detailError].filter(Boolean).map((message) => (
         <div key={message} style={{ margin: "18px auto 0", maxWidth: 1180, padding: "10px 12px", borderRadius: 10, background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>
@@ -1184,11 +1185,49 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           </div>
           <h1>{space.title}</h1>
           <p>
-            {space.location} hududidagi tayyor maydon. Jamoaviy ish, uchrashuv, taqdimot va qisqa muddatli ijara uchun qulay.
+            {lang === 'uz'
+              ? "Jamoaviy ish, uchrashuv, taqdimot va qisqa muddatli ijara uchun tayyor maydon."
+              : "Готовое пространство для командной работы, встреч, презентаций и краткосрочной аренды."}
           </p>
-          <div className="sd-location">
+          <a
+            className="sd-location"
+            href={space.latitude && space.longitude
+              ? `https://www.google.com/maps?q=${space.latitude},${space.longitude}`
+              : `https://www.google.com/maps/search/${encodeURIComponent(space.location || "")}`}
+            target="_blank"
+            rel="noreferrer"
+          >
             <Icon type="map" />
-            {space.location}
+            <span>{space.location}</span>
+            <em>{lang === 'uz' ? "Xaritada" : "На карте"} ↗</em>
+          </a>
+
+          <div className="sd-hero-panel">
+            <div className="sd-hero-price">
+              <span>
+                <small>{availableDurations[0]?.label || "Kunlik"} {lang === 'uz' ? "narx" : "цена"}</small>
+                <b>{availableDurations[0]?.price || space.price}</b>
+              </span>
+              <button
+                type="button"
+                className="sd-hero-book"
+                onClick={() => document.querySelector(".sd-booking")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                <Icon type="calendar" />
+                {lang === 'uz' ? "Bron qilish" : "Забронировать"}
+              </button>
+            </div>
+            {space.owner_id ? (
+              <a className="sd-hero-host" href={`/agent-${space.owner_id}`}>
+                <span className="sd-hero-host-avatar"><PackIcon name="user" /></span>
+                <span className="sd-hero-host-name">
+                  <small>{lang === 'uz' ? "Joy egasi" : "Владелец"}</small>
+                  <b>{space.owner_name}</b>
+                </span>
+                <em><Icon type="star" />{reviewsCount > 0 ? averageRating : (lang === 'uz' ? "Yangi" : "Новый")}</em>
+                <i aria-hidden="true">→</i>
+              </a>
+            ) : null}
           </div>
         </div>
 
@@ -1291,7 +1330,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 return (
                   <DetailStat 
                     key={p.slug}
-                    icon={p.icon || "layers"} 
+                    icon={resolveIconName(p.icon, p.slug, p.name_ru)} 
                     label={lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)} 
                     value={valText} 
                   />
@@ -1299,7 +1338,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               })}
 
             <DetailStat icon="clock" label={lang === 'uz' ? "Ish vaqti" : "Часы работы"} value={formatWorkingHours(space.opens_at, space.closes_at)} />
-            <DetailStat icon="clock" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
+            <DetailStat icon="calendar" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
             <DetailStat icon="shield" label="Status" value={space.status === "approved" ? (lang === 'uz' ? "Faol" : "Активен") : (lang === 'uz' ? "Tekshirilmoqda" : "Модерация")} />
           </div>
 
@@ -1331,7 +1370,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
               ) : (
                 selectedAmenities.slice(0, 8).map((p) => (
                   <span key={p.slug}>
-                    <Icon type={p.icon || "check-circle"} />
+                    <PackIcon name={resolveIconName(p.icon, p.slug, p.name_ru)} />
                     {lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)}
                   </span>
                 ))
@@ -1613,38 +1652,33 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                   {availabilityError}
                 </div>
               ) : null}
-              <div className="sd-rate-breakdown">
-                <span>
-                  {bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} narxlar hisobi
-                </span>
-                {dailyRatesBreakdown.length > 0 ? dailyRatesBreakdown.map((item, idx) => (
-                  <div key={`${item.date}-${idx}`}>
-                    <small>{item.date}</small>
-                    <b>{formatMoney(item.rate)}</b>
-                  </div>
-                )) : (
-                  <div>
-                    <small>{bookingDuration === "soatlik" ? "Vaqt tanlang" : "Sana tanlang"}</small>
-                    <b>{formatMoney(0)}</b>
-                  </div>
-                )}
+              <div className="sd-receipt-period">
+                <span className="sd-receipt-icon"><Icon type="calendar" /></span>
+                <div>
+                  <small>{bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} ijara</small>
+                  <b>{dailyRatesBreakdown[0]?.date || (bookingDuration === "soatlik" ? "Vaqt tanlang" : "Sana tanlang")}</b>
+                </div>
+                <em>{bookingUnitLabel}</em>
               </div>
-              <p>
-                <span>{lang === 'uz' ? "Ijara summasi" : "Аренда"}</span>
-                <b>{formatMoney(totalPrice)}</b>
-              </p>
-              {discountAmount > 0 && activeAppliedDiscount && (
-                <p style={{ color: "#22c55e" }}>
-                  <span>
-                    Chegirma ({lang === 'uz' ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : (activeAppliedDiscount.name_ru || activeAppliedDiscount.name_uz)}) -{activeAppliedDiscount.percent}%
-                  </span>
-                  <b>-{formatMoney(discountAmount)}</b>
+              <div className="sd-receipt-lines">
+                <p>
+                  <span>{lang === 'uz' ? "Ijara summasi" : "Аренда"}</span>
+                  <b>{formatMoney(totalPrice)}</b>
                 </p>
-              )}
-              <p>
-                <span>{lang === 'uz' ? "Servis to'lovi" : "Сервисный сбор"}</span>
-                <b>{formatMoney(serviceFee)}</b>
-              </p>
+                {discountAmount > 0 && activeAppliedDiscount && (
+                  <p className="is-discount">
+                    <span title={lang === 'uz' ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : (activeAppliedDiscount.name_ru || activeAppliedDiscount.name_uz)}>
+                      {lang === 'uz' ? "Chegirma" : "Скидка"}
+                      <i>-{activeAppliedDiscount.percent}%</i>
+                    </span>
+                    <b>-{formatMoney(discountAmount)}</b>
+                  </p>
+                )}
+                <p>
+                  <span>{lang === 'uz' ? "Servis to'lovi" : "Сервисный сбор"}</span>
+                  <b>{formatMoney(serviceFee)}</b>
+                </p>
+              </div>
               {hasBlockedDay && (
                 <div className="sd-booking-warning">
                   {lang === 'uz' ? "Diqqat: Tanlangan davr ichida band qilingan kunlar bor." : "Внимание: В выбранный период есть занятые дни."}
@@ -1838,7 +1872,7 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 ) : (
                   selectedAmenities.map((p) => (
                     <div key={p.slug} className="sd-modal-amenity-card">
-                      <Icon type={p.icon || "check-circle"} />
+                      <PackIcon name={resolveIconName(p.icon, p.slug, p.name_ru)} />
                       <span>{lang === 'uz' ? (p.name_uz || p.name_ru) : (p.name_ru || p.name_uz)}</span>
                     </div>
                   ))

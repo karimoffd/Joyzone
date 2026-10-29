@@ -232,7 +232,7 @@ class PlaceViewSet(viewsets.ModelViewSet):
         return self._apply_place_filters(qs)
 
     POPULAR_LIMIT = 8
-    POPULAR_AD_SLOTS = (1, 5)  # second card of each row of four
+    POPULAR_AD_SLOTS = (0, 1)  # ads lead the list
 
     @extend_schema(
         responses=inline_serializer(

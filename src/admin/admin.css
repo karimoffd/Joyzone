@@ -1027,3 +1027,20 @@ select.param-input { -webkit-appearance:none; -moz-appearance:none; appearance:n
 }
 
 
+
+/* ===== Icon picker (parameters / amenities) ===== */
+.icon-picker { display:grid; gap:10px; padding:12px; border:1.5px solid #e2e8f0; border-radius:14px; background:#f8fafc; }
+.icon-picker-top { display:flex; gap:10px; align-items:center; }
+.icon-picker-current { display:grid; place-items:center; flex-shrink:0; width:44px; height:44px; border-radius:12px; background:#e46630; color:#fff; }
+.icon-picker-search { position:relative; flex:1; display:flex; align-items:center; gap:8px; height:44px; padding:0 12px; border:1.5px solid #e2e8f0; border-radius:10px; background:#fff; color:#94a3b8; }
+.icon-picker-search:focus-within { border-color:var(--orange); box-shadow:0 0 0 3px rgba(228,102,48,0.1); }
+.icon-picker-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; font:inherit; font-size:14px; color:#1a1a2e; }
+.icon-picker-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(88px, 1fr)); gap:6px; max-height:236px; overflow-y:auto; padding-right:2px; }
+.icon-picker-grid button { display:grid; justify-items:center; gap:6px; padding:10px 4px 8px; border:1.5px solid transparent; border-radius:10px; background:#fff; color:#294a6d; cursor:pointer; transition:border-color .15s, background .15s, color .15s; }
+.icon-picker-grid button span { max-width:100%; overflow:hidden; font-size:11px; font-weight:600; color:#64748b; text-overflow:ellipsis; white-space:nowrap; }
+.icon-picker-grid button:hover { border-color:#cbd5e1; }
+.icon-picker-grid button.is-active { border-color:#e46630; background:#fff4ee; color:#e46630; }
+.icon-picker-grid button.is-active span { color:#e46630; }
+.icon-picker-empty, .icon-picker-note { margin:0; font-size:12px; color:#94a3b8; }
+.icon-picker-empty { grid-column:1 / -1; padding:16px; text-align:center; }
+.param-item-icon { display:inline-grid; place-items:center; width:26px; height:26px; margin-right:6px; border-radius:8px; background:#fff4ee; color:#e46630; vertical-align:middle; }

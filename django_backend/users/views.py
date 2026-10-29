@@ -202,7 +202,12 @@ class SendOTPView(OTPThrottleResponseMixin, APIView):
                     login_cache_identifier(phone)[:12],
                 )
             
-            return Response({"detail": "OTP sent successfully."})
+            data = {"detail": "OTP sent successfully."}
+            # SMS is not wired up yet: a local DEBUG server hands the code back
+            # so the registration screen can show it. Never on DEBUG=False.
+            if settings.DEBUG and settings.DEV_OTP_CONSOLE_LOG_ENABLED:
+                data["dev_code"] = otp_code
+            return Response(data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyOTPView(OTPThrottleResponseMixin, APIView):

@@ -86,17 +86,8 @@ export default function HomeHero({ userState, setUserState, slides }) {
     return () => { cancelled = true; };
   }, []);
 
-  const backendSlides = homePlaces
-    .filter((place) => Array.isArray(place.images) && place.images.length > 0)
-    .slice(0, 5)
-    .map((place) => ({
-      eyebrow: place.category_name || place.subcategory_name || "Joyzone",
-      title: place.title,
-      image: place.images[0],
-    }));
-  const heroSlides = backendSlides.length > 0
-    ? backendSlides
-    : (usingDevFallback ? slides : []);
+  // The hero always shows the three curated interiors (office, coworking, hall).
+  const heroSlides = slides;
   const cms = content?.[lang] || {};
 
   useEffect(() => {

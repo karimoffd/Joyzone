@@ -170,6 +170,15 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
     gsap.fromTo(headerRef.current, { y: -60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" });
   }, []);
 
+  // Once the page scrolls, the bar docks to the top edge (see .is-scrolled).
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const statusLabel = isDashboard
     ? "Home"
     : userState.isAuthed
@@ -179,7 +188,7 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
 
   return (
     <>
-      <header ref={headerRef} className={`joy-header ${isDashboard ? "joy-header-dashboard" : ""}`}>
+      <header ref={headerRef} className={`joy-header ${isDashboard ? "joy-header-dashboard" : ""} ${isScrolled && !isDashboard ? "is-scrolled" : ""}`}>
         <div className="container-fluid">
           <div className="nav-hover-zone">
             <nav className="navbar d-flex justify-content-between align-items-center">
@@ -452,8 +461,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
           
           <div className="menu-sidebar-content">
             <div className="menu-sidebar-quote">
-              <span className="menu-sidebar-tagline">{cms.menu_tagline || "Premium Spaces"}</span>
-              <h3>{cms.menu_headline || "O'zbekistondagi eng yaxshi ofislar, kovorkinglar va dam olish maskanlari"}</h3>
+              <h3>{cms.menu_headline || "O'zbekistondagi eng yaxshi ofislar va kovorkinglar"}</h3>
             </div>
             
             <div className="menu-sidebar-footer">
@@ -598,7 +606,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                 </div>
 
                 <nav className="menu-nav">
-                  <span className="menu-nav-eyebrow">{isDashboard ? "Profil bo'limlari" : (cms.menu_nav_eyebrow || "Navigatsiya")}</span>
+                  {isDashboard ? <span className="menu-nav-eyebrow">Profil bo'limlari</span> : null}
                   <ul className="menu-nav-list">
                     {currentMenuLinks.map((link) => {
                       const icon = isDashboard ? profileNavIcons[link.label] : menuIconMap[link.icon];

@@ -1,21 +1,19 @@
+// Home hero: one empty, well-lit interior per category (no people).
 export const slides = [
   {
-    eyebrow: "Conference rooms",
-    title: "Premium uchrashuvlar uchun tayyor zallar",
-    image:
-      "https://images.unsplash.com/photo-1758711516684-e7a87556015e?auto=format&fit=crop&w=1400&q=88"
+    eyebrow: "Ofislar",
+    title: "Jamoangiz uchun tayyor zamonaviy ofislar",
+    image: "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1600&q=85"
   },
   {
-    eyebrow: "Coworking",
-    title: "Jamoalar uchun yorug' va qulay ish maydoni",
-    image:
-      "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=88"
+    eyebrow: "Kovorking",
+    title: "Yorug' va qulay kovorking zonalari",
+    image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1600&q=85"
   },
   {
-    eyebrow: "Apartments",
-    title: "Safarlar, uchrashuvlar va dam olish bir joyda",
-    image:
-      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=88"
+    eyebrow: "Konferens-zallar",
+    title: "Uchrashuv va taqdimotlar uchun zallar",
+    image: "https://images.unsplash.com/photo-1431540015161-0bf868a2d407?auto=format&fit=crop&w=1600&q=85"
   }
 ];
 

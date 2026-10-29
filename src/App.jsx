@@ -258,12 +258,25 @@ function AppContent() {
     
     // Smooth scroll to hash or top on route mount
     const currentHash = window.location.hash.replace("#", "");
-    const targetEl = currentHash ? document.getElementById(currentHash) : null;
-    
-    if (targetEl) {
-      setTimeout(() => {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
+    const hashTimers = [];
+
+    if (currentHash) {
+      // Home sections (FAQ, contacts...) render after their data loads and push
+      // each other down, so wait for the target and correct once layout settles.
+      // The jump is instant: the home page's screen-snap logic interrupts a
+      // smooth scroll as soon as it passes the first screen.
+      let tries = 0;
+      const jump = (el) => el.scrollIntoView({ behavior: "instant", block: "start" });
+      const scrollToTarget = () => {
+        const targetEl = document.getElementById(currentHash);
+        if (!targetEl) {
+          if (tries++ < 30) hashTimers.push(setTimeout(scrollToTarget, 100));
+          return;
+        }
+        jump(targetEl);
+        hashTimers.push(setTimeout(() => jump(targetEl), 900));
+      };
+      hashTimers.push(setTimeout(scrollToTarget, 100));
     } else {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
@@ -294,7 +307,7 @@ function AppContent() {
         }
       );
     }
-    return undefined;
+    return () => hashTimers.forEach(clearTimeout);
   }, [displayedRoute, bootLoading]);
 
   useEffect(() => {

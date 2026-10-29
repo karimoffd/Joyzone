@@ -1054,7 +1054,7 @@ class PopularPlacesApiTests(TestCase):
         extra.setdefault('status', 'approved')
         return Place.objects.create(owner=self.owner, title=title, location='Toshkent', area=10, people=2, **extra)
 
-    def test_returns_eight_places_with_at_most_two_ads_in_fixed_slots(self):
+    def test_returns_eight_places_with_two_ads_first(self):
         organic = [self._place(f'Organic {index}') for index in range(9)]
         ads = [self._place(f'Ad {index}', promoted=True) for index in range(3)]
         self._place('Hidden', status='pending')
@@ -1067,9 +1067,9 @@ class PopularPlacesApiTests(TestCase):
         self.assertEqual(len(results), 8)
         self.assertEqual(response.data['total'], 12)
         ad_positions = [index for index, item in enumerate(results) if item['is_ad']]
-        self.assertEqual(ad_positions, [1, 5])
+        self.assertEqual(ad_positions, [0, 1])
         self.assertTrue(all(item['id'] in {ad.id for ad in ads} for item in results if item['is_ad']))
-        self.assertEqual(results[0]['title'], 'Organic 4')
+        self.assertEqual(results[2]['title'], 'Organic 4')
         self.assertNotIn('Hidden', [item['title'] for item in results])
 
     def test_without_ads_all_slots_are_organic(self):
@@ -1096,3 +1096,30 @@ class PopularPlacesApiTests(TestCase):
 
         # 25 random draws of 2 out of 10 ads practically always cover more than one pair.
         self.assertGreater(len(seen), 2)
+
+    def test_home_slider_returns_eight_partners_with_two_ads_first(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from tariffs.models import TariffPlan
+
+        User = get_user_model()
+        premium = TariffPlan.objects.create(slug='premium', name='Premium', price=500000)
+        ads = set()
+        for index in range(10):
+            paid = index < 3
+            owner = User.objects.create_user(
+                username=f'+99890999{index:04d}', password='pass', role='partner', company_name=f'Co {index}',
+                tariff=premium if paid else None,
+                tariff_expires_at=timezone.now() + timedelta(days=10) if paid else None,
+            )
+            Place.objects.create(owner=owner, title=f'Hub {index}', location='Toshkent', area=10, people=2, status='approved')
+            if paid:
+                ads.add(owner.id)
+
+        response = self.client.get('/api/partners/', {'home': 1})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 8)
+        self.assertEqual([item['is_ad'] for item in response.data], [True, True] + [False] * 6)
+        self.assertTrue({item['id'] for item in response.data[:2]} <= ads)
+        self.assertEqual(len({item['id'] for item in response.data}), 8)
