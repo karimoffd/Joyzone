@@ -93,6 +93,9 @@ def prices_dict(place):
 
 
 def primary_price_text(place):
+    if getattr(place, 'is_for_sale', False):
+        sale_price = getattr(place, 'sale_price', None)
+        return f'{_format_amount(sale_price)} {place.currency or "UZS"}' if sale_price is not None else ''
     for field_name in PRIMARY_PRICE_ORDER:
         value = getattr(place, field_name)
         if value is not None:

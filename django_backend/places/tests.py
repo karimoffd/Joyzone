@@ -26,7 +26,7 @@ class SubCategorySerializerTests(TestCase):
         )
         subcategory = SubCategory.objects.create(
             category=category,
-            slug='hot-desk',
+            slug='hot-desk-test',
             name_uz='Erkin joy',
             name_ru='Свободное место',
             name_en='Hot desk',
@@ -1123,3 +1123,201 @@ class PopularPlacesApiTests(TestCase):
         self.assertEqual([item['is_ad'] for item in response.data], [True, True] + [False] * 6)
         self.assertTrue({item['id'] for item in response.data[:2]} <= ads)
         self.assertEqual(len({item['id'] for item in response.data}), 8)
+
+
+class SaleListingTests(TestCase):
+    """Places in a sale category have one sale price and are never booked."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.partner = User.objects.create_user(username='+998901239001', password='pass', role='partner')
+        self.buyer = User.objects.create_user(username='+998901239002', password='pass', role='client')
+        self.client = APIClient()
+        self.client.force_authenticate(self.partner)
+        sale = Category.objects.create(slug='sale-test', name_uz='Sotuv', name_ru='Продажа', name_en='Sale', deal_types='sale')
+        rent = Category.objects.create(slug='rent-test', name_uz='Ofis', name_ru='Офис', name_en='Office')
+        self.sale_sub = SubCategory.objects.create(category=sale, slug='sale-office-test', name_uz='Ofis', name_ru='Офис', name_en='Office')
+        self.rent_sub = SubCategory.objects.create(category=rent, slug='rent-office-test', name_uz='Ofis', name_ru='Офис', name_en='Office')
+
+    def payload(self, **extra):
+        return {
+            'title': 'Ofis sotiladi', 'location': 'Toshkent', 'area': 120, 'people': 15,
+            'images': [], 'subcategory': self.sale_sub.id, **extra,
+        }
+
+    def test_sale_listing_requires_sale_price(self):
+        response = self.client.post('/api/places/', self.payload(), format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('sale_price', response.data)
+
+    def test_sale_listing_keeps_only_sale_price(self):
+        response = self.client.post('/api/places/', self.payload(
+            sale_price='1500000000', price_daily='300000', booking_type='instant',
+        ), format='json')
+
+        self.assertEqual(response.status_code, 201)
+        place = Place.objects.get(pk=response.data['id'])
+        self.assertEqual(place.sale_price, 1500000000)
+        self.assertIsNone(place.price_daily)
+        self.assertEqual(place.booking_type, 'request')
+        self.assertEqual(response.data['deal_type'], 'sale')
+        self.assertEqual(response.data['price'], '1500000000 UZS')
+
+    def test_rent_listing_drops_sale_price(self):
+        response = self.client.post('/api/places/', self.payload(
+            subcategory=self.rent_sub.id, price_daily='300000', sale_price='999',
+        ), format='json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(Place.objects.get(pk=response.data['id']).sale_price)
+        self.assertEqual(response.data['deal_type'], 'rent')
+
+    def test_sale_listing_cannot_be_booked(self):
+        place = Place.objects.create(
+            owner=self.partner, title='Sotuvdagi ofis', location='Toshkent', area=80, people=10,
+            subcategory=self.sale_sub, deal_type='sale', sale_price=900000000, status='approved',
+        )
+        buyer_client = APIClient()
+        buyer_client.force_authenticate(self.buyer)
+        start = timezone.now() + timedelta(days=3)
+
+        response = buyer_client.post('/api/bookings/', {
+            'place': place.id, 'duration_type': 'daily',
+            'start_time': start.isoformat(), 'end_time': (start + timedelta(hours=8)).isoformat(),
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('place', response.data)
+        self.assertFalse(Booking.objects.filter(place=place).exists())
+
+    def test_deal_type_filter_and_sale_price_range(self):
+        sale = Place.objects.create(
+            owner=self.partner, title='Sale', location='Toshkent', area=80, people=10,
+            subcategory=self.sale_sub, deal_type='sale', sale_price=900000000, status='approved',
+        )
+        rent = Place.objects.create(
+            owner=self.partner, title='Rent', location='Toshkent', area=80, people=10,
+            subcategory=self.rent_sub, price_daily=300000, status='approved',
+        )
+        public = APIClient()
+
+        def ids(params):
+            data = public.get('/api/places/', params).data
+            return {item['id'] for item in (data['results'] if isinstance(data, dict) else data)}
+
+        self.assertEqual(ids({'deal_type': 'sale'}), {sale.id})
+        self.assertEqual(ids({'deal_type': 'rent'}), {rent.id})
+        self.assertEqual(ids({'min_price': 500000000}), {sale.id})
+
+    def test_category_with_both_deals_lets_the_listing_choose(self):
+        both = Category.objects.create(slug='both-test', name_uz='Savdo', name_ru='Торговля', name_en='Retail', deal_types='both')
+        shop = SubCategory.objects.create(category=both, slug='shop-test', name_uz="Do'kon", name_ru='Магазин', name_en='Shop')
+
+        sold = self.client.post('/api/places/', self.payload(subcategory=shop.id, deal_type='sale', sale_price='700000000'), format='json')
+        # A second partner, so the one-listing tariff limit does not apply.
+        other = APIClient()
+        other.force_authenticate(get_user_model().objects.create_user(username='+998901239003', password='pass', role='partner'))
+        rented = other.post('/api/places/', self.payload(subcategory=shop.id, price_monthly='9000000'), format='json')
+
+        self.assertEqual(sold.status_code, 201)
+        self.assertEqual(sold.data['deal_type'], 'sale')
+        self.assertEqual(rented.status_code, 201)
+        self.assertEqual(rented.data['deal_type'], 'rent')
+        self.assertIsNone(rented.data['sale_price'])
+
+    def test_rent_only_category_rejects_a_sale_listing(self):
+        response = self.client.post('/api/places/', self.payload(
+            subcategory=self.rent_sub.id, deal_type='sale', sale_price='500000000',
+        ), format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('deal_type', response.data)
+
+    def test_area_and_characteristic_filters(self):
+        big = Place.objects.create(
+            owner=self.partner, title='Big', location='Toshkent', area=1200, people=10, subcategory=self.rent_sub,
+            price_monthly=50000000, status='approved',
+            characteristics={'ceiling_height': 9, 'temperature': 'isitiladi'},
+        )
+        Place.objects.create(
+            owner=self.partner, title='Small', location='Toshkent', area=60, people=5, subcategory=self.rent_sub,
+            price_monthly=9000000, status='approved',
+            characteristics={'ceiling_height': 3, 'temperature': 'isitilmaydi'},
+        )
+        public = APIClient()
+
+        def ids(params):
+            data = public.get('/api/places/', params).data
+            return {item['id'] for item in (data['results'] if isinstance(data, dict) else data)}
+
+        self.assertEqual(ids({'min_area': 1000}), {big.id})
+        self.assertEqual(ids({'char_min': 'ceiling_height:6'}), {big.id})
+        self.assertEqual(ids({'char': 'temperature:isitiladi'}), {big.id})
+
+
+class MarketplaceCatalogTests(TestCase):
+    def test_migration_seeds_six_categories_with_their_deals(self):
+        deals = dict(Category.objects.filter(
+            slug__in=('ofis', 'kovorking', 'zal-tadbir', 'savdo', 'tijorat', 'ombor'),
+        ).values_list('slug', 'deal_types'))
+
+        self.assertEqual(deals, {
+            'ofis': 'both', 'kovorking': 'rent', 'zal-tadbir': 'rent',
+            'savdo': 'both', 'tijorat': 'both', 'ombor': 'both',
+        })
+        warehouse = SubCategory.objects.get(slug='ombor')
+        self.assertTrue(warehouse.parameters.filter(slug='ceiling_height').exists())
+        self.assertGreaterEqual(SubCategory.objects.filter(category__slug='savdo').count(), 5)
+
+    def test_seed_marketplace_fills_every_category(self):
+        from django.core.management import call_command
+        from io import StringIO
+        call_command('seed_marketplace', stdout=StringIO())
+        call_command('seed_marketplace', stdout=StringIO())
+
+        for slug in ('ofis', 'kovorking', 'zal-tadbir', 'savdo', 'tijorat', 'ombor'):
+            self.assertTrue(Place.objects.filter(subcategory__category__slug=slug, status='approved').exists(), slug)
+        self.assertTrue(Place.objects.filter(deal_type='sale', sale_price__gt=0).exists())
+        self.assertFalse(Place.objects.filter(deal_type='sale', price_monthly__isnull=False).exists())
+
+
+class CategoryFilterConfigTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        User = get_user_model()
+        self.admin = User.objects.create_user(username='filter-admin', password='pass', role='admin')
+        self.category = Category.objects.create(slug='filter-cat', name_uz='F', name_ru='Ф', name_en='F')
+        self.url = f'/api/categories/{self.category.id}/'
+
+    def test_admin_saves_filter_config_in_clean_shape(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(self.url, {'filter_config': {
+            'base': {'area': False, 'price': 1, 'unknown': True},
+            'labels': {'price': '  Narxi ', 'area': '', 'durations': 'x'},
+            'area_ranges': [{'min': '', 'max': '50'}, {'min': 50, 'max': None}],
+            'params': {'ceiling_height': {'show': True, 'order': '2', 'steps': [6, '3', 3]}, 'wifi': {'separate': True}},
+            'junk': 1,
+        }}, format='json')
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.filter_config, {
+            'base': {'area': False, 'price': True},
+            'labels': {'price': 'Narxi'},
+            'area_ranges': [{'min': None, 'max': 50}, {'min': 50, 'max': None}],
+            'params': {'ceiling_height': {'show': True, 'order': 2, 'steps': [3, 6]}, 'wifi': {'separate': True}},
+        })
+        self.assertEqual(self.client.get(self.url).data['filter_config'], self.category.filter_config)
+
+    def test_rejects_area_range_where_min_is_not_below_max(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(self.url, {'filter_config': {'area_ranges': [{'min': 100, 'max': 50}]}}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_non_admin_cannot_change_filter_config(self):
+        User = get_user_model()
+        partner = User.objects.create_user(username='filter-partner', password='pass', role='partner')
+        self.client.force_authenticate(partner)
+        response = self.client.patch(self.url, {'filter_config': {'base': {'price': False}}}, format='json')
+        self.assertEqual(response.status_code, 403)

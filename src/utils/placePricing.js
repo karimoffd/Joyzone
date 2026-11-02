@@ -94,7 +94,13 @@ export function getPlacePriceValues(place = {}) {
   return values.map(parseMoneyValue).filter((value) => value !== null);
 }
 
+// Places in a sale category (deal_type "sale") have one sale price and no rent.
+export function isSalePlace(place = {}) {
+  return place?.deal_type === "sale";
+}
+
 export function getPrimaryPlacePriceValue(place = {}) {
+  if (isSalePlace(place)) return parseMoneyValue(place.sale_price);
   const directValue = [
     place.price_daily,
     place.price_hourly,

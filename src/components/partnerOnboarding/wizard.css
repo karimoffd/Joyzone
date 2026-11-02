@@ -1124,3 +1124,58 @@
 @media (max-width: 480px) {
   .pow-hide-mobile { display: none; }
 }
+
+/* Sale listing: one wide price field instead of the rental tiers. */
+.pow-sale-price {
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  padding: 16px 18px;
+}
+
+.pow-sale-price-label {
+  display: grid;
+  gap: 2px;
+}
+
+.pow-sale-price-label strong {
+  color: #12283f;
+  font-size: 15px;
+}
+
+.pow-sale-price-label small {
+  color: #7a8794;
+  font-size: 12.5px;
+}
+
+@media (max-width: 640px) {
+  .pow-sale-price { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Rent or sell, for categories that allow both */
+.pow-deal-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: #f1f4f8;
+}
+.pow-deal-switch button {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: #4a5d72;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+}
+.pow-deal-switch button strong { font-size: 14.5px; font-weight: 700; }
+.pow-deal-switch button small { font-size: 12.5px; color: #8292a3; }
+.pow-deal-switch button.is-active {
+  background: #ffffff;
+  color: #12283f;
+  box-shadow: 0 6px 18px rgba(18, 40, 63, 0.08);
+}
+.pow-deal-switch button.is-active strong { color: #e46630; }

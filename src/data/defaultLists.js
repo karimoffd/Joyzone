@@ -23,6 +23,7 @@ export const defaultLists = {
     faq_arr: [
       { question: "Obyektimni Joyzone'ga qo'sha olamanmi?", answer: "Ha. Partner sifatida ro'yxatdan o'tib, ofis, kovorking, zal yoki boshqa joyingizni kabinet orqali moderatsiyaga yuborasiz." },
       { question: "Joylar xaritada ko'rinadimi?", answer: "Joy manzili va hududi kartochkada ko'rinadi. Keyingi bosqichda xarita orqali yaqin joylarni tez tanlash oqimi ham qo'shiladi." },
+      { question: "Joyni sotib olish ham mumkinmi?", answer: "Ha. Ofislar, savdo maydonlari, tijorat joylari va omborlarda \"Sotuv\" filtrini tanlang. Sotuvdagi joy bron qilinmaydi: narxni ko'ring va sotuvchiga qo'ng'iroq qiling yoki chatda yozing." },
       { question: "Bron qilish qanday ishlaydi?", answer: "Mijoz kerakli joyni tanlaydi, sanani yoki vaqtni belgilaydi va so'rov yuboradi. Partner kabinetda so'rovni tasdiqlaydi." },
       { question: "Partnerlar uchun tariflar bormi?", answer: "Ha, joy egasi o'sish bosqichiga qarab oddiy joylashtirish yoki ko'proq ko'rinish beradigan paketlarni tanlashi mumkin." },
     ],
@@ -67,6 +68,7 @@ export const defaultLists = {
     faq_arr: [
       { question: "Могу ли я добавить свой объект в Joyzone?", answer: "Да. Зарегистрируйтесь как партнёр и отправьте офис, коворкинг, зал или другое место на модерацию через кабинет." },
       { question: "Видны ли места на карте?", answer: "Адрес и район места указаны на карточке. Позже появится выбор ближайших мест через карту." },
+      { question: "Можно ли купить помещение?", answer: "Да. В офисах, торговых площадях, нежилых помещениях и складах выберите фильтр «Продажа». Объект на продажу не бронируется: посмотрите цену и позвоните продавцу или напишите в чат." },
       { question: "Как работает бронирование?", answer: "Клиент выбирает место, дату или время и отправляет заявку. Партнёр подтверждает её в кабинете." },
       { question: "Есть ли тарифы для партнёров?", answer: "Да, владелец может выбрать базовое размещение или пакеты с большей видимостью." },
     ],
@@ -111,6 +113,7 @@ export const defaultLists = {
     faq_arr: [
       { question: "Can I list my space on Joyzone?", answer: "Yes. Sign up as a partner and send your office, coworking, hall or other space for moderation from the dashboard." },
       { question: "Are spaces shown on a map?", answer: "The address and area are shown on the card. A map view for nearby spaces is coming next." },
+      { question: "Can I buy a space?", answer: "Yes. In offices, retail, commercial premises and warehouses choose the \"Sale\" filter. A property on sale is not booked: check the price and call the seller or message them in chat." },
       { question: "How does booking work?", answer: "The customer picks a space, date or time and sends a request. The partner confirms it in the dashboard." },
       { question: "Are there plans for partners?", answer: "Yes, owners can choose a basic listing or packages with more visibility." },
     ],

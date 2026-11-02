@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api, { getApiErrorMessage } from "../../api/client.js";
 import { defaultContent } from "../../data/defaultContent.js";
 import { CONTENT_FIELDS, CONTENT_SCHEMA } from "../../data/contentSchema.js";
 import { Icon } from "../AdminIcons.jsx";
+import ContentPreview from "./ContentPreview.jsx";
 import "./content.css";
 
 const LANGS = ['uz', 'ru', 'en'];
@@ -16,8 +17,13 @@ function isFilled(value) {
   return String(value ?? "").trim().length > 0;
 }
 
+// An empty CMS row means "not translated yet": the site then shows the
+// default text, so the editor shows it too instead of an empty field.
 function buildValues(server = {}) {
-  return Object.fromEntries(LANGS.map((lang) => [lang, { ...(defaultContent[lang] || {}), ...(server[lang] || {}) }]));
+  return Object.fromEntries(LANGS.map((lang) => {
+    const saved = Object.fromEntries(Object.entries(server[lang] || {}).filter(([, value]) => isFilled(value)));
+    return [lang, { ...(defaultContent[lang] || {}), ...saved }];
+  }));
 }
 
 function previewText(value) {
@@ -161,7 +167,22 @@ function FieldInput({ field, value, onChange }) {
   );
 }
 
-function FieldCard({ field, lang, values, baseline, setLang, onChange, query }) {
+function OtherLanguages({ field, lang, values, setLang }) {
+  const others = LANGS.filter((code) => code !== lang && typeof values[code]?.[field.key] === "string" && values[code][field.key].trim());
+  if (!others.length) return null;
+  return (
+    <div className="cp-translations">
+      {others.map((code) => (
+        <button key={code} type="button" onClick={() => setLang(code)} title={`Открыть ${LANG_LABELS[code]}`}>
+          <b>{code.toUpperCase()}</b>
+          <span>{values[code][field.key]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function FieldCard({ field, lang, values, baseline, setLang, onChange, query, active, onActivate, onFocus, onHover, onLeave }) {
   const value = values[lang]?.[field.key];
   const changed = !same(value, baseline[lang]?.[field.key]);
   const isDefault = same(value, defaultContent[lang]?.[field.key]);
@@ -169,14 +190,24 @@ function FieldCard({ field, lang, values, baseline, setLang, onChange, query }) 
   const isWide = ["links", "list", "textarea", "words"].includes(field.type);
 
   return (
-    <div className={`cp-field${changed ? " is-changed" : ""}${isWide ? " is-wide" : ""}`} id={`cp-field-${field.key}`}>
+    <div
+      className={`cp-field${changed ? " is-changed" : ""}${isWide ? " is-wide" : ""}${active ? " is-active" : ""}`}
+      id={`cp-field-${field.key}`}
+      onFocusCapture={onFocus}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+    >
       <div className="cp-field-head">
         <div className="cp-field-title">
           <strong><Highlight text={field.label} query={query} /></strong>
           {field.hint ? <small>{field.hint}</small> : null}
         </div>
         <div className="cp-field-meta">
+          {field.optional ? <span className="cp-badge">необязательно</span> : null}
           {changed ? <span className="cp-badge is-changed">Изменено</span> : null}
+          <button type="button" className={`cp-where-btn${active ? " is-active" : ""}`} onClick={onActivate} title="Показать, где этот текст на сайте">
+            <Icon name="eye" size={14} /> На сайте
+          </button>
           <div className="cp-lang-dots" title="Заполнено на языках">
             {LANGS.map((code) => (
               <button
@@ -198,6 +229,7 @@ function FieldCard({ field, lang, values, baseline, setLang, onChange, query }) 
         </div>
       </div>
       <FieldInput field={field} value={value} onChange={onChange} />
+      {isText && !["url", "email", "phone"].includes(field.type) ? <OtherLanguages field={field} lang={lang} values={values} setLang={setLang} /> : null}
       {isText && field.type !== "words" && value ? <div className="cp-field-foot">{String(value).length} симв.</div> : null}
     </div>
   );
@@ -213,6 +245,23 @@ export default function ContentPage() {
   const [notice, setNotice] = useState(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(() => window.innerWidth >= 1280);
+  const [activeKey, setActiveKey] = useState(null);
+  const hoverTimerRef = useRef(null);
+  // Hovering a field shows it on the site; a short delay keeps a quick pass
+  // of the mouse over the list from jumping the preview around.
+  const hoverField = (key) => {
+    window.clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = window.setTimeout(() => setActiveKey(key), 280);
+  };
+  const cancelHover = () => window.clearTimeout(hoverTimerRef.current);
+  useEffect(() => () => window.clearTimeout(hoverTimerRef.current), []);
+  // With the site preview closed, hovering or focusing a field does nothing.
+  const togglePreview = (open) => {
+    cancelHover();
+    if (!open) setActiveKey(null);
+    setPreviewOpen(open);
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -271,10 +320,13 @@ export default function ContentPage() {
     if (window.confirm("Отменить все несохранённые изменения?")) setValues(clone(baseline));
   };
 
-  const fillStats = useMemo(() => Object.fromEntries(LANGS.map((code) => [
-    code,
-    Math.round((CONTENT_FIELDS.filter((field) => isFilled(values[code]?.[field.key])).length / CONTENT_FIELDS.length) * 100),
-  ])), [values]);
+  const fillStats = useMemo(() => {
+    const required = CONTENT_FIELDS.filter((field) => !field.optional);
+    return Object.fromEntries(LANGS.map((code) => [
+      code,
+      Math.round((required.filter((field) => isFilled(values[code]?.[field.key])).length / required.length) * 100),
+    ]));
+  }, [values]);
 
   const trimmedQuery = query.trim();
   const searchResults = useMemo(() => {
@@ -302,8 +354,20 @@ export default function ContentPage() {
       setLang={setLang}
       onChange={(value) => setField(field.key, value)}
       query={trimmedQuery}
+      active={previewOpen && activeKey === field.key}
+      onActivate={() => {
+        cancelHover();
+        setActiveKey(field.key);
+        setPreviewOpen(true);
+      }}
+      onFocus={previewOpen ? () => { cancelHover(); setActiveKey(field.key); } : undefined}
+      onHover={previewOpen ? () => hoverField(field.key) : undefined}
+      onLeave={cancelHover}
     />
   );
+  const activeField = CONTENT_FIELDS.find((field) => field.key === activeKey) || null;
+  // The preview follows the field: a text from another page opens that page.
+  const previewPath = (activeField ? activeField.path || activeField.section.path || activeField.page.path : page.path) || "/";
 
   return (
     <div className="cp-page">
@@ -313,6 +377,13 @@ export default function ContentPage() {
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Найти текст на сайте: «FAQ», «телефон», «Kirish»…" />
           {query ? <button type="button" onClick={() => setQuery("")} aria-label="Очистить"><Icon name="x" size={15} /></button> : null}
         </div>
+        <button type="button" className={`cp-preview-toggle${previewOpen ? " is-active" : ""}`} onClick={() => togglePreview(!previewOpen)}>
+          <Icon name="eye" size={17} />
+          <span>
+            <strong>{previewOpen ? "Скрыть сайт" : "Показать сайт рядом"}</strong>
+            <small>изменения видны до сохранения</small>
+          </span>
+        </button>
         <div className="cp-langs" role="tablist" aria-label="Язык">
           {LANGS.map((code) => (
             <button key={code} type="button" role="tab" aria-selected={lang === code} className={lang === code ? "is-active" : ""} onClick={() => setLang(code)}>
@@ -327,7 +398,7 @@ export default function ContentPage() {
 
       {error ? <div className="cp-alert is-error"><Icon name="info" size={16} />{error}<button type="button" onClick={fetchData}>Обновить</button></div> : null}
 
-      <div className="cp-layout">
+      <div className={`cp-layout${previewOpen ? " has-preview" : ""}`}>
         <aside className="cp-pages" aria-label="Страницы сайта">
           <span className="cp-pages-label">Страницы сайта</span>
           {CONTENT_SCHEMA.map((item) => {
@@ -338,7 +409,7 @@ export default function ContentPage() {
                 key={item.id}
                 type="button"
                 className={`cp-page-btn${!searchResults && item.id === page.id ? " is-active" : ""}`}
-                onClick={() => { setActivePage(item.id); setQuery(""); }}
+                onClick={() => { setActivePage(item.id); setQuery(""); setActiveKey(null); }}
               >
                 <span className="cp-page-icon"><Icon name={item.icon} size={17} /></span>
                 <span className="cp-page-text">
@@ -351,7 +422,7 @@ export default function ContentPage() {
           })}
           <div className="cp-tip">
             <Icon name="info" size={16} />
-            <p>Тексты сохраняются для каждого языка отдельно. Кружки <b>UZ RU EN</b> у поля показывают, где перевод уже есть.</p>
+            <p>Наведите на поле — справа на сайте подсветится, где этот текст. Кружки <b>UZ RU EN</b> показывают, где перевод уже есть.</p>
           </div>
         </aside>
 
@@ -400,6 +471,16 @@ export default function ContentPage() {
             </>
           )}
         </main>
+        {previewOpen ? (
+          <ContentPreview
+            path={previewPath}
+            values={values}
+            lang={lang}
+            activeField={activeField}
+            activeValue={activeField ? values[lang]?.[activeField.key] : null}
+            onClose={() => togglePreview(false)}
+          />
+        ) : null}
       </div>
 
       {dirtyTotal || notice ? (

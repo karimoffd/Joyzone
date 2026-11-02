@@ -987,3 +987,15 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Places for sale: navy pill, under the "Reklama" one when both are shown. */
+.variant-pill.is-sale {
+  background: #294a6d;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.variant-pill.is-sale.is-stacked {
+  top: 42px;
+}

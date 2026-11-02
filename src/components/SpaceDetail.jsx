@@ -23,7 +23,7 @@ import {
   isAvailabilityDayUnavailable,
   isAvailabilityStatusBlocked
 } from "../utils/availability.js";
-import { parseMoneyValue } from "../utils/placePricing.js";
+import { formatMoneyValue, parseMoneyValue } from "../utils/placePricing.js";
 import { propertyCards } from "../data/content.js";
 import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
 import "./ListingsSection.css";
@@ -942,6 +942,24 @@ export default function SpaceDetail({ route, userState, setUserState }) {
   }, [reviews, space?.rating_avg, space?.reviews_count, usingMockReviews]);
 
   const reviewsCount = usingMockReviews ? reviews.length : Number(space?.reviews_count || 0);
+
+  const openOwnerChat = async () => {
+    const targetChat = await startOrGetChatForSpace({
+      spaceId: space.id,
+      spaceTitle: space.title,
+      hostName: space.hostName || "Bekzod Tursunov"
+    });
+    if (!targetChat) {
+      setDetailError("Не удалось открыть чат. Попробуйте позже.");
+      return;
+    }
+    setActiveChatId(targetChat.id);
+  };
+
+  // Sale listings: price per square metre next to the sale price.
+  const salePricePerMeter = space.isForSale && Number(space.sale_price) > 0 && Number(space.area) > 0
+    ? formatMoneyValue(Number(space.sale_price) / Number(space.area), space.currency)
+    : "";
   const overallRatingPercent = Math.max(0, Math.min(100, Math.round((Number(averageRating) / 5) * 100)));
 
   const handleReviewSubmit = async (event) => {
@@ -1185,9 +1203,13 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           </div>
           <h1>{space.title}</h1>
           <p>
-            {lang === 'uz'
-              ? "Jamoaviy ish, uchrashuv, taqdimot va qisqa muddatli ijara uchun tayyor maydon."
-              : "Готовое пространство для командной работы, встреч, презентаций и краткосрочной аренды."}
+            {space.isForSale
+              ? (lang === 'uz'
+                ? "Sotuvdagi tijorat ko'chmas mulki. Narx va ko'rish vaqtini sotuvchi bilan to'g'ridan-to'g'ri kelishing."
+                : "Коммерческая недвижимость на продажу. Цену и просмотр обсудите напрямую с продавцом.")
+              : (lang === 'uz'
+                ? "Jamoaviy ish, uchrashuv, taqdimot va qisqa muddatli ijara uchun tayyor maydon."
+                : "Готовое пространство для командной работы, встреч, презентаций и краткосрочной аренды.")}
           </p>
           <a
             className="sd-location"
@@ -1205,16 +1227,22 @@ export default function SpaceDetail({ route, userState, setUserState }) {
           <div className="sd-hero-panel">
             <div className="sd-hero-price">
               <span>
-                <small>{availableDurations[0]?.label || "Kunlik"} {lang === 'uz' ? "narx" : "цена"}</small>
-                <b>{availableDurations[0]?.price || space.price}</b>
+                <small>
+                  {space.isForSale
+                    ? (lang === 'uz' ? "Sotuv narxi" : "Цена продажи")
+                    : `${availableDurations[0]?.label || "Kunlik"} ${lang === 'uz' ? "narx" : "цена"}`}
+                </small>
+                <b>{space.isForSale ? space.price : (availableDurations[0]?.price || space.price)}</b>
               </span>
               <button
                 type="button"
                 className="sd-hero-book"
                 onClick={() => document.querySelector(".sd-booking")?.scrollIntoView({ behavior: "smooth", block: "start" })}
               >
-                <Icon type="calendar" />
-                {lang === 'uz' ? "Bron qilish" : "Забронировать"}
+                <Icon type={space.isForSale ? "phone" : "calendar"} />
+                {space.isForSale
+                  ? (lang === 'uz' ? "Bog'lanish" : "Связаться")
+                  : (lang === 'uz' ? "Bron qilish" : "Забронировать")}
               </button>
             </div>
             {space.owner_id ? (
@@ -1337,15 +1365,23 @@ export default function SpaceDetail({ route, userState, setUserState }) {
                 );
               })}
 
-            <DetailStat icon="clock" label={lang === 'uz' ? "Ish vaqti" : "Часы работы"} value={formatWorkingHours(space.opens_at, space.closes_at)} />
-            <DetailStat icon="calendar" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
+            {space.isForSale ? (
+              <DetailStat icon="wallet" label={lang === 'uz' ? "1 m² narxi" : "Цена за 1 м²"} value={salePricePerMeter || "—"} />
+            ) : (
+              <>
+                <DetailStat icon="clock" label={lang === 'uz' ? "Ish vaqti" : "Часы работы"} value={formatWorkingHours(space.opens_at, space.closes_at)} />
+                <DetailStat icon="calendar" label={lang === 'uz' ? "Format" : "Формат"} value={space.booking_type === "instant" ? (lang === 'uz' ? "Tezkor" : "Мгновенно") : (lang === 'uz' ? "So'rov" : "По запросу")} />
+              </>
+            )}
             <DetailStat icon="shield" label="Status" value={space.status === "approved" ? (lang === 'uz' ? "Faol" : "Активен") : (lang === 'uz' ? "Tekshirilmoqda" : "Модерация")} />
           </div>
 
           <section className="sd-section sd-animate">
             <div className="sd-section-head">
               <p>{lang === 'uz' ? "Joy haqida" : "О пространстве"}</p>
-              <h2>{lang === 'uz' ? "Qulay, tayyor va tez bron qilinadi" : "Удобно, готово и быстро бронируется"}</h2>
+              <h2>{space.isForSale
+                ? (lang === 'uz' ? "Obyekt haqida batafsil" : "Подробнее об объекте")
+                : (lang === 'uz' ? "Qulay, tayyor va tez bron qilinadi" : "Удобно, готово и быстро бронируется")}</h2>
             </div>
             <p className="sd-description">
               {lang === 'uz' ? space.description_uz : lang === 'en' ? space.description_en : space.description_ru}
@@ -1556,213 +1592,239 @@ export default function SpaceDetail({ route, userState, setUserState }) {
         </div>
 
         <aside className="sd-booking sd-animate">
-          <div className="sd-booking-card">
-            <div className="sd-price-row">
-              <div>
-                <span>Narx ({availableDurations.find(d => d.id === bookingDuration)?.label?.toLowerCase() || 'kunlik'})</span>
-                <strong>{availableDurations.find(d => d.id === bookingDuration)?.price || space.price}</strong>
+          {space.isForSale ? (
+            <div className="sd-booking-card sd-sale-card">
+              <div className="sd-sale-head">
+                <span className="sd-sale-badge">{lang === 'uz' ? "Sotuvda" : "Продажа"}</span>
+                <span className="sd-rating">
+                  <Icon type="star" />
+                  {reviewsCount > 0 ? averageRating : (lang === 'uz' ? "Yangi" : "Новый")}
+                </span>
               </div>
-              <span className="sd-rating">
-                <Icon type="star" />
-                {averageRating}
-              </span>
+              <small className="sd-sale-label">{lang === 'uz' ? "Sotuv narxi" : "Цена продажи"}</small>
+              <strong className="sd-sale-price">{space.price}</strong>
+              {salePricePerMeter ? (
+                <p className="sd-sale-per">{salePricePerMeter} / m²</p>
+              ) : null}
+              <ul className="sd-sale-facts">
+                <li><span>{lang === 'uz' ? "Maydon" : "Площадь"}</span><b>{space.area || 0} m²</b></li>
+                <li><span>{lang === 'uz' ? "Turi" : "Тип"}</span><b>{space.subcategory_info?.[`name_${lang}`] || space.subcategory_name || space.category}</b></li>
+                <li><span>{lang === 'uz' ? "Sotuvchi" : "Продавец"}</span><b>{space.owner_name}</b></li>
+              </ul>
+              <a href={phoneHref(space.owner_phone || cms.support_phone || cms.footer_phone)} className="sd-primary-btn">
+                <Icon type="phone" />
+                {lang === 'uz' ? "Qo'ng'iroq qilish" : "Позвонить"}
+              </a>
+              <button type="button" className="sd-secondary-btn sd-chat-btn" onClick={openOwnerChat}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                {lang === 'uz' ? "Sotuvchiga yozish" : "Написать продавцу"}
+              </button>
+              <p className="sd-sale-note">
+                {lang === 'uz'
+                  ? "Bu joy sotuvda — Joyzone orqali bron qilinmaydi. Narx va ko'rish vaqtini sotuvchi bilan kelishing."
+                  : "Объект продаётся — бронирование через Joyzone недоступно. Цену и просмотр обсудите с продавцом."}
+              </p>
             </div>
-
-            <div className="sd-duration-selector">
-              {availableDurations.map(d => (
-                <button
-                  key={d.id}
-                  type="button"
-                  className={bookingDuration === d.id ? "is-active" : ""}
-                  onClick={() => handleDurationChange(d.id)}
-                >
-                  <span>{d.label}</span>
-                  <small>{d.id === "soatlik" ? "Soat" : d.id === "haftalik" ? "Hafta" : d.id === "oylik" ? "Oy" : "Kun"}</small>
-                </button>
-              ))}
-            </div>
-
-            <div className="sd-calendar-shell">
-              <div className="sd-calendar-title">
+          ) : (
+            <div className="sd-booking-card">
+              <div className="sd-price-row">
                 <div>
-                  <span>Sanani tanlang</span>
-                  <strong>{bookingRangeLabel}</strong>
+                  <span>Narx ({availableDurations.find(d => d.id === bookingDuration)?.label?.toLowerCase() || 'kunlik'})</span>
+                  <strong>{availableDurations.find(d => d.id === bookingDuration)?.price || space.price}</strong>
                 </div>
-                <small>{bookingDuration === "soatlik" ? "Kun + vaqt" : bookingDuration === "oylik" ? "1 oy avtomatik" : bookingDuration === "haftalik" ? "1 hafta avtomatik" : "Boshlanish va tugash"}</small>
+                <span className="sd-rating">
+                  <Icon type="star" />
+                  {averageRating}
+                </span>
               </div>
 
-              <div className="sd-calendar-stage">
-                <div className="sd-calendar-pair">
-                  {renderCalendarMonth(calYear, calMonth, calendarDays)}
-                  {renderCalendarMonth(nextCalendar.year, nextCalendar.month, nextCalendarDays, true)}
-                </div>
+              <div className="sd-duration-selector">
+                {availableDurations.map(d => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className={bookingDuration === d.id ? "is-active" : ""}
+                    onClick={() => handleDurationChange(d.id)}
+                  >
+                    <span>{d.label}</span>
+                    <small>{d.id === "soatlik" ? "Soat" : d.id === "haftalik" ? "Hafta" : d.id === "oylik" ? "Oy" : "Kun"}</small>
+                  </button>
+                ))}
               </div>
 
-              {bookingDuration === "soatlik" && hourPanelDate && (
-                <div className="sd-hour-panel">
-                  <div className="sd-hour-panel-head">
-                    <div>
-                      <span>{formatShortDate(hourPanelDate)}</span>
-                      <strong>Vaqt oralig'ini tanlang</strong>
+              <div className="sd-calendar-shell">
+                <div className="sd-calendar-title">
+                  <div>
+                    <span>Sanani tanlang</span>
+                    <strong>{bookingRangeLabel}</strong>
+                  </div>
+                  <small>{bookingDuration === "soatlik" ? "Kun + vaqt" : bookingDuration === "oylik" ? "1 oy avtomatik" : bookingDuration === "haftalik" ? "1 hafta avtomatik" : "Boshlanish va tugash"}</small>
+                </div>
+
+                <div className="sd-calendar-stage">
+                  <div className="sd-calendar-pair">
+                    {renderCalendarMonth(calYear, calMonth, calendarDays)}
+                    {renderCalendarMonth(nextCalendar.year, nextCalendar.month, nextCalendarDays, true)}
+                  </div>
+                </div>
+
+                {bookingDuration === "soatlik" && hourPanelDate && (
+                  <div className="sd-hour-panel">
+                    <div className="sd-hour-panel-head">
+                      <div>
+                        <span>{formatShortDate(hourPanelDate)}</span>
+                        <strong>Vaqt oralig'ini tanlang</strong>
+                      </div>
+                      <small>Band / Bo'sh</small>
                     </div>
-                    <small>Band / Bo'sh</small>
+                    <div className="sd-hour-slots">
+                      {placeHourlySlots.map((slot) => {
+                        const status = getSlotStatus(hourPanelDate, slot);
+                        const selected = selectedTimeSlots.includes(slot);
+                        const unavailable = isAvailabilityStatusBlocked(status) || !availabilityReady;
+                        return (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={`sd-hour-slot ${unavailable ? "is-booked" : ""} ${selected ? "is-selected" : ""}`}
+                            data-unavailable={unavailable ? "true" : undefined}
+                            onClick={() => handleTimeSlotToggle(slot)}
+                          >
+                            <strong>{slot}</strong>
+                            <span>{unavailable ? (status === "unavailable" ? "Yuklanmagan" : status === "blocked" ? "Yopiq" : "Band") : selected ? "Tanlandi" : "Bo'sh"}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="sd-hour-slots">
-                    {placeHourlySlots.map((slot) => {
-                      const status = getSlotStatus(hourPanelDate, slot);
-                      const selected = selectedTimeSlots.includes(slot);
-                      const unavailable = isAvailabilityStatusBlocked(status) || !availabilityReady;
-                      return (
-                        <button
-                          key={slot}
-                          type="button"
-                          className={`sd-hour-slot ${unavailable ? "is-booked" : ""} ${selected ? "is-selected" : ""}`}
-                          data-unavailable={unavailable ? "true" : undefined}
-                          onClick={() => handleTimeSlotToggle(slot)}
-                        >
-                          <strong>{slot}</strong>
-                          <span>{unavailable ? (status === "unavailable" ? "Yuklanmagan" : status === "blocked" ? "Yopiq" : "Band") : selected ? "Tanlandi" : "Bo'sh"}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="sd-booking-controls">
-              <label>
-                <span>Muddat</span>
-                <input readOnly value={bookingUnitLabel} />
-              </label>
-              <label>
-                <span>Mehmon</span>
-                <input min="1" max={space.people || 1} type="number" value={guests} onChange={(event) => setGuests(Math.max(1, Math.min(space.people || 1, Number(event.target.value) || 1)))} />
-              </label>
-            </div>
-
-            <div className="sd-total-box">
-              {availabilityLoading ? (
-                <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
-                  Kalendar yuklanmoqda...
-                </div>
-              ) : null}
-              {availabilityError ? (
-                <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
-                  {availabilityError}
-                </div>
-              ) : null}
-              <div className="sd-receipt-period">
-                <span className="sd-receipt-icon"><Icon type="calendar" /></span>
-                <div>
-                  <small>{bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} ijara</small>
-                  <b>{dailyRatesBreakdown[0]?.date || (bookingDuration === "soatlik" ? "Vaqt tanlang" : "Sana tanlang")}</b>
-                </div>
-                <em>{bookingUnitLabel}</em>
-              </div>
-              <div className="sd-receipt-lines">
-                <p>
-                  <span>{lang === 'uz' ? "Ijara summasi" : "Аренда"}</span>
-                  <b>{formatMoney(totalPrice)}</b>
-                </p>
-                {discountAmount > 0 && activeAppliedDiscount && (
-                  <p className="is-discount">
-                    <span title={lang === 'uz' ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : (activeAppliedDiscount.name_ru || activeAppliedDiscount.name_uz)}>
-                      {lang === 'uz' ? "Chegirma" : "Скидка"}
-                      <i>-{activeAppliedDiscount.percent}%</i>
-                    </span>
-                    <b>-{formatMoney(discountAmount)}</b>
-                  </p>
                 )}
-                <p>
-                  <span>{lang === 'uz' ? "Servis to'lovi" : "Сервисный сбор"}</span>
-                  <b>{formatMoney(serviceFee)}</b>
-                </p>
               </div>
-              {hasBlockedDay && (
-                <div className="sd-booking-warning">
-                  {lang === 'uz' ? "Diqqat: Tanlangan davr ichida band qilingan kunlar bor." : "Внимание: В выбранный период есть занятые дни."}
-                </div>
-              )}
-              {bookingError ? (
-                <div className="sd-booking-warning">
-                  {bookingError}
-                </div>
-              ) : null}
-              <strong>
-                <span>{lang === 'uz' ? "Jami" : "Итого"}</span>
-                <b>{formatMoney(finalTotal)}</b>
-              </strong>
-            </div>
 
-            <a
-              href={`/book-space-${space.id || slugify(space.title)}`}
-              className={`sd-primary-btn ${checkoutAvailabilityError || hasBlockedDay ? "is-disabled" : ""}`}
-              onClick={(event) => {
-                const latestAvailabilityError = getCheckoutAvailabilityError();
-                if (latestAvailabilityError || hasBlockedDay) {
-                  event.preventDefault();
-                  setBookingError(latestAvailabilityError || "Tanlangan davr band. Boshqa sana yoki vaqtni tanlang.");
-                  return;
-                }
-                setBookingError("");
-                try {
-                  const checkoutTax = Math.round(finalTotal * 0.12);
-                  const draft = createBookingDraft({
-                    place: normalizePlace(space),
-                    selection: {
-                      duration_type: bookingDuration,
-                      startDate: checkInDate,
-                      endDate: checkOutDate || checkInDate,
-                      slots: selectedTimeSlots,
-                      guests,
-                      subtotal: finalTotal,
-                      tax: checkoutTax,
-                      amount: finalTotal + checkoutTax,
-                      currency: "UZS",
-                      discount: discountAmount,
-                      discountName: activeAppliedDiscount ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : null,
-                    },
-                    user: userState,
-                  });
-                  if (!saveBookingDraft(draft)) {
-                    throw new Error("Bron ma'lumotlarini saqlab bo'lmadi.");
+              <div className="sd-booking-controls">
+                <label>
+                  <span>Muddat</span>
+                  <input readOnly value={bookingUnitLabel} />
+                </label>
+                <label>
+                  <span>Mehmon</span>
+                  <input min="1" max={space.people || 1} type="number" value={guests} onChange={(event) => setGuests(Math.max(1, Math.min(space.people || 1, Number(event.target.value) || 1)))} />
+                </label>
+              </div>
+
+              <div className="sd-total-box">
+                {availabilityLoading ? (
+                  <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
+                    Kalendar yuklanmoqda...
+                  </div>
+                ) : null}
+                {availabilityError ? (
+                  <div className="sd-booking-warning" style={{ marginBottom: 10 }}>
+                    {availabilityError}
+                  </div>
+                ) : null}
+                <div className="sd-receipt-period">
+                  <span className="sd-receipt-icon"><Icon type="calendar" /></span>
+                  <div>
+                    <small>{bookingDuration === 'soatlik' ? 'Soatlik' : bookingDuration === 'haftalik' ? 'Haftalik' : bookingDuration === 'oylik' ? 'Oylik' : 'Kunlik'} ijara</small>
+                    <b>{dailyRatesBreakdown[0]?.date || (bookingDuration === "soatlik" ? "Vaqt tanlang" : "Sana tanlang")}</b>
+                  </div>
+                  <em>{bookingUnitLabel}</em>
+                </div>
+                <div className="sd-receipt-lines">
+                  <p>
+                    <span>{lang === 'uz' ? "Ijara summasi" : "Аренда"}</span>
+                    <b>{formatMoney(totalPrice)}</b>
+                  </p>
+                  {discountAmount > 0 && activeAppliedDiscount && (
+                    <p className="is-discount">
+                      <span title={lang === 'uz' ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : (activeAppliedDiscount.name_ru || activeAppliedDiscount.name_uz)}>
+                        {lang === 'uz' ? "Chegirma" : "Скидка"}
+                        <i>-{activeAppliedDiscount.percent}%</i>
+                      </span>
+                      <b>-{formatMoney(discountAmount)}</b>
+                    </p>
+                  )}
+                  <p>
+                    <span>{lang === 'uz' ? "Servis to'lovi" : "Сервисный сбор"}</span>
+                    <b>{formatMoney(serviceFee)}</b>
+                  </p>
+                </div>
+                {hasBlockedDay && (
+                  <div className="sd-booking-warning">
+                    {lang === 'uz' ? "Diqqat: Tanlangan davr ichida band qilingan kunlar bor." : "Внимание: В выбранный период есть занятые дни."}
+                  </div>
+                )}
+                {bookingError ? (
+                  <div className="sd-booking-warning">
+                    {bookingError}
+                  </div>
+                ) : null}
+                <strong>
+                  <span>{lang === 'uz' ? "Jami" : "Итого"}</span>
+                  <b>{formatMoney(finalTotal)}</b>
+                </strong>
+              </div>
+
+              <a
+                href={`/book-space-${space.id || slugify(space.title)}`}
+                className={`sd-primary-btn ${checkoutAvailabilityError || hasBlockedDay ? "is-disabled" : ""}`}
+                onClick={(event) => {
+                  const latestAvailabilityError = getCheckoutAvailabilityError();
+                  if (latestAvailabilityError || hasBlockedDay) {
+                    event.preventDefault();
+                    setBookingError(latestAvailabilityError || "Tanlangan davr band. Boshqa sana yoki vaqtni tanlang.");
+                    return;
                   }
-                } catch (error) {
-                  event.preventDefault();
-                  setBookingError(error?.message || "Bron ma'lumotlarini tayyorlab bo'lmadi.");
-                }
-              }}
-            >
-              <Icon type="calendar" />
-              Bron qilish
-            </a>
-            <a href={phoneHref(space.owner_phone || cms.support_phone || cms.footer_phone)} className="sd-secondary-btn">
-              <Icon type="phone" />
-              Qo'ng'iroq qilish
-            </a>
-            <button
-              type="button"
-              className="sd-secondary-btn sd-chat-btn"
-              onClick={async () => {
-                const targetChat = await startOrGetChatForSpace({
-                  spaceId: space.id,
-                  spaceTitle: space.title,
-                  hostName: space.hostName || "Bekzod Tursunov"
-                });
-                if (!targetChat) {
-                  setDetailError("Не удалось открыть чат. Попробуйте позже.");
-                  return;
-                }
-                setActiveChatId(targetChat.id);
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              Ega bilan bog'lanish
-            </button>
-          </div>
+                  setBookingError("");
+                  try {
+                    const checkoutTax = Math.round(finalTotal * 0.12);
+                    const draft = createBookingDraft({
+                      place: normalizePlace(space),
+                      selection: {
+                        duration_type: bookingDuration,
+                        startDate: checkInDate,
+                        endDate: checkOutDate || checkInDate,
+                        slots: selectedTimeSlots,
+                        guests,
+                        subtotal: finalTotal,
+                        tax: checkoutTax,
+                        amount: finalTotal + checkoutTax,
+                        currency: "UZS",
+                        discount: discountAmount,
+                        discountName: activeAppliedDiscount ? (activeAppliedDiscount.name_uz || activeAppliedDiscount.name_ru) : null,
+                      },
+                      user: userState,
+                    });
+                    if (!saveBookingDraft(draft)) {
+                      throw new Error("Bron ma'lumotlarini saqlab bo'lmadi.");
+                    }
+                  } catch (error) {
+                    event.preventDefault();
+                    setBookingError(error?.message || "Bron ma'lumotlarini tayyorlab bo'lmadi.");
+                  }
+                }}
+              >
+                <Icon type="calendar" />
+                Bron qilish
+              </a>
+              <a href={phoneHref(space.owner_phone || cms.support_phone || cms.footer_phone)} className="sd-secondary-btn">
+                <Icon type="phone" />
+                Qo'ng'iroq qilish
+              </a>
+              <button
+                type="button"
+                className="sd-secondary-btn sd-chat-btn"
+                onClick={openOwnerChat}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Ega bilan bog'lanish
+              </button>
+            </div>
+          )}
         </aside>
       </section>
 

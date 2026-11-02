@@ -87,7 +87,7 @@ MODERATOR_ADMIN_SECTIONS = (
     'content', 'banners', 'settings',
 )
 ADMIN_ONLY_SECTIONS = (
-    'users', 'finance', 'audit', 'tariffs', 'categories', 'amenities',
+    'users', 'finance', 'audit', 'tariffs', 'categories', 'filters', 'amenities',
     'parameters', 'discounts',
 )
 

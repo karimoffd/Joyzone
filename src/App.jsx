@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import api from "./api/client.js";
 import { gsap } from "gsap";
 import HomeHero from "./components/HomeHero.jsx";
@@ -199,7 +199,21 @@ function AppContent() {
   const route = useRoute();
   const [displayedRoute, setDisplayedRoute] = useState(route);
   const [bootLoading, setBootLoading] = useState(true);
-  const [userState, setUserState] = useUserState();
+  const [storedUserState, setUserState] = useUserState();
+  // The admin preview can show the site as a signed-out visitor sees it. Only
+  // this frame changes; the stored sign-in stays as it is.
+  const [previewAsGuest, setPreviewAsGuest] = useState(false);
+  useEffect(() => {
+    if (window.parent === window) return undefined;
+    const handleMessage = (event) => {
+      if (event.origin === window.location.origin && event.data?.type === "joyzone-cms-preview" && typeof event.data.guest === "boolean") {
+        setPreviewAsGuest(event.data.guest);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+  const userState = previewAsGuest ? { isAuthed: false, isPartner: false } : storedUserState;
   const { lang } = React.useContext(LanguageContext);
   const [remoteBanners, setRemoteBanners] = useState(null);
 
@@ -595,11 +609,13 @@ export default function App() {
     setStoredLanguage(lang);
   }, [lang]);
 
+  // Set once the admin preview sends draft texts; saved texts must not replace them.
+  const cmsPreviewRef = useRef(false);
   const loadSiteContent = useCallback(async () => {
     setContentLoading(true);
     try {
       const response = await api.get("/api/content/", { skipAuth: true });
-      setContent(mergeSiteContent(response.data));
+      if (!cmsPreviewRef.current) setContent(mergeSiteContent(response.data));
       setContentError("");
     } catch (error) {
       console.error("Failed to fetch content", error);
@@ -616,12 +632,21 @@ export default function App() {
     return () => window.removeEventListener("joyzone-content-updated", loadSiteContent);
   }, [loadSiteContent]);
 
+  // Admin → «Контент сайта» shows the site in a preview frame and sends its
+  // unsaved texts here, so the editor sees changes before saving.
   useEffect(() => {
-    const handleMessage = (e) => {
-      // Future message handling if needed from iframe
+    if (window.parent === window) return undefined;
+    const handleMessage = (event) => {
+      if (event.origin !== window.location.origin || event.data?.type !== "joyzone-cms-preview") return;
+      if (event.data.content) {
+        cmsPreviewRef.current = true;
+        setContent(mergeSiteContent(event.data.content));
+      }
+      if (event.data.lang) setLang(event.data.lang);
     };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
+    window.parent.postMessage({ type: "joyzone-cms-preview-ready" }, window.location.origin);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   useEffect(() => {

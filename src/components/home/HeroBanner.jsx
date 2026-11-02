@@ -92,8 +92,8 @@ export function Banner({
   useSmoothHeight(filterRef);
   
   const [heroTitle, setHeroTitle] = useState("O'zbekiston bo'ylab\nqulay");
-  const [heroSubtitle, setHeroSubtitle] = useState("Ofis, kovorking va zallarni bir joyda toping va onlayn bron qiling.");
-  const wordsRef = useRef(["ofislar", "kovorking", "zallar", "joylar"]);
+  const [heroSubtitle, setHeroSubtitle] = useState("Ofis, do'kon va omborlarni ijaraga oling yoki sotib oling.");
+  const wordsRef = useRef(["ofislar", "kovorking", "zallar", "do'konlar", "omborlar"]);
 
   useEffect(() => {
     if (content && content[lang]) {

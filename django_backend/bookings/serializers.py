@@ -91,6 +91,8 @@ class BookingQuoteSerializer(serializers.Serializer):
         )
 
     def validate(self, attrs):
+        if attrs['place'].is_for_sale:
+            raise serializers.ValidationError({'place': 'This place is for sale and cannot be booked.'})
         if attrs['end_time'] <= attrs['start_time']:
             raise serializers.ValidationError({'end_time': 'End time must be after start time.'})
         return attrs
@@ -258,6 +260,8 @@ class BookingSerializer(serializers.ModelSerializer):
 
         if self.instance is None and not attrs.get('place'):
             raise serializers.ValidationError({'place': 'This field is required.'})
+        if self.instance is None and attrs['place'].is_for_sale:
+            raise serializers.ValidationError({'place': 'This place is for sale and cannot be booked.'})
 
         place_for_hours = attrs.get('place') or getattr(self.instance, 'place', None)
         opens_at = getattr(place_for_hours, 'opens_at', None) or time(hour=9)

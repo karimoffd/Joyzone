@@ -1,0 +1,3604 @@
+{
+ "nav_links_arr": {
+  "uz": {
+   "value": [
+    {
+     "label": "Bosh sahifa",
+     "href": "/"
+    },
+    {
+     "label": "Biz haqimizda",
+     "href": "/about-us"
+    },
+    {
+     "label": "Katalog",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Kontaktlar",
+     "href": "#contact"
+    }
+   ],
+   "old": [
+    {
+     "label": "Bosh sahifa",
+     "href": "/"
+    },
+    {
+     "label": "Biz haqimizda",
+     "href": "/about-us"
+    },
+    {
+     "label": "Ijaraga joylar",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Kontaktlar",
+     "href": "#contact"
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "label": "Главная",
+     "href": "/"
+    },
+    {
+     "label": "О нас",
+     "href": "/about-us"
+    },
+    {
+     "label": "Каталог",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Контакты",
+     "href": "#contact"
+    }
+   ],
+   "old": [
+    {
+     "label": "Главная",
+     "href": "/"
+    },
+    {
+     "label": "О нас",
+     "href": "/about-us"
+    },
+    {
+     "label": "Аренда",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Контакты",
+     "href": "#contact"
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "label": "Home",
+     "href": "/"
+    },
+    {
+     "label": "About Us",
+     "href": "/about-us"
+    },
+    {
+     "label": "Catalog",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Contacts",
+     "href": "#contact"
+    }
+   ],
+   "old": [
+    {
+     "label": "Home",
+     "href": "/"
+    },
+    {
+     "label": "About Us",
+     "href": "/about-us"
+    },
+    {
+     "label": "Rentals",
+     "href": "/filter"
+    },
+    {
+     "label": "FAQ",
+     "href": "#faq"
+    },
+    {
+     "label": "Contacts",
+     "href": "#contact"
+    }
+   ]
+  }
+ },
+ "nav_login": {
+  "uz": {
+   "value": "Kirish",
+   "old": "Kirish"
+  },
+  "ru": {
+   "value": "Войти",
+   "old": "Войти"
+  },
+  "en": {
+   "value": "Log In",
+   "old": "Log In"
+  }
+ },
+ "nav_profile": {
+  "uz": {
+   "value": "Kabinet",
+   "old": "Kabinet"
+  },
+  "ru": {
+   "value": "Кабинет",
+   "old": "Кабинет"
+  },
+  "en": {
+   "value": "Profile",
+   "old": "Profile"
+  }
+ },
+ "menu_headline": {
+  "uz": {
+   "value": "O'zbekistondagi eng yaxshi ofislar, do'konlar va maydonlar",
+   "old": "O'zbekistondagi eng yaxshi ofislar va kovorkinglar"
+  },
+  "ru": {
+   "value": "Лучшие офисы, магазины и площадки Узбекистана",
+   "old": "Лучшие офисы, коворкинги и площадки Узбекистана"
+  },
+  "en": {
+   "value": "The best offices, shops and venues in Uzbekistan",
+   "old": "The best offices, coworkings and venues in Uzbekistan"
+  }
+ },
+ "menu_phone_label": {
+  "uz": {
+   "value": "Ishonch telefoni",
+   "old": "Ishonch telefoni"
+  },
+  "ru": {
+   "value": "Телефон доверия",
+   "old": "Телефон доверия"
+  },
+  "en": {
+   "value": "Hotline",
+   "old": "Hotline"
+  }
+ },
+ "menu_email_label": {
+  "uz": {
+   "value": "Elektron pochta",
+   "old": "Elektron pochta"
+  },
+  "ru": {
+   "value": "Электронная почта",
+   "old": "Электронная почта"
+  },
+  "en": {
+   "value": "Email",
+   "old": "Email"
+  }
+ },
+ "menu_about_label": {
+  "uz": {
+   "value": "Biz haqimizda",
+   "old": "Biz haqimizda"
+  },
+  "ru": {
+   "value": "О нас",
+   "old": "О нас"
+  },
+  "en": {
+   "value": "About us",
+   "old": "About us"
+  }
+ },
+ "menu_about_desc": {
+  "uz": {
+   "value": "Kompaniya haqida",
+   "old": "Kompaniya haqida"
+  },
+  "ru": {
+   "value": "О компании",
+   "old": "О компании"
+  },
+  "en": {
+   "value": "About the company",
+   "old": "About the company"
+  }
+ },
+ "menu_about_info_label": {
+  "uz": {
+   "value": "Afzalliklar va FAQ",
+   "old": "Afzalliklar va FAQ"
+  },
+  "ru": {
+   "value": "Преимущества и FAQ",
+   "old": "Преимущества и FAQ"
+  },
+  "en": {
+   "value": "Benefits & FAQ",
+   "old": "Benefits & FAQ"
+  }
+ },
+ "menu_about_info_desc": {
+  "uz": {
+   "value": "Joyzone haqida batafsil",
+   "old": "Joyzone haqida batafsil"
+  },
+  "ru": {
+   "value": "Подробнее о Joyzone",
+   "old": "Подробнее о Joyzone"
+  },
+  "en": {
+   "value": "More about Joyzone",
+   "old": "More about Joyzone"
+  }
+ },
+ "menu_about_guide_label": {
+  "uz": {
+   "value": "Hamkorlar qo'llanmasi",
+   "old": "Hamkorlar qo'llanmasi"
+  },
+  "ru": {
+   "value": "Гид для партнёров",
+   "old": "Гид для партнёров"
+  },
+  "en": {
+   "value": "Partner guide",
+   "old": "Partner guide"
+  }
+ },
+ "menu_about_guide_desc": {
+  "uz": {
+   "value": "Joy egasi uchun yo'l xaritasi",
+   "old": "Joy egasi uchun yo'l xaritasi"
+  },
+  "ru": {
+   "value": "Путь владельца площадки",
+   "old": "Путь владельца площадки"
+  },
+  "en": {
+   "value": "Roadmap for space owners",
+   "old": "Roadmap for space owners"
+  }
+ },
+ "menu_spaces_label": {
+  "uz": {
+   "value": "Joylar katalogi",
+   "old": "Ijaraga joylar"
+  },
+  "ru": {
+   "value": "Каталог мест",
+   "old": "Аренда мест"
+  },
+  "en": {
+   "value": "Space catalog",
+   "old": "Spaces for rent"
+  }
+ },
+ "menu_spaces_desc": {
+  "uz": {
+   "value": "Ijara va sotuv",
+   "old": "Katalog"
+  },
+  "ru": {
+   "value": "Аренда и продажа",
+   "old": "Каталог"
+  },
+  "en": {
+   "value": "Rent and buy",
+   "old": "Catalog"
+  }
+ },
+ "menu_spaces_catalog_label": {
+  "uz": {
+   "value": "Barcha toifalar",
+   "old": "Ofis va kovorkinglar"
+  },
+  "ru": {
+   "value": "Все категории",
+   "old": "Офисы и коворкинги"
+  },
+  "en": {
+   "value": "All categories",
+   "old": "Offices & coworkings"
+  }
+ },
+ "menu_spaces_catalog_desc": {
+  "uz": {
+   "value": "Katalogni ochish",
+   "old": "Katalogni ochish"
+  },
+  "ru": {
+   "value": "Открыть каталог",
+   "old": "Открыть каталог"
+  },
+  "en": {
+   "value": "Open the catalog",
+   "old": "Open the catalog"
+  }
+ },
+ "menu_spaces_add_label": {
+  "uz": {
+   "value": "Joy qo'shish",
+   "old": "Joy qo'shish"
+  },
+  "ru": {
+   "value": "Добавить место",
+   "old": "Добавить место"
+  },
+  "en": {
+   "value": "List a space",
+   "old": "List a space"
+  }
+ },
+ "menu_spaces_add_desc": {
+  "uz": {
+   "value": "Mulkdor bo'lish",
+   "old": "Mulkdor bo'lish"
+  },
+  "ru": {
+   "value": "Стать владельцем",
+   "old": "Стать владельцем"
+  },
+  "en": {
+   "value": "Become a host",
+   "old": "Become a host"
+  }
+ },
+ "menu_saved_label": {
+  "uz": {
+   "value": "Saqlangan",
+   "old": "Saqlangan"
+  },
+  "ru": {
+   "value": "Избранное",
+   "old": "Избранное"
+  },
+  "en": {
+   "value": "Saved",
+   "old": "Saved"
+  }
+ },
+ "menu_saved_desc": {
+  "uz": {
+   "value": "Yoqtirgan joylar",
+   "old": "Yoqtirgan joylar"
+  },
+  "ru": {
+   "value": "Понравившиеся места",
+   "old": "Понравившиеся места"
+  },
+  "en": {
+   "value": "Places you liked",
+   "old": "Places you liked"
+  }
+ },
+ "menu_contact_label": {
+  "uz": {
+   "value": "Kontaktlar",
+   "old": "Kontaktlar"
+  },
+  "ru": {
+   "value": "Контакты",
+   "old": "Контакты"
+  },
+  "en": {
+   "value": "Contacts",
+   "old": "Contacts"
+  }
+ },
+ "menu_contact_desc": {
+  "uz": {
+   "value": "Bog'lanish",
+   "old": "Bog'lanish"
+  },
+  "ru": {
+   "value": "Связаться с нами",
+   "old": "Связаться с нами"
+  },
+  "en": {
+   "value": "Get in touch",
+   "old": "Get in touch"
+  }
+ },
+ "menu_requires_auth": {
+  "uz": {
+   "value": "Kirish talab qilinadi",
+   "old": "Kirish talab qilinadi"
+  },
+  "ru": {
+   "value": "Нужно войти",
+   "old": "Нужно войти"
+  },
+  "en": {
+   "value": "Sign in required",
+   "old": "Sign in required"
+  }
+ },
+ "menu_back": {
+  "uz": {
+   "value": "Orqaga",
+   "old": "Orqaga"
+  },
+  "ru": {
+   "value": "Назад",
+   "old": "Назад"
+  },
+  "en": {
+   "value": "Back",
+   "old": "Back"
+  }
+ },
+ "menu_submenu": {
+  "uz": {
+   "value": "Ichki menyu",
+   "old": "Ichki menyu"
+  },
+  "ru": {
+   "value": "Подменю",
+   "old": "Подменю"
+  },
+  "en": {
+   "value": "Submenu",
+   "old": "Submenu"
+  }
+ },
+ "menu_logout": {
+  "uz": {
+   "value": "Chiqish",
+   "old": "Chiqish"
+  },
+  "ru": {
+   "value": "Выйти",
+   "old": "Выйти"
+  },
+  "en": {
+   "value": "Log out",
+   "old": "Log out"
+  }
+ },
+ "menu_logout_desc": {
+  "uz": {
+   "value": "Akkauntdan chiqish",
+   "old": "Akkauntdan chiqish"
+  },
+  "ru": {
+   "value": "Выйти из аккаунта",
+   "old": "Выйти из аккаунта"
+  },
+  "en": {
+   "value": "Sign out of the account",
+   "old": "Sign out of the account"
+  }
+ },
+ "menu_guest_mode": {
+  "uz": {
+   "value": "Mehmon rejimi",
+   "old": "Mehmon rejimi"
+  },
+  "ru": {
+   "value": "Гостевой режим",
+   "old": "Гостевой режим"
+  },
+  "en": {
+   "value": "Guest mode",
+   "old": "Guest mode"
+  }
+ },
+ "menu_account": {
+  "uz": {
+   "value": "Akkaunt",
+   "old": "Akkaunt"
+  },
+  "ru": {
+   "value": "Аккаунт",
+   "old": "Аккаунт"
+  },
+  "en": {
+   "value": "Account",
+   "old": "Account"
+  }
+ },
+ "menu_quick_find_label": {
+  "uz": {
+   "value": "Joy topish",
+   "old": "Joy topish"
+  },
+  "ru": {
+   "value": "Найти место",
+   "old": "Найти место"
+  },
+  "en": {
+   "value": "Find a space",
+   "old": "Find a space"
+  }
+ },
+ "menu_quick_find_desc": {
+  "uz": {
+   "value": "Katalog",
+   "old": "Katalog"
+  },
+  "ru": {
+   "value": "Каталог",
+   "old": "Каталог"
+  },
+  "en": {
+   "value": "Catalog",
+   "old": "Catalog"
+  }
+ },
+ "menu_quick_add_label": {
+  "uz": {
+   "value": "Joy qo'shish",
+   "old": "Joy qo'shish"
+  },
+  "ru": {
+   "value": "Добавить место",
+   "old": "Добавить место"
+  },
+  "en": {
+   "value": "List a space",
+   "old": "List a space"
+  }
+ },
+ "menu_quick_add_desc": {
+  "uz": {
+   "value": "Hamkorlik",
+   "old": "Hamkorlik"
+  },
+  "ru": {
+   "value": "Партнёрство",
+   "old": "Партнёрство"
+  },
+  "en": {
+   "value": "Partnership",
+   "old": "Partnership"
+  }
+ },
+ "menu_guest_text": {
+  "uz": {
+   "value": "Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring",
+   "old": "Joyzone imkoniyatlaridan to'liq foydalanish uchun tizimga kiring"
+  },
+  "ru": {
+   "value": "Войдите, чтобы пользоваться всеми возможностями Joyzone",
+   "old": "Войдите, чтобы пользоваться всеми возможностями Joyzone"
+  },
+  "en": {
+   "value": "Sign in to use everything Joyzone offers",
+   "old": "Sign in to use everything Joyzone offers"
+  }
+ },
+ "menu_register": {
+  "uz": {
+   "value": "Ro'yxatdan o'tish",
+   "old": "Ro'yxatdan o'tish"
+  },
+  "ru": {
+   "value": "Регистрация",
+   "old": "Регистрация"
+  },
+  "en": {
+   "value": "Sign up",
+   "old": "Sign up"
+  }
+ },
+ "menu_cabinet_link": {
+  "uz": {
+   "value": "Kabinetga o'tish",
+   "old": "Kabinetga o'tish"
+  },
+  "ru": {
+   "value": "Перейти в кабинет",
+   "old": "Перейти в кабинет"
+  },
+  "en": {
+   "value": "Go to dashboard",
+   "old": "Go to dashboard"
+  }
+ },
+ "menu_partner_tag": {
+  "uz": {
+   "value": "Hamkorlar uchun",
+   "old": "Hamkorlar uchun"
+  },
+  "ru": {
+   "value": "Для партнёров",
+   "old": "Для партнёров"
+  },
+  "en": {
+   "value": "For partners",
+   "old": "For partners"
+  }
+ },
+ "menu_partner_title": {
+  "uz": {
+   "value": "Joyingiz bormi?",
+   "old": "Joyingiz bormi?"
+  },
+  "ru": {
+   "value": "Есть своё место?",
+   "old": "Есть своё место?"
+  },
+  "en": {
+   "value": "Own a space?",
+   "old": "Own a space?"
+  }
+ },
+ "menu_partner_text": {
+  "uz": {
+   "value": "Uni Joyzone-da e'lon qiling va daromad olishni boshlang",
+   "old": "Uni Joyzone-da e'lon qiling va daromad olishni boshlang"
+  },
+  "ru": {
+   "value": "Разместите его на Joyzone и начните зарабатывать",
+   "old": "Разместите его на Joyzone и начните зарабатывать"
+  },
+  "en": {
+   "value": "List it on Joyzone and start earning",
+   "old": "List it on Joyzone and start earning"
+  }
+ },
+ "menu_partner_cta": {
+  "uz": {
+   "value": "Boshlash",
+   "old": "Boshlash"
+  },
+  "ru": {
+   "value": "Начать",
+   "old": "Начать"
+  },
+  "en": {
+   "value": "Start",
+   "old": "Start"
+  }
+ },
+ "hero_title": {
+  "uz": {
+   "value": "O'zbekiston bo'ylab\nqulay",
+   "old": "O'zbekiston bo'ylab\nqulay"
+  },
+  "ru": {
+   "value": "По всему Узбекистану —\nудобные",
+   "old": "По всему Узбекистану\nудобно"
+  },
+  "en": {
+   "value": "Across Uzbekistan —\nthe right",
+   "old": "Across Uzbekistan\nconveniently"
+  }
+ },
+ "hero_animated_words": {
+  "uz": {
+   "value": "ofislar, kovorking, zallar, do'konlar, omborlar",
+   "old": "ofislar, kovorking, zallar, joylar"
+  },
+  "ru": {
+   "value": "офисы, коворкинги, залы, магазины, склады",
+   "old": "офисы, коворкинги, залы, места"
+  },
+  "en": {
+   "value": "offices, coworkings, halls, shops, warehouses",
+   "old": "offices, coworkings, halls, spaces"
+  }
+ },
+ "hero_subtitle": {
+  "uz": {
+   "value": "Ofis, do'kon va omborlarni ijaraga oling yoki sotib oling.",
+   "old": "Ofis, kovorking va zallarni bir joyda toping va onlayn bron qiling."
+  },
+  "ru": {
+   "value": "Офисы, магазины и склады — в аренду и на продажу.",
+   "old": "Офисы, коворкинги и залы в одном месте — найдите и забронируйте онлайн."
+  },
+  "en": {
+   "value": "Offices, shops and warehouses — to rent or to buy.",
+   "old": "Find and book offices, coworkings and halls online — all in one place."
+  }
+ },
+ "tab_all": {
+  "uz": {
+   "value": "barchasi",
+   "old": "barchasi"
+  },
+  "ru": {
+   "value": "все",
+   "old": "все"
+  },
+  "en": {
+   "value": "all",
+   "old": "all"
+  }
+ },
+ "hero_location_placeholder": {
+  "uz": {
+   "value": "Manzilni tanlang",
+   "old": "Manzilni tanlang"
+  },
+  "ru": {
+   "value": "Выберите адрес",
+   "old": "Выберите адрес"
+  },
+  "en": {
+   "value": "Choose a location",
+   "old": "Choose a location"
+  }
+ },
+ "hero_location_title": {
+  "uz": {
+   "value": "Manzil",
+   "old": "Manzil"
+  },
+  "ru": {
+   "value": "Адрес",
+   "old": "Адрес"
+  },
+  "en": {
+   "value": "Location",
+   "old": "Location"
+  }
+ },
+ "hero_search_placeholder": {
+  "uz": {
+   "value": "Qanday joy qidiryapsiz?",
+   "old": "Qidirish..."
+  },
+  "ru": {
+   "value": "Какое помещение ищете?",
+   "old": "Поиск..."
+  },
+  "en": {
+   "value": "What space are you looking for?",
+   "old": "Search..."
+  }
+ },
+ "hero_cta": {
+  "uz": {
+   "value": "Joy izlash",
+   "old": "Hozir boshlash"
+  },
+  "ru": {
+   "value": "Найти место",
+   "old": "Начать сейчас"
+  },
+  "en": {
+   "value": "Find a space",
+   "old": "Start Now"
+  }
+ },
+ "hero_empty_places": {
+  "uz": {
+   "value": "Hozircha ko'rsatish uchun joylar yo'q.",
+   "old": "Hozircha ko'rsatish uchun joylar yo'q."
+  },
+  "ru": {
+   "value": "Пока нет мест для показа.",
+   "old": "Пока нет мест для показа."
+  },
+  "en": {
+   "value": "No spaces to show yet.",
+   "old": "No spaces to show yet."
+  }
+ },
+ "home_partner_title": {
+  "uz": {
+   "value": "Joyzone — bu faqat ijara emas.",
+   "old": "Joyzone — bu faqat ijara emas."
+  },
+  "ru": {
+   "value": "Joyzone — это не только аренда.",
+   "old": "Joyzone — это больше, чем аренда."
+  },
+  "en": {
+   "value": "Joyzone is more than rentals.",
+   "old": "Joyzone is more than rental."
+  }
+ },
+ "home_partner_text": {
+  "uz": {
+   "value": "Ofis, do'kon yoki omboringizni joylashtiring: ijaraga bering yoki soting.",
+   "old": "Bu joyda siz o'zingizning ofisingiz, kovorkingingiz yoki joyingizni joylashtirishingiz mumkin."
+  },
+  "ru": {
+   "value": "Разместите офис, магазин или склад: сдайте в аренду или продайте.",
+   "old": "Разместите свой офис, коворкинг, зал или другое пространство на платформе Joyzone."
+  },
+  "en": {
+   "value": "List your office, shop or warehouse — rent it out or sell it.",
+   "old": "List your office, coworking space, hall, or other venue on the Joyzone platform."
+  }
+ },
+ "home_partner_cta": {
+  "uz": {
+   "value": "Batafsil",
+   "old": "Batafsil"
+  },
+  "ru": {
+   "value": "Подробнее",
+   "old": "Подробнее"
+  },
+  "en": {
+   "value": "Learn more",
+   "old": "Learn more"
+  }
+ },
+ "popular_title": {
+  "uz": {
+   "value": "Ommabop joylar",
+   "old": "Ommabop joylar"
+  },
+  "ru": {
+   "value": "Популярные места",
+   "old": "Популярные места"
+  },
+  "en": {
+   "value": "Popular Spaces",
+   "old": "Popular Spaces"
+  }
+ },
+ "popular_subtitle": {
+  "uz": {
+   "value": "Eng ko'p ko'rilgan ijara va sotuvdagi joylar",
+   "old": "Eng ko'p izlangan va band qilingan joylar"
+  },
+  "ru": {
+   "value": "Самые просматриваемые места в аренду и на продажу",
+   "old": "Самые просматриваемые и бронируемые места"
+  },
+  "en": {
+   "value": "The most viewed spaces to rent and to buy",
+   "old": "Most viewed and booked spaces"
+  }
+ },
+ "card_view_all": {
+  "uz": {
+   "value": "Barcha joylarni ko'rish",
+   "old": "Barcha joylarni ko'rish"
+  },
+  "ru": {
+   "value": "Смотреть все места",
+   "old": "Смотреть все места"
+  },
+  "en": {
+   "value": "View all spaces",
+   "old": "View all spaces"
+  }
+ },
+ "about_title": {
+  "uz": {
+   "value": "Joyzone qulayliklari",
+   "old": "Joyzone qulayliklari"
+  },
+  "ru": {
+   "value": "Удобства Joyzone",
+   "old": "Удобства Joyzone"
+  },
+  "en": {
+   "value": "Joyzone Features",
+   "old": "Joyzone Features"
+  }
+ },
+ "about_text": {
+  "uz": {
+   "value": "Har kim uchun oddiy va qulay platforma",
+   "old": "Har kim uchun oddiy va qulay platforma"
+  },
+  "ru": {
+   "value": "Простая и удобная платформа для каждого",
+   "old": "Простая и удобная платформа для каждого"
+  },
+  "en": {
+   "value": "A simple and convenient platform for everyone",
+   "old": "A simple and convenient platform for everyone"
+  }
+ },
+ "benefits_arr": {
+  "uz": {
+   "value": [
+    {
+     "icon": "interface",
+     "title": "Joyni tez tushunish",
+     "text": "Rasm, narx, manzil, sig'im va qulayliklar birinchi ko'rinishdayoq aniq ko'rinadi."
+    },
+    {
+     "icon": "search",
+     "title": "Aqlli qidiruv",
+     "text": "Shahar, format, narx va odam soni bo'yicha mos joylarni tez ajratib beradi."
+    },
+    {
+     "icon": "building",
+     "title": "Hamkor kabineti",
+     "text": "Partnerlar joy qo'shadi, tarif tanlaydi va so'rovlarni bitta kabinetda boshqaradi."
+    },
+    {
+     "icon": "shield",
+     "title": "Ishonch signallari",
+     "text": "Reyting, sharhlar va tasdiqlangan profil foydalanuvchiga xavfsiz tanlov beradi."
+    },
+    {
+     "icon": "crown",
+     "title": "Mos tariflar",
+     "text": "Tarif paketlari joy egasiga o'z o'sish bosqichini tanlash imkonini beradi."
+    },
+    {
+     "icon": "megaphone",
+     "title": "Ko'rinishni oshirish",
+     "text": "Reklama, tavsiya bloklari va yuqori joylashuv orqali obyekt ko'proq mijozga chiqadi."
+    }
+   ],
+   "old": [
+    {
+     "icon": "interface",
+     "title": "Joyni tez tushunish",
+     "text": "Rasm, narx, manzil, sig'im va qulayliklar birinchi ko'rinishdayoq aniq ko'rinadi."
+    },
+    {
+     "icon": "search",
+     "title": "Aqlli qidiruv",
+     "text": "Shahar, format, narx va odam soni bo'yicha mos joylarni tez ajratib beradi."
+    },
+    {
+     "icon": "building",
+     "title": "Hamkor kabineti",
+     "text": "Partnerlar joy qo'shadi, tarif tanlaydi va so'rovlarni bitta kabinetda boshqaradi."
+    },
+    {
+     "icon": "shield",
+     "title": "Ishonch signallari",
+     "text": "Reyting, sharhlar va tasdiqlangan profil foydalanuvchiga xavfsiz tanlov beradi."
+    },
+    {
+     "icon": "crown",
+     "title": "Mos tariflar",
+     "text": "Tarif paketlari joy egasiga o'z o'sish bosqichini tanlash imkonini beradi."
+    },
+    {
+     "icon": "megaphone",
+     "title": "Ko'rinishni oshirish",
+     "text": "Reklama, tavsiya bloklari va yuqori joylashuv orqali obyekt ko'proq mijozga chiqadi."
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "icon": "interface",
+     "title": "Всё понятно с первого взгляда",
+     "text": "Фото, цена, адрес, вместимость и удобства видны сразу на карточке."
+    },
+    {
+     "icon": "search",
+     "title": "Умный поиск",
+     "text": "Быстро подбирает места по городу, формату, цене и количеству людей."
+    },
+    {
+     "icon": "building",
+     "title": "Кабинет партнёра",
+     "text": "Партнёры добавляют места, выбирают тариф и обрабатывают заявки в одном кабинете."
+    },
+    {
+     "icon": "shield",
+     "title": "Сигналы доверия",
+     "text": "Рейтинг, отзывы и проверенный профиль помогают выбрать безопасно."
+    },
+    {
+     "icon": "crown",
+     "title": "Подходящие тарифы",
+     "text": "Тарифные пакеты позволяют владельцу выбрать свой этап роста."
+    },
+    {
+     "icon": "megaphone",
+     "title": "Больше просмотров",
+     "text": "Реклама, блоки рекомендаций и высокие позиции приводят больше клиентов."
+    }
+   ],
+   "old": [
+    {
+     "icon": "interface",
+     "title": "Всё понятно с первого взгляда",
+     "text": "Фото, цена, адрес, вместимость и удобства видны сразу на карточке."
+    },
+    {
+     "icon": "search",
+     "title": "Умный поиск",
+     "text": "Быстро подбирает места по городу, формату, цене и количеству людей."
+    },
+    {
+     "icon": "building",
+     "title": "Кабинет партнёра",
+     "text": "Партнёры добавляют места, выбирают тариф и обрабатывают заявки в одном кабинете."
+    },
+    {
+     "icon": "shield",
+     "title": "Сигналы доверия",
+     "text": "Рейтинг, отзывы и проверенный профиль помогают выбрать безопасно."
+    },
+    {
+     "icon": "crown",
+     "title": "Подходящие тарифы",
+     "text": "Тарифные пакеты позволяют владельцу выбрать свой этап роста."
+    },
+    {
+     "icon": "megaphone",
+     "title": "Больше просмотров",
+     "text": "Реклама, блоки рекомендаций и высокие позиции приводят больше клиентов."
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "icon": "interface",
+     "title": "Clear at a glance",
+     "text": "Photos, price, address, capacity and amenities are visible right on the card."
+    },
+    {
+     "icon": "search",
+     "title": "Smart search",
+     "text": "Quickly filters spaces by city, format, price and number of people."
+    },
+    {
+     "icon": "building",
+     "title": "Partner dashboard",
+     "text": "Partners add spaces, choose a plan and manage requests in one place."
+    },
+    {
+     "icon": "shield",
+     "title": "Trust signals",
+     "text": "Ratings, reviews and verified profiles help users choose safely."
+    },
+    {
+     "icon": "crown",
+     "title": "Flexible plans",
+     "text": "Plans let owners pick the stage of growth that fits them."
+    },
+    {
+     "icon": "megaphone",
+     "title": "More visibility",
+     "text": "Ads, featured blocks and top placement bring the space to more customers."
+    }
+   ],
+   "old": [
+    {
+     "icon": "interface",
+     "title": "Clear at a glance",
+     "text": "Photos, price, address, capacity and amenities are visible right on the card."
+    },
+    {
+     "icon": "search",
+     "title": "Smart search",
+     "text": "Quickly filters spaces by city, format, price and number of people."
+    },
+    {
+     "icon": "building",
+     "title": "Partner dashboard",
+     "text": "Partners add spaces, choose a plan and manage requests in one place."
+    },
+    {
+     "icon": "shield",
+     "title": "Trust signals",
+     "text": "Ratings, reviews and verified profiles help users choose safely."
+    },
+    {
+     "icon": "crown",
+     "title": "Flexible plans",
+     "text": "Plans let owners pick the stage of growth that fits them."
+    },
+    {
+     "icon": "megaphone",
+     "title": "More visibility",
+     "text": "Ads, featured blocks and top placement bring the space to more customers."
+    }
+   ]
+  }
+ },
+ "how_kicker": {
+  "uz": {
+   "value": "Qanday ishlaydi",
+   "old": "Qanday ishlaydi"
+  },
+  "ru": {
+   "value": "Как это работает",
+   "old": "Как это работает"
+  },
+  "en": {
+   "value": "How it works",
+   "old": "How it works"
+  }
+ },
+ "how_demo_label": {
+  "uz": {
+   "value": "Interaktiv ko'rsatma",
+   "old": "Interaktiv ko'rsatma"
+  },
+  "ru": {
+   "value": "Интерактивная инструкция",
+   "old": "Интерактивная инструкция"
+  },
+  "en": {
+   "value": "Interactive guide",
+   "old": "Interactive guide"
+  }
+ },
+ "how_video_label": {
+  "uz": {
+   "value": "Videoni ko'rish",
+   "old": "Videoni ko'rish"
+  },
+  "ru": {
+   "value": "Смотреть видео",
+   "old": "Смотреть видео"
+  },
+  "en": {
+   "value": "Watch the video",
+   "old": "Watch the video"
+  }
+ },
+ "how_tab_guest": {
+  "uz": {
+   "value": "Mijozlar uchun",
+   "old": "Mijozlar uchun"
+  },
+  "ru": {
+   "value": "Для клиентов",
+   "old": "Для клиентов"
+  },
+  "en": {
+   "value": "For guests",
+   "old": "For guests"
+  }
+ },
+ "how_guest_title": {
+  "uz": {
+   "value": "Kerakli joyni 3 qadamda toping",
+   "old": "Joyni 3 qadamda band qiling"
+  },
+  "ru": {
+   "value": "Найдите нужное место за 3 шага",
+   "old": "Забронируйте место за 3 шага"
+  },
+  "en": {
+   "value": "Find the right space in 3 steps",
+   "old": "Book a space in 3 steps"
+  }
+ },
+ "how_guest_text": {
+  "uz": {
+   "value": "Ro'yxatdan o'tishdan bron yoki sotuvchi bilan aloqagacha — bir necha daqiqa.",
+   "old": "Ro'yxatdan o'tishdan bron so'rovigacha — hammasi bir necha daqiqada."
+  },
+  "ru": {
+   "value": "От регистрации до брони или звонка продавцу — несколько минут.",
+   "old": "От регистрации до заявки на бронь — всего несколько минут."
+  },
+  "en": {
+   "value": "From sign-up to a booking or a call with the seller — a few minutes.",
+   "old": "From sign-up to booking request in just a few minutes."
+  }
+ },
+ "how_guest_cta": {
+  "uz": {
+   "value": "Joy topish",
+   "old": "Joy topish"
+  },
+  "ru": {
+   "value": "Найти место",
+   "old": "Найти место"
+  },
+  "en": {
+   "value": "Find a space",
+   "old": "Find a space"
+  }
+ },
+ "how_video_guest": {},
+ "how_step1_title": {
+  "uz": {
+   "value": "Akkaunt yarating",
+   "old": "Akkaunt yarating"
+  },
+  "ru": {
+   "value": "Создайте аккаунт",
+   "old": "Создайте аккаунт"
+  },
+  "en": {
+   "value": "Create an account",
+   "old": "Create an account"
+  }
+ },
+ "how_step1": {
+  "uz": {
+   "value": "Telefon raqamingiz bilan kiring — SMS-koddan so'ng profilingiz tayyor.",
+   "old": "Telefon raqamingiz bilan kiring — SMS-koddan so'ng profilingiz tayyor."
+  },
+  "ru": {
+   "value": "Войдите по номеру телефона — после SMS-кода профиль готов.",
+   "old": "Войдите по номеру телефона — после SMS-кода профиль готов."
+  },
+  "en": {
+   "value": "Sign in with your phone number — your profile is ready after the SMS code.",
+   "old": "Sign in with your phone number — your profile is ready after the SMS code."
+  }
+ },
+ "how_step2_title": {
+  "uz": {
+   "value": "Sizga mos joyni tanlang",
+   "old": "Sizga mos joyni tanlang"
+  },
+  "ru": {
+   "value": "Выберите подходящее место",
+   "old": "Выберите подходящее место"
+  },
+  "en": {
+   "value": "Pick the right space",
+   "old": "Pick the right space"
+  }
+ },
+ "how_step2": {
+  "uz": {
+   "value": "Format, narx va qulayliklar bo'yicha saralang va o'zingizga mos joyni tanlang.",
+   "old": "Format, narx va qulayliklar bo'yicha saralang va o'zingizga mos joyni tanlang."
+  },
+  "ru": {
+   "value": "Отфильтруйте по формату, цене и удобствам и выберите подходящее место.",
+   "old": "Отфильтруйте по формату, цене и удобствам и выберите подходящее место."
+  },
+  "en": {
+   "value": "Filter by format, price and amenities and pick the space that fits.",
+   "old": "Filter by format, price and amenities and pick the space that fits."
+  }
+ },
+ "how_step3_title": {
+  "uz": {
+   "value": "So'rov yuboring",
+   "old": "Bron so'rovini yuboring"
+  },
+  "ru": {
+   "value": "Отправьте заявку",
+   "old": "Отправьте заявку на бронь"
+  },
+  "en": {
+   "value": "Send a request",
+   "old": "Send a booking request"
+  }
+ },
+ "how_step3": {
+  "uz": {
+   "value": "Ijara uchun sana va vaqtni tanlang, sotuvdagi joy bo'yicha esa sotuvchiga qo'ng'iroq qiling yoki yozing.",
+   "old": "Sana va vaqtni belgilang, izoh qoldiring — joy egasi so'rovni tasdiqlaydi."
+  },
+  "ru": {
+   "value": "Для аренды выберите дату и время, а по объекту на продажу — позвоните или напишите продавцу.",
+   "old": "Укажите дату и время, оставьте комментарий — владелец подтвердит заявку."
+  },
+  "en": {
+   "value": "For a rental pick the date and time; for a property on sale, call or message the seller.",
+   "old": "Choose the date and time, add a note — the owner confirms your request."
+  }
+ },
+ "how_tab_partner": {
+  "uz": {
+   "value": "Hamkorlar uchun",
+   "old": "Hamkorlar uchun"
+  },
+  "ru": {
+   "value": "Для партнёров",
+   "old": "Для партнёров"
+  },
+  "en": {
+   "value": "For partners",
+   "old": "For partners"
+  }
+ },
+ "how_partner_title": {
+  "uz": {
+   "value": "Joyingizni 3 qadamda joylashtiring",
+   "old": "Joyingizni 3 qadamda ijaraga bering"
+  },
+  "ru": {
+   "value": "Разместите своё место за 3 шага",
+   "old": "Сдайте своё место за 3 шага"
+  },
+  "en": {
+   "value": "List your space in 3 steps",
+   "old": "Rent out your space in 3 steps"
+  }
+ },
+ "how_partner_text": {
+  "uz": {
+   "value": "Joy qo'shing, moderatsiyadan o'ting va so'rovlarni bitta kabinetda qabul qiling.",
+   "old": "Joy qo'shing, moderatsiyadan o'ting va so'rovlarni bitta kabinetda qabul qiling."
+  },
+  "ru": {
+   "value": "Добавьте место, пройдите модерацию и принимайте заявки в одном кабинете.",
+   "old": "Добавьте место, пройдите модерацию и принимайте заявки в одном кабинете."
+  },
+  "en": {
+   "value": "Add your space, pass moderation and handle requests in one dashboard.",
+   "old": "Add your space, pass moderation and handle requests in one dashboard."
+  }
+ },
+ "how_partner_cta": {
+  "uz": {
+   "value": "Joy qo'shish",
+   "old": "Joy qo'shish"
+  },
+  "ru": {
+   "value": "Добавить место",
+   "old": "Добавить место"
+  },
+  "en": {
+   "value": "Add a space",
+   "old": "Add a space"
+  }
+ },
+ "how_partner_guide": {
+  "uz": {
+   "value": "Hamkorlar qo'llanmasi",
+   "old": "Hamkorlar qo'llanmasi"
+  },
+  "ru": {
+   "value": "Руководство для партнёров",
+   "old": "Руководство для партнёров"
+  },
+  "en": {
+   "value": "Partner guide",
+   "old": "Partner guide"
+  }
+ },
+ "how_video_partner": {},
+ "how_partner_step1_title": {
+  "uz": {
+   "value": "Hamkor bo'ling",
+   "old": "Hamkor bo'ling"
+  },
+  "ru": {
+   "value": "Станьте партнёром",
+   "old": "Станьте партнёром"
+  },
+  "en": {
+   "value": "Become a partner",
+   "old": "Become a partner"
+  }
+ },
+ "how_partner_step1": {
+  "uz": {
+   "value": "Telefon raqamingiz bilan kiring, hamkor rolini tanlang va kompaniya nomini yozing.",
+   "old": "Telefon raqamingiz bilan kiring, hamkor rolini tanlang va kompaniya nomini yozing."
+  },
+  "ru": {
+   "value": "Войдите по номеру телефона, выберите роль партнёра и укажите название компании.",
+   "old": "Войдите по номеру телефона, выберите роль партнёра и укажите название компании."
+  },
+  "en": {
+   "value": "Sign in with your phone number, choose the partner role and add your company name.",
+   "old": "Sign in with your phone number, choose the partner role and add your company name."
+  }
+ },
+ "how_partner_step2_title": {
+  "uz": {
+   "value": "Joyingizni qo'shing",
+   "old": "Joyingizni qo'shing"
+  },
+  "ru": {
+   "value": "Добавьте место",
+   "old": "Добавьте место"
+  },
+  "en": {
+   "value": "Add your space",
+   "old": "Add your space"
+  }
+ },
+ "how_partner_step2": {
+  "uz": {
+   "value": "Toifa, ijara yoki sotuv, manzil, kamida 4 ta rasm va narx — e'lon moderatsiyaga yuboriladi.",
+   "old": "Format, manzil, kamida 4 ta rasm, narx va ish vaqtini kiriting — e'lon moderatsiyaga yuboriladi."
+  },
+  "ru": {
+   "value": "Категория, аренда или продажа, адрес, минимум 4 фото и цена — объявление уйдёт на модерацию.",
+   "old": "Формат, адрес, минимум 4 фото, цена и часы работы — объявление уйдёт на модерацию."
+  },
+  "en": {
+   "value": "Category, rent or sale, address, at least 4 photos and a price — the listing goes to moderation.",
+   "old": "Format, address, at least 4 photos, price and opening hours — the listing goes to moderation."
+  }
+ },
+ "how_partner_step3_title": {
+  "uz": {
+   "value": "So'rovlarni boshqaring",
+   "old": "So'rovlarni boshqaring"
+  },
+  "ru": {
+   "value": "Управляйте заявками",
+   "old": "Управляйте заявками"
+  },
+  "en": {
+   "value": "Manage requests",
+   "old": "Manage requests"
+  }
+ },
+ "how_partner_step3": {
+  "uz": {
+   "value": "Bron so'rovlarini tasdiqlang, xaridorlar bilan chatda gaplashing va kalendarni yuriting.",
+   "old": "Bron so'rovlarini tasdiqlang, grafikni yuriting va mijozlar bilan chatda gaplashing."
+  },
+  "ru": {
+   "value": "Подтверждайте брони, общайтесь с покупателями и арендаторами в чате и ведите календарь.",
+   "old": "Подтверждайте брони, ведите календарь и общайтесь с клиентами в чате."
+  },
+  "en": {
+   "value": "Confirm bookings, chat with tenants and buyers, and keep your calendar up to date.",
+   "old": "Confirm bookings, keep your calendar up to date and chat with guests."
+  }
+ },
+ "agent_title": {
+  "uz": {
+   "value": "Top agentlar",
+   "old": "Top agentlar"
+  },
+  "ru": {
+   "value": "Топ агенты",
+   "old": "Топ агенты"
+  },
+  "en": {
+   "value": "Top agents",
+   "old": "Top agents"
+  }
+ },
+ "agent_sub": {
+  "uz": {
+   "value": "Joyzone'dagi eng faol va ishonchli joy egalari.",
+   "old": "Joyzone'dagi eng faol va ishonchli joy egalari."
+  },
+  "ru": {
+   "value": "Самые активные и надёжные владельцы мест на Joyzone.",
+   "old": "Самые активные и надёжные владельцы мест на Joyzone."
+  },
+  "en": {
+   "value": "The most active and trusted space owners on Joyzone.",
+   "old": "The most active and trusted space owners on Joyzone."
+  }
+ },
+ "agent_badge_premium": {
+  "uz": {
+   "value": "Premium agent",
+   "old": "Premium agent"
+  },
+  "ru": {
+   "value": "Premium агент",
+   "old": "Premium агент"
+  },
+  "en": {
+   "value": "Premium agent",
+   "old": "Premium agent"
+  }
+ },
+ "agent_badge_comfort": {
+  "uz": {
+   "value": "Comfort agent",
+   "old": "Comfort agent"
+  },
+  "ru": {
+   "value": "Comfort агент",
+   "old": "Comfort агент"
+  },
+  "en": {
+   "value": "Comfort agent",
+   "old": "Comfort agent"
+  }
+ },
+ "agent_reviews": {
+  "uz": {
+   "value": "ta sharh",
+   "old": "ta sharh"
+  },
+  "ru": {
+   "value": "отзывов",
+   "old": "отзывов"
+  },
+  "en": {
+   "value": "reviews",
+   "old": "reviews"
+  }
+ },
+ "agent_profile": {
+  "uz": {
+   "value": "Profil",
+   "old": "Profil"
+  },
+  "ru": {
+   "value": "Профиль",
+   "old": "Профиль"
+  },
+  "en": {
+   "value": "Profile",
+   "old": "Profile"
+  }
+ },
+ "rev_title": {
+  "uz": {
+   "value": "Sharhlar",
+   "old": "Sharhlar"
+  },
+  "ru": {
+   "value": "Отзывы",
+   "old": "Отзывы"
+  },
+  "en": {
+   "value": "Reviews",
+   "old": "Reviews"
+  }
+ },
+ "rev_heading": {
+  "uz": {
+   "value": "Mijozlarimiz fikri",
+   "old": "Mijozlarimiz fikri"
+  },
+  "ru": {
+   "value": "Что говорят клиенты",
+   "old": "Что говорят клиенты"
+  },
+  "en": {
+   "value": "What our guests say",
+   "old": "What our guests say"
+  }
+ },
+ "rev_sub": {
+  "uz": {
+   "value": "Joyzone orqali joy band qilganlarning haqiqiy sharhlari.",
+   "old": "Joyzone orqali joy band qilganlarning haqiqiy sharhlari."
+  },
+  "ru": {
+   "value": "Настоящие отзывы тех, кто бронировал через Joyzone.",
+   "old": "Настоящие отзывы тех, кто бронировал через Joyzone."
+  },
+  "en": {
+   "value": "Real reviews from people who booked through Joyzone.",
+   "old": "Real reviews from people who booked through Joyzone."
+  }
+ },
+ "faq_kicker": {
+  "uz": {
+   "value": "FAQ",
+   "old": "FAQ"
+  },
+  "ru": {
+   "value": "FAQ",
+   "old": "FAQ"
+  },
+  "en": {
+   "value": "FAQ",
+   "old": "FAQ"
+  }
+ },
+ "faq_title": {
+  "uz": {
+   "value": "Ko'p beriladigan savollar",
+   "old": "Ko'p beriladigan savollar"
+  },
+  "ru": {
+   "value": "Частые вопросы",
+   "old": "Частые вопросы"
+  },
+  "en": {
+   "value": "Frequently asked questions",
+   "old": "Frequently asked questions"
+  }
+ },
+ "faq_search": {
+  "uz": {
+   "value": "Savolni qidiring...",
+   "old": "Savolni qidiring..."
+  },
+  "ru": {
+   "value": "Найти вопрос...",
+   "old": "Найти вопрос..."
+  },
+  "en": {
+   "value": "Search questions...",
+   "old": "Search questions..."
+  }
+ },
+ "faq_empty": {
+  "uz": {
+   "value": "Bunday savol topilmadi. Bizga yozing — javob beramiz.",
+   "old": "Bunday savol topilmadi. Bizga yozing — javob beramiz."
+  },
+  "ru": {
+   "value": "Такого вопроса нет. Напишите нам — ответим.",
+   "old": "Такого вопроса нет. Напишите нам — ответим."
+  },
+  "en": {
+   "value": "No such question. Write to us and we'll answer.",
+   "old": "No such question. Write to us and we'll answer."
+  }
+ },
+ "faq_help_title": {
+  "uz": {
+   "value": "Javob topmadingizmi?",
+   "old": "Javob topmadingizmi?"
+  },
+  "ru": {
+   "value": "Не нашли ответ?",
+   "old": "Не нашли ответ?"
+  },
+  "en": {
+   "value": "Didn't find an answer?",
+   "old": "Didn't find an answer?"
+  }
+ },
+ "faq_help_text": {
+  "uz": {
+   "value": "Qo'llab-quvvatlash jamoamiz savolingizga tez javob beradi.",
+   "old": "Qo'llab-quvvatlash jamoamiz savolingizga tez javob beradi."
+  },
+  "ru": {
+   "value": "Наша поддержка быстро ответит на ваш вопрос.",
+   "old": "Наша поддержка быстро ответит на ваш вопрос."
+  },
+  "en": {
+   "value": "Our support team will get back to you quickly.",
+   "old": "Our support team will get back to you quickly."
+  }
+ },
+ "faq_video_label": {
+  "uz": {
+   "value": "Videoda ko'rish",
+   "old": "Videoda ko'rish"
+  },
+  "ru": {
+   "value": "Смотреть видео",
+   "old": "Смотреть видео"
+  },
+  "en": {
+   "value": "Watch the video",
+   "old": "Watch the video"
+  }
+ },
+ "faq_arr": {
+  "uz": {
+   "value": [
+    {
+     "question": "Obyektimni Joyzone'ga qo'sha olamanmi?",
+     "answer": "Ha. Partner sifatida ro'yxatdan o'tib, ofis, kovorking, zal yoki boshqa joyingizni kabinet orqali moderatsiyaga yuborasiz."
+    },
+    {
+     "question": "Joylar xaritada ko'rinadimi?",
+     "answer": "Joy manzili va hududi kartochkada ko'rinadi. Keyingi bosqichda xarita orqali yaqin joylarni tez tanlash oqimi ham qo'shiladi."
+    },
+    {
+     "question": "Joyni sotib olish ham mumkinmi?",
+     "answer": "Ha. Ofislar, savdo maydonlari, tijorat joylari va omborlarda \"Sotuv\" filtrini tanlang. Sotuvdagi joy bron qilinmaydi: narxni ko'ring va sotuvchiga qo'ng'iroq qiling yoki chatda yozing."
+    },
+    {
+     "question": "Bron qilish qanday ishlaydi?",
+     "answer": "Mijoz kerakli joyni tanlaydi, sanani yoki vaqtni belgilaydi va so'rov yuboradi. Partner kabinetda so'rovni tasdiqlaydi."
+    },
+    {
+     "question": "Partnerlar uchun tariflar bormi?",
+     "answer": "Ha, joy egasi o'sish bosqichiga qarab oddiy joylashtirish yoki ko'proq ko'rinish beradigan paketlarni tanlashi mumkin."
+    }
+   ],
+   "old": [
+    {
+     "question": "Obyektimni Joyzone'ga qo'sha olamanmi?",
+     "answer": "Ha. Partner sifatida ro'yxatdan o'tib, ofis, kovorking, zal yoki boshqa joyingizni kabinet orqali moderatsiyaga yuborasiz."
+    },
+    {
+     "question": "Joylar xaritada ko'rinadimi?",
+     "answer": "Joy manzili va hududi kartochkada ko'rinadi. Keyingi bosqichda xarita orqali yaqin joylarni tez tanlash oqimi ham qo'shiladi."
+    },
+    {
+     "question": "Bron qilish qanday ishlaydi?",
+     "answer": "Mijoz kerakli joyni tanlaydi, sanani yoki vaqtni belgilaydi va so'rov yuboradi. Partner kabinetda so'rovni tasdiqlaydi."
+    },
+    {
+     "question": "Partnerlar uchun tariflar bormi?",
+     "answer": "Ha, joy egasi o'sish bosqichiga qarab oddiy joylashtirish yoki ko'proq ko'rinish beradigan paketlarni tanlashi mumkin."
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "question": "Могу ли я добавить свой объект в Joyzone?",
+     "answer": "Да. Зарегистрируйтесь как партнёр и отправьте офис, коворкинг, зал или другое место на модерацию через кабинет."
+    },
+    {
+     "question": "Видны ли места на карте?",
+     "answer": "Адрес и район места указаны на карточке. Позже появится выбор ближайших мест через карту."
+    },
+    {
+     "question": "Можно ли купить помещение?",
+     "answer": "Да. В офисах, торговых площадях, нежилых помещениях и складах выберите фильтр «Продажа». Объект на продажу не бронируется: посмотрите цену и позвоните продавцу или напишите в чат."
+    },
+    {
+     "question": "Как работает бронирование?",
+     "answer": "Клиент выбирает место, дату или время и отправляет заявку. Партнёр подтверждает её в кабинете."
+    },
+    {
+     "question": "Есть ли тарифы для партнёров?",
+     "answer": "Да, владелец может выбрать базовое размещение или пакеты с большей видимостью."
+    }
+   ],
+   "old": [
+    {
+     "question": "Могу ли я добавить свой объект в Joyzone?",
+     "answer": "Да. Зарегистрируйтесь как партнёр и отправьте офис, коворкинг, зал или другое место на модерацию через кабинет."
+    },
+    {
+     "question": "Видны ли места на карте?",
+     "answer": "Адрес и район места указаны на карточке. Позже появится выбор ближайших мест через карту."
+    },
+    {
+     "question": "Как работает бронирование?",
+     "answer": "Клиент выбирает место, дату или время и отправляет заявку. Партнёр подтверждает её в кабинете."
+    },
+    {
+     "question": "Есть ли тарифы для партнёров?",
+     "answer": "Да, владелец может выбрать базовое размещение или пакеты с большей видимостью."
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "question": "Can I list my space on Joyzone?",
+     "answer": "Yes. Sign up as a partner and send your office, coworking, hall or other space for moderation from the dashboard."
+    },
+    {
+     "question": "Are spaces shown on a map?",
+     "answer": "The address and area are shown on the card. A map view for nearby spaces is coming next."
+    },
+    {
+     "question": "Can I buy a space?",
+     "answer": "Yes. In offices, retail, commercial premises and warehouses choose the \"Sale\" filter. A property on sale is not booked: check the price and call the seller or message them in chat."
+    },
+    {
+     "question": "How does booking work?",
+     "answer": "The customer picks a space, date or time and sends a request. The partner confirms it in the dashboard."
+    },
+    {
+     "question": "Are there plans for partners?",
+     "answer": "Yes, owners can choose a basic listing or packages with more visibility."
+    }
+   ],
+   "old": [
+    {
+     "question": "Can I list my space on Joyzone?",
+     "answer": "Yes. Sign up as a partner and send your office, coworking, hall or other space for moderation from the dashboard."
+    },
+    {
+     "question": "Are spaces shown on a map?",
+     "answer": "The address and area are shown on the card. A map view for nearby spaces is coming next."
+    },
+    {
+     "question": "How does booking work?",
+     "answer": "The customer picks a space, date or time and sends a request. The partner confirms it in the dashboard."
+    },
+    {
+     "question": "Are there plans for partners?",
+     "answer": "Yes, owners can choose a basic listing or packages with more visibility."
+    }
+   ]
+  }
+ },
+ "footer_phone": {
+  "uz": {
+   "value": "+998 77 044 40 00",
+   "old": "+998 77 044 40 00"
+  },
+  "ru": {
+   "value": "+998 77 044 40 00",
+   "old": "+998 77 044 40 00"
+  },
+  "en": {
+   "value": "+998 77 044 40 00",
+   "old": "+998 77 044 40 00"
+  }
+ },
+ "support_phone": {
+  "uz": {
+   "value": "+998 71 123 45 67",
+   "old": "+998 71 123 45 67"
+  },
+  "ru": {
+   "value": "+998 71 123 45 67",
+   "old": "+998 71 123 45 67"
+  },
+  "en": {
+   "value": "+998 71 123 45 67",
+   "old": "+998 71 123 45 67"
+  }
+ },
+ "footer_email": {
+  "uz": {
+   "value": "info@joyzone.uz",
+   "old": "info@joyzone.uz"
+  },
+  "ru": {
+   "value": "info@joyzone.uz",
+   "old": "info@joyzone.uz"
+  },
+  "en": {
+   "value": "info@joyzone.uz",
+   "old": "info@joyzone.uz"
+  }
+ },
+ "social_telegram": {
+  "uz": {
+   "value": "https://t.me/joyzone",
+   "old": "https://t.me/joyzone"
+  },
+  "ru": {
+   "value": "https://t.me/joyzone",
+   "old": "https://t.me/joyzone"
+  },
+  "en": {
+   "value": "https://t.me/joyzone",
+   "old": "https://t.me/joyzone"
+  }
+ },
+ "social_instagram": {
+  "uz": {
+   "value": "https://instagram.com/joyzone",
+   "old": "https://instagram.com/joyzone"
+  },
+  "ru": {
+   "value": "https://instagram.com/joyzone",
+   "old": "https://instagram.com/joyzone"
+  },
+  "en": {
+   "value": "https://instagram.com/joyzone",
+   "old": "https://instagram.com/joyzone"
+  }
+ },
+ "social_facebook": {
+  "uz": {
+   "value": "https://facebook.com/joyzone",
+   "old": "https://facebook.com/joyzone"
+  },
+  "ru": {
+   "value": "https://facebook.com/joyzone",
+   "old": "https://facebook.com/joyzone"
+  },
+  "en": {
+   "value": "https://facebook.com/joyzone",
+   "old": "https://facebook.com/joyzone"
+  }
+ },
+ "social_linkedin": {
+  "uz": {
+   "value": "",
+   "old": ""
+  },
+  "ru": {
+   "value": "",
+   "old": ""
+  },
+  "en": {
+   "value": "",
+   "old": ""
+  }
+ },
+ "owner_kicker": {
+  "uz": {
+   "value": "Joy egalari uchun",
+   "old": "Joy egalari uchun"
+  },
+  "ru": {
+   "value": "Для владельцев мест",
+   "old": "Для владельцев мест"
+  },
+  "en": {
+   "value": "For space owners",
+   "old": "For space owners"
+  }
+ },
+ "owner_title": {
+  "uz": {
+   "value": "Bo'sh joyingiz bormi?",
+   "old": "Bo'sh joyingiz bormi?"
+  },
+  "ru": {
+   "value": "Есть свободное помещение?",
+   "old": "Есть свободное помещение?"
+  },
+  "en": {
+   "value": "Have a free space?",
+   "old": "Have a free space?"
+  }
+ },
+ "owner_text": {
+  "uz": {
+   "value": "Ofis, do'kon, ombor yoki zalni Joyzone'ga joylashtiring — ijaraga bering yoki soting.",
+   "old": "Ofis, kovorking yoki zalingizni Joyzone'da joylashtiring va mijozlardan bron so'rovlarini qabul qiling."
+  },
+  "ru": {
+   "value": "Разместите офис, магазин, склад или зал на Joyzone — сдайте в аренду или продайте.",
+   "old": "Разместите офис, коворкинг или зал на Joyzone и принимайте заявки на бронь от клиентов."
+  },
+  "en": {
+   "value": "List your office, shop, warehouse or hall on Joyzone — rent it out or sell it.",
+   "old": "List your office, coworking or hall on Joyzone and receive booking requests from guests."
+  }
+ },
+ "owner_point1": {
+  "uz": {
+   "value": "Standard tarifda 1 ta e'lon bepul",
+   "old": "Standard tarifda 1 ta e'lon bepul"
+  },
+  "ru": {
+   "value": "1 объявление бесплатно на тарифе Standard",
+   "old": "1 объявление бесплатно на тарифе Standard"
+  },
+  "en": {
+   "value": "1 listing free on the Standard plan",
+   "old": "1 listing free on the Standard plan"
+  }
+ },
+ "owner_point2": {
+  "uz": {
+   "value": "Rasm, narx va ish vaqti — 10 daqiqada tayyor",
+   "old": "Rasm, narx va ish vaqti — 10 daqiqada tayyor"
+  },
+  "ru": {
+   "value": "Фото, цена и часы работы — за 10 минут",
+   "old": "Фото, цена и часы работы — за 10 минут"
+  },
+  "en": {
+   "value": "Photos, price and hours — ready in 10 minutes",
+   "old": "Photos, price and hours — ready in 10 minutes"
+  }
+ },
+ "owner_point3": {
+  "uz": {
+   "value": "Bron so'rovlari va chat bitta kabinetda",
+   "old": "Bron so'rovlari va chat bitta kabinetda"
+  },
+  "ru": {
+   "value": "Заявки и чат с клиентами в одном кабинете",
+   "old": "Заявки и чат с клиентами в одном кабинете"
+  },
+  "en": {
+   "value": "Requests and guest chat in one dashboard",
+   "old": "Requests and guest chat in one dashboard"
+  }
+ },
+ "owner_cta": {
+  "uz": {
+   "value": "Joy qo'shish",
+   "old": "Joy qo'shish"
+  },
+  "ru": {
+   "value": "Добавить место",
+   "old": "Добавить место"
+  },
+  "en": {
+   "value": "Add a space",
+   "old": "Add a space"
+  }
+ },
+ "owner_cta2": {
+  "uz": {
+   "value": "Tariflarni ko'rish",
+   "old": "Tariflarni ko'rish"
+  },
+  "ru": {
+   "value": "Смотреть тарифы",
+   "old": "Смотреть тарифы"
+  },
+  "en": {
+   "value": "See plans",
+   "old": "See plans"
+  }
+ },
+ "help_float": {
+  "uz": {
+   "value": "Yordam kerakmi?",
+   "old": "Yordam kerakmi?"
+  },
+  "ru": {
+   "value": "Нужна помощь?",
+   "old": "Нужна помощь?"
+  },
+  "en": {
+   "value": "Need help?",
+   "old": "Need help?"
+  }
+ },
+ "footer_cta": {
+  "uz": {
+   "value": "Ariza qoldirish",
+   "old": "Ariza qoldirish"
+  },
+  "ru": {
+   "value": "Оставить заявку",
+   "old": "Оставить заявку"
+  },
+  "en": {
+   "value": "Leave a request",
+   "old": "Leave a request"
+  }
+ },
+ "footer_about": {
+  "uz": {
+   "value": "Joyzone — O'zbekistonda tijorat joylarini ijaraga olish va sotib olish uchun platforma.",
+   "old": "Bizning maqsadimiz qulay ish joylarini va saytni ijarachilarga yaqinlashtirish."
+  },
+  "ru": {
+   "value": "Joyzone — платформа для аренды и покупки коммерческих помещений в Узбекистане.",
+   "old": "Наша цель — приблизить удобные рабочие места и сайты к арендаторам."
+  },
+  "en": {
+   "value": "Joyzone is a platform to rent and buy commercial space in Uzbekistan.",
+   "old": "Our goal is to bring convenient workspaces closer to tenants."
+  }
+ },
+ "footer_nav1": {
+  "uz": {
+   "value": "Ma'lumotlar",
+   "old": "Ma'lumotlar"
+  },
+  "ru": {
+   "value": "Информация",
+   "old": "Информация"
+  },
+  "en": {
+   "value": "Information",
+   "old": "Information"
+  }
+ },
+ "footer_link_about": {
+  "uz": {
+   "value": "Biz haqimizda",
+   "old": "Biz haqimizda"
+  },
+  "ru": {
+   "value": "О нас",
+   "old": "О нас"
+  },
+  "en": {
+   "value": "About Us",
+   "old": "About Us"
+  }
+ },
+ "footer_link_dirs": {
+  "uz": {
+   "value": "Yo'nalishlar",
+   "old": "Yo'nalishlar"
+  },
+  "ru": {
+   "value": "Направления",
+   "old": "Направления"
+  },
+  "en": {
+   "value": "Categories",
+   "old": "Categories"
+  }
+ },
+ "footer_link_contact": {
+  "uz": {
+   "value": "Kontaktlar",
+   "old": "Kontaktlar"
+  },
+  "ru": {
+   "value": "Контакты",
+   "old": "Контакты"
+  },
+  "en": {
+   "value": "Contact",
+   "old": "Contact"
+  }
+ },
+ "footer_nav2": {
+  "uz": {
+   "value": "Xizmatlar",
+   "old": "Xizmatlar"
+  },
+  "ru": {
+   "value": "Сервисы",
+   "old": "Сервисы"
+  },
+  "en": {
+   "value": "Services",
+   "old": "Services"
+  }
+ },
+ "footer_link_offices": {
+  "uz": {
+   "value": "Ofislar",
+   "old": "Ijaraga ofislar"
+  },
+  "ru": {
+   "value": "Офисы",
+   "old": "Аренда офисов"
+  },
+  "en": {
+   "value": "Offices",
+   "old": "Office rentals"
+  }
+ },
+ "footer_link_halls": {
+  "uz": {
+   "value": "Do'kon va omborlar",
+   "old": "Konferensiyalar zali"
+  },
+  "ru": {
+   "value": "Магазины и склады",
+   "old": "Конференц-залы"
+  },
+  "en": {
+   "value": "Shops and warehouses",
+   "old": "Conference halls"
+  }
+ },
+ "footer_link_partner": {
+  "uz": {
+   "value": "Hamkor bo'lish",
+   "old": "Hamkor bo'lish"
+  },
+  "ru": {
+   "value": "Стать партнёром",
+   "old": "Стать партнёром"
+  },
+  "en": {
+   "value": "Become a partner",
+   "old": "Become a partner"
+  }
+ },
+ "footer_socials_title": {
+  "uz": {
+   "value": "Ijtimoiy tarmoqlarimiz",
+   "old": "Ijtimoiy tarmoqlarimiz"
+  },
+  "ru": {
+   "value": "Мы в соцсетях",
+   "old": "Мы в соцсетях"
+  },
+  "en": {
+   "value": "Follow us",
+   "old": "Follow us"
+  }
+ },
+ "footer_copyright": {
+  "uz": {
+   "value": "©2026 JOY HUB. Barcha huquqlar himoyalangan.",
+   "old": "©2026 JOY HUB. Barcha huquqlar himoyalangan."
+  },
+  "ru": {
+   "value": "©2026 JOY HUB. Все права защищены.",
+   "old": "©2026 JOY HUB. Все права защищены."
+  },
+  "en": {
+   "value": "©2026 JOY HUB. All rights reserved.",
+   "old": "©2026 JOY HUB. All rights reserved."
+  }
+ },
+ "footer_powered": {
+  "uz": {
+   "value": "Powered by IT Comfort",
+   "old": "Powered by IT Comfort"
+  },
+  "ru": {
+   "value": "Powered by IT Comfort",
+   "old": "Powered by IT Comfort"
+  },
+  "en": {
+   "value": "Powered by IT Comfort",
+   "old": "Powered by IT Comfort"
+  }
+ },
+ "auth_login_title": {
+  "uz": {
+   "value": "Hush kelibsiz!",
+   "old": "Hush kelibsiz!"
+  },
+  "ru": {
+   "value": "Добро пожаловать!",
+   "old": "Добро пожаловать!"
+  },
+  "en": {
+   "value": "Welcome Back!",
+   "old": "Welcome Back!"
+  }
+ },
+ "auth_login_sub": {
+  "uz": {
+   "value": "Telefon raqamingizni kiriting — unga tasdiqlash kodini yuboramiz.",
+   "old": "Hisobingizga kirish uchun telefon raqamingiz yoki e-mail manzilingizni kiriting."
+  },
+  "ru": {
+   "value": "Введите номер телефона — мы отправим на него код подтверждения.",
+   "old": "Введите ваш номер телефона или e-mail для входа в систему."
+  },
+  "en": {
+   "value": "Enter your phone number and we'll send you a confirmation code.",
+   "old": "Enter your phone number or email to log into your account."
+  }
+ },
+ "auth_phone_placeholder": {
+  "uz": {
+   "value": "+998 90 123 45 67",
+   "old": "+998 90 123 45 67"
+  },
+  "ru": {
+   "value": "+998 90 123 45 67",
+   "old": "+998 90 123 45 67"
+  },
+  "en": {
+   "value": "+998 90 123 45 67",
+   "old": "+998 90 123 45 67"
+  }
+ },
+ "auth_or": {
+  "uz": {
+   "value": "yoki",
+   "old": "yoki"
+  },
+  "ru": {
+   "value": "или",
+   "old": "или"
+  },
+  "en": {
+   "value": "or",
+   "old": "or"
+  }
+ },
+ "auth_google": {
+  "uz": {
+   "value": "Google orqali kirish",
+   "old": "Google orqali kirish"
+  },
+  "ru": {
+   "value": "Войти через Google",
+   "old": "Войти через Google"
+  },
+  "en": {
+   "value": "Continue with Google",
+   "old": "Continue with Google"
+  }
+ },
+ "auth_get_code": {
+  "uz": {
+   "value": "Kodni olish",
+   "old": "Kodni olish"
+  },
+  "ru": {
+   "value": "Получить код",
+   "old": "Получить код"
+  },
+  "en": {
+   "value": "Get code",
+   "old": "Get code"
+  }
+ },
+ "auth_otp_title": {
+  "uz": {
+   "value": "Kodni tasdiqlang",
+   "old": "Kodni tasdiqlang"
+  },
+  "ru": {
+   "value": "Подтвердите код",
+   "old": "Подтвердите код"
+  },
+  "en": {
+   "value": "Verify Code",
+   "old": "Verify Code"
+  }
+ },
+ "auth_otp_sub": {
+  "uz": {
+   "value": "Telefon raqamingizga yuborilgan 6 xonali kodni kiriting.",
+   "old": "Email yoki telefon raqamingizga yuborilgan 6 xonali tasdiqlash kodini kiriting."
+  },
+  "ru": {
+   "value": "Введите 6-значный код, отправленный на ваш номер телефона.",
+   "old": "Введите 6-значный код подтверждения, отправленный на ваш email или номер телефона."
+  },
+  "en": {
+   "value": "Enter the 6-digit code we sent to your phone.",
+   "old": "Enter the 6-digit verification code sent to your email or phone."
+  }
+ },
+ "auth_confirm": {
+  "uz": {
+   "value": "Tasdiqlash",
+   "old": "Tasdiqlash"
+  },
+  "ru": {
+   "value": "Подтвердить",
+   "old": "Подтвердить"
+  },
+  "en": {
+   "value": "Confirm",
+   "old": "Confirm"
+  }
+ },
+ "auth_reg_title": {
+  "uz": {
+   "value": "Ro'yxatdan o'tish",
+   "old": "Ro'yxatdan o'tish"
+  },
+  "ru": {
+   "value": "Регистрация",
+   "old": "Регистрация"
+  },
+  "en": {
+   "value": "Sign Up",
+   "old": "Sign Up"
+  }
+ },
+ "auth_reg_sub": {
+  "uz": {
+   "value": "Joyzone platformasida ishlash uchun akkaunt yarating.",
+   "old": "Joyzone platformasida ishlash uchun akkaunt yarating."
+  },
+  "ru": {
+   "value": "Создайте аккаунт для работы на платформе Joyzone.",
+   "old": "Создайте аккаунт для работы на платформе Joyzone."
+  },
+  "en": {
+   "value": "Create an account to start using the Joyzone platform.",
+   "old": "Create an account to start using the Joyzone platform."
+  }
+ },
+ "auth_first_name": {
+  "uz": {
+   "value": "Ismingiz",
+   "old": "Ismingiz"
+  },
+  "ru": {
+   "value": "Имя",
+   "old": "Имя"
+  },
+  "en": {
+   "value": "First name",
+   "old": "First name"
+  }
+ },
+ "auth_last_name": {
+  "uz": {
+   "value": "Familiyangiz",
+   "old": "Familiyangiz"
+  },
+  "ru": {
+   "value": "Фамилия",
+   "old": "Фамилия"
+  },
+  "en": {
+   "value": "Last name",
+   "old": "Last name"
+  }
+ },
+ "auth_finish": {
+  "uz": {
+   "value": "Yakunlash",
+   "old": "Yakunlash"
+  },
+  "ru": {
+   "value": "Завершить",
+   "old": "Завершить"
+  },
+  "en": {
+   "value": "Finish",
+   "old": "Finish"
+  }
+ },
+ "auth_forgot_title": {
+  "uz": {
+   "value": "Parolni tiklash",
+   "old": "Parolni tiklash"
+  },
+  "ru": {
+   "value": "Сброс пароля",
+   "old": "Сброс пароля"
+  },
+  "en": {
+   "value": "Reset Password",
+   "old": "Reset Password"
+  }
+ },
+ "auth_forgot_sub": {
+  "uz": {
+   "value": "Hisobingizga ulangan email yoki telefon raqamini kiriting. Parolni tiklash uchun tasdiqlash kodini yuboramiz.",
+   "old": "Hisobingizga ulangan email yoki telefon raqamini kiriting. Parolni tiklash uchun tasdiqlash kodini yuboramiz."
+  },
+  "ru": {
+   "value": "Введите email или телефон, привязанный к аккаунту. Мы отправим код для сброса пароля.",
+   "old": "Введите email или телефон, привязанный к аккаунту. Мы отправим код для сброса пароля."
+  },
+  "en": {
+   "value": "Enter your email or phone number. We'll send a code to reset your password.",
+   "old": "Enter your email or phone number. We'll send a code to reset your password."
+  }
+ },
+ "auth_forgot_placeholder": {
+  "uz": {
+   "value": "Email yoki telefon raqami",
+   "old": "Email yoki telefon raqami"
+  },
+  "ru": {
+   "value": "Email или номер телефона",
+   "old": "Email или номер телефона"
+  },
+  "en": {
+   "value": "Email or phone number",
+   "old": "Email or phone number"
+  }
+ },
+ "auth_forgot_btn": {
+  "uz": {
+   "value": "Tiklash kodini yuborish",
+   "old": "Tiklash kodini yuborish"
+  },
+  "ru": {
+   "value": "Отправить код",
+   "old": "Отправить код"
+  },
+  "en": {
+   "value": "Send Verification Code",
+   "old": "Send Verification Code"
+  }
+ },
+ "auth_forgot_login": {
+  "uz": {
+   "value": "Parolingiz esingizdami? Kirish",
+   "old": "Parolingiz esingizdami? Kirish"
+  },
+  "ru": {
+   "value": "Вспомнили пароль? Войти",
+   "old": "Вспомнили пароль? Войти"
+  },
+  "en": {
+   "value": "Remember your password? Login",
+   "old": "Remember your password? Login"
+  }
+ },
+ "auth_verify_title": {
+  "uz": {
+   "value": "Kodni tasdiqlang",
+   "old": "Kodni tasdiqlang"
+  },
+  "ru": {
+   "value": "Подтвердите код",
+   "old": "Подтвердите код"
+  },
+  "en": {
+   "value": "Verify Code",
+   "old": "Verify Code"
+  }
+ },
+ "auth_verify_sub": {
+  "uz": {
+   "value": "Telefon raqamingizga yuborilgan 6 xonali kodni kiriting.",
+   "old": "Email yoki telefon raqamingizga yuborilgan 6 xonali tasdiqlash kodini kiriting."
+  },
+  "ru": {
+   "value": "Введите 6-значный код, отправленный на ваш номер телефона.",
+   "old": "Введите 6-значный код подтверждения, отправленный на ваш email или номер."
+  },
+  "en": {
+   "value": "Enter the 6-digit code we sent to your phone.",
+   "old": "Enter the 6-digit verification code sent to your email or phone."
+  }
+ },
+ "auth_verify_btn": {
+  "uz": {
+   "value": "Tasdiqlash",
+   "old": "Tasdiqlash"
+  },
+  "ru": {
+   "value": "Подтвердить",
+   "old": "Подтвердить"
+  },
+  "en": {
+   "value": "Verify",
+   "old": "Verify"
+  }
+ },
+ "auth_verify_resend": {
+  "uz": {
+   "value": "Kod kelmadimi? Qayta yuborish",
+   "old": "Kod kelmadimi? Qayta yuborish"
+  },
+  "ru": {
+   "value": "Код не пришел? Отправить заново",
+   "old": "Код не пришел? Отправить заново"
+  },
+  "en": {
+   "value": "Didn't receive code? Resend",
+   "old": "Didn't receive code? Resend"
+  }
+ },
+ "back_button": {
+  "uz": {
+   "value": "Ortga qaytish",
+   "old": "Ortga qaytish"
+  },
+  "ru": {
+   "value": "Назад",
+   "old": "Назад"
+  },
+  "en": {
+   "value": "Back",
+   "old": "Back"
+  }
+ },
+ "about_page_kicker": {
+  "uz": {
+   "value": "Joyzone haqida",
+   "old": "Joyzone haqida"
+  },
+  "ru": {
+   "value": "О Joyzone",
+   "old": "О Joyzone"
+  },
+  "en": {
+   "value": "About Joyzone",
+   "old": "About Joyzone"
+  }
+ },
+ "about_page_title": {
+  "uz": {
+   "value": "Joy topishni oson qilamiz.",
+   "old": "Joy topishni oson qilamiz."
+  },
+  "ru": {
+   "value": "Мы упрощаем поиск пространства.",
+   "old": "Мы упрощаем поиск пространства."
+  },
+  "en": {
+   "value": "We make finding a space easier.",
+   "old": "We make finding a space easier."
+  }
+ },
+ "about_page_text": {
+  "uz": {
+   "value": "Joyzone ofis, kovorking, zal, do'kon, noturar joy va omborlarni bitta platformada jamlaydi. Ularni ijaraga olish yoki sotib olish mumkin. Mijoz kerakli joyni tez topadi, egasi esa uni ishonchli ko'rinishda taqdim etadi.",
+   "old": "Joyzone ofis, kovorking, uchrashuv xonasi, konferensiya zali va tadbir maydonlarini bitta qulay platformada ko'rsatadi. Mijoz kerakli joyni tez tushunadi, partner esa o'z maydonini ishonchli ko'rinishda taqdim etadi."
+  },
+  "ru": {
+   "value": "Joyzone собирает офисы, коворкинги, залы, магазины, нежилые помещения и склады на одной платформе — в аренду и на продажу. Клиент быстро находит нужное, а владелец показывает своё место надёжно и понятно.",
+   "old": "Joyzone объединяет офисы, коворкинги, переговорные, конференц-залы и площадки для мероприятий. Клиент быстро понимает предложение, а партнёр показывает своё пространство в понятном и надёжном формате."
+  },
+  "en": {
+   "value": "Joyzone brings offices, coworkings, halls, shops, commercial premises and warehouses together, to rent or to buy. Clients find what they need fast, and owners present their space clearly and reliably.",
+   "old": "Joyzone brings offices, coworking spaces, meeting rooms, conference halls, and event venues together. Clients understand each offer quickly, while partners present their spaces clearly and reliably."
+  }
+ },
+ "about_stats_arr": {
+  "uz": {
+   "value": [
+    {
+     "value": "120+",
+     "label": "joy kartalari"
+    },
+    {
+     "value": "24/7",
+     "label": "bron so'rovlari"
+    },
+    {
+     "value": "10 min",
+     "label": "tanlash va yuborish"
+    },
+    {
+     "value": "1 joy",
+     "label": "hamma formatlar"
+    }
+   ],
+   "old": [
+    {
+     "value": "120+",
+     "label": "joy kartalari"
+    },
+    {
+     "value": "24/7",
+     "label": "bron so'rovlari"
+    },
+    {
+     "value": "10 min",
+     "label": "tanlash va yuborish"
+    },
+    {
+     "value": "1 joy",
+     "label": "hamma formatlar"
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "value": "120+",
+     "label": "карточек мест"
+    },
+    {
+     "value": "24/7",
+     "label": "заявки на бронь"
+    },
+    {
+     "value": "10 мин",
+     "label": "выбор и отправка"
+    },
+    {
+     "value": "1 место",
+     "label": "все форматы"
+    }
+   ],
+   "old": [
+    {
+     "value": "120+",
+     "label": "карточек мест"
+    },
+    {
+     "value": "24/7",
+     "label": "заявки на бронь"
+    },
+    {
+     "value": "10 мин",
+     "label": "выбор и отправка"
+    },
+    {
+     "value": "1 место",
+     "label": "все форматы"
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "value": "120+",
+     "label": "space cards"
+    },
+    {
+     "value": "24/7",
+     "label": "booking requests"
+    },
+    {
+     "value": "10 min",
+     "label": "to choose and send"
+    },
+    {
+     "value": "1 place",
+     "label": "for every format"
+    }
+   ],
+   "old": [
+    {
+     "value": "120+",
+     "label": "space cards"
+    },
+    {
+     "value": "24/7",
+     "label": "booking requests"
+    },
+    {
+     "value": "10 min",
+     "label": "to choose and send"
+    },
+    {
+     "value": "1 place",
+     "label": "for every format"
+    }
+   ]
+  }
+ },
+ "about_values_arr": {
+  "uz": {
+   "value": [
+    {
+     "icon": "map",
+     "title": "Joyni tez tushunish",
+     "text": "Kartochkada rasm, manzil, narx, sig'im va format birinchi qarashdayoq ko'rinadi."
+    },
+    {
+     "icon": "shield",
+     "title": "Ishonchli tanlov",
+     "text": "Partner profili, sharhlar va moderatsiya signallari mijozga xavfsiz qaror qilishga yordam beradi."
+    },
+    {
+     "icon": "building",
+     "title": "Partnerlar uchun o'sish",
+     "text": "Joy egasi o'z maydonini chiroyli ko'rsatadi, so'rovlarni oladi va ko'rinishini oshiradi."
+    }
+   ],
+   "old": [
+    {
+     "icon": "map",
+     "title": "Joyni tez tushunish",
+     "text": "Kartochkada rasm, manzil, narx, sig'im va format birinchi qarashdayoq ko'rinadi."
+    },
+    {
+     "icon": "shield",
+     "title": "Ishonchli tanlov",
+     "text": "Partner profili, sharhlar va moderatsiya signallari mijozga xavfsiz qaror qilishga yordam beradi."
+    },
+    {
+     "icon": "building",
+     "title": "Partnerlar uchun o'sish",
+     "text": "Joy egasi o'z maydonini chiroyli ko'rsatadi, so'rovlarni oladi va ko'rinishini oshiradi."
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "icon": "map",
+     "title": "Понятное место",
+     "text": "Фото, адрес, цена, вместимость и формат видны на карточке с первого взгляда."
+    },
+    {
+     "icon": "shield",
+     "title": "Надёжный выбор",
+     "text": "Профиль партнёра, отзывы и модерация помогают клиенту принять безопасное решение."
+    },
+    {
+     "icon": "building",
+     "title": "Рост для партнёров",
+     "text": "Владелец красиво показывает своё пространство, получает заявки и повышает видимость."
+    }
+   ],
+   "old": [
+    {
+     "icon": "map",
+     "title": "Понятное место",
+     "text": "Фото, адрес, цена, вместимость и формат видны на карточке с первого взгляда."
+    },
+    {
+     "icon": "shield",
+     "title": "Надёжный выбор",
+     "text": "Профиль партнёра, отзывы и модерация помогают клиенту принять безопасное решение."
+    },
+    {
+     "icon": "building",
+     "title": "Рост для партнёров",
+     "text": "Владелец красиво показывает своё пространство, получает заявки и повышает видимость."
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "icon": "map",
+     "title": "Understand a space fast",
+     "text": "Photos, address, price, capacity and format are visible on the card at first glance."
+    },
+    {
+     "icon": "shield",
+     "title": "Reliable choice",
+     "text": "Partner profiles, reviews and moderation help customers decide safely."
+    },
+    {
+     "icon": "building",
+     "title": "Growth for partners",
+     "text": "Owners present their space well, receive requests and increase visibility."
+    }
+   ],
+   "old": [
+    {
+     "icon": "map",
+     "title": "Understand a space fast",
+     "text": "Photos, address, price, capacity and format are visible on the card at first glance."
+    },
+    {
+     "icon": "shield",
+     "title": "Reliable choice",
+     "text": "Partner profiles, reviews and moderation help customers decide safely."
+    },
+    {
+     "icon": "building",
+     "title": "Growth for partners",
+     "text": "Owners present their space well, receive requests and increase visibility."
+    }
+   ]
+  }
+ },
+ "about_story_kicker": {
+  "uz": {
+   "value": "Nima uchun kerak",
+   "old": "Nima uchun kerak"
+  },
+  "ru": {
+   "value": "Зачем это нужно",
+   "old": "Зачем это нужно"
+  },
+  "en": {
+   "value": "Why it matters",
+   "old": "Why it matters"
+  }
+ },
+ "about_story_title": {
+  "uz": {
+   "value": "Ko'p joy bor, lekin tanlash doim ham oson emas.",
+   "old": "Ko'p joy bor, lekin tanlash doim ham oson emas."
+  },
+  "ru": {
+   "value": "Пространств много, но выбирать не всегда просто.",
+   "old": "Пространств много, но выбирать не всегда просто."
+  },
+  "en": {
+   "value": "There are many spaces, but choosing is not always easy.",
+   "old": "There are many spaces, but choosing is not always easy."
+  }
+ },
+ "about_story_text": {
+  "uz": {
+   "value": "Maqsadimiz oddiy: joy haqidagi asosiy savollarga birinchi ekranda javob berish. Manzil, maydon, narx va rasmlar tartibli karta, filtr va egasining profili orqali ko'rsatiladi.",
+   "old": "Bizning maqsadimiz oddiy: joy haqida asosiy savollarni birinchi ekranda javoblash. Manzil, sig'im, narx va rasmlar tartibli karta, filtr va partner profili orqali foydalanuvchiga yetkaziladi."
+  },
+  "ru": {
+   "value": "Наша задача — сразу ответить на главные вопросы о месте. Адрес, площадь, цена и фото собраны в понятной карточке, фильтрах и профиле владельца.",
+   "old": "Наша задача — сразу ответить на главные вопросы о месте. Адрес, вместимость, цена и фотографии представлены через структурированные карточки, фильтры и профиль партнёра."
+  },
+  "en": {
+   "value": "Our goal is to answer the key questions right away. Address, area, price and photos come together in a clear card, filters and the owner's profile.",
+   "old": "Our goal is to answer the essential questions immediately. Location, capacity, pricing, and photos are presented through structured cards, filters, and partner profiles."
+  }
+ },
+ "partner_guide_kicker": {
+  "uz": {
+   "value": "Partner instruktsiyasi",
+   "old": "Partner instruktsiyasi"
+  },
+  "ru": {
+   "value": "Инструкция партнёра",
+   "old": "Инструкция партнёра"
+  },
+  "en": {
+   "value": "Partner guide",
+   "old": "Partner guide"
+  }
+ },
+ "partner_guide_title": {
+  "uz": {
+   "value": "Joyzone partner qo'llanmasi.",
+   "old": "Joyzone partner qo'llanmasi."
+  },
+  "ru": {
+   "value": "Руководство партнёра Joyzone.",
+   "old": "Руководство партнёра Joyzone."
+  },
+  "en": {
+   "value": "The Joyzone partner guide.",
+   "old": "The Joyzone partner guide."
+  }
+ },
+ "partner_guide_text": {
+  "uz": {
+   "value": "Hamkor bo'lish jarayoni qisqa va nazoratli. Quyida ariza, karta tayyorlash, shartlar, moderatsiya va bron so'rovlari tartibi keltirilgan.",
+   "old": "Hamkor bo'lish jarayoni qisqa va nazoratli. Quyida ariza, karta tayyorlash, shartlar, moderatsiya va bron so'rovlari tartibi keltirilgan."
+  },
+  "ru": {
+   "value": "Подключение партнёра проходит коротко и прозрачно: заявка, подготовка карточки, условия, модерация и обработка бронирований.",
+   "old": "Подключение партнёра проходит коротко и прозрачно: заявка, подготовка карточки, условия, модерация и обработка бронирований."
+  },
+  "en": {
+   "value": "Becoming a partner is short and transparent: application, listing preparation, terms, moderation, and booking request management.",
+   "old": "Becoming a partner is short and transparent: application, listing preparation, terms, moderation, and booking request management."
+  }
+ },
+ "guide_metric1_value": {
+  "uz": {
+   "value": "6",
+   "old": "6"
+  },
+  "ru": {
+   "value": "6",
+   "old": "6"
+  },
+  "en": {
+   "value": "6",
+   "old": "6"
+  }
+ },
+ "guide_metric1_label": {
+  "uz": {
+   "value": "qadam",
+   "old": "qadam"
+  },
+  "ru": {
+   "value": "шагов",
+   "old": "шагов"
+  },
+  "en": {
+   "value": "steps",
+   "old": "steps"
+  }
+ },
+ "guide_metric2_value": {
+  "uz": {
+   "value": "24 soat",
+   "old": "24 soat"
+  },
+  "ru": {
+   "value": "24 часа",
+   "old": "24 часа"
+  },
+  "en": {
+   "value": "24 hours",
+   "old": "24 hours"
+  }
+ },
+ "guide_metric2_label": {
+  "uz": {
+   "value": "ko'rib chiqish",
+   "old": "ko'rib chiqish"
+  },
+  "ru": {
+   "value": "на проверку",
+   "old": "на проверку"
+  },
+  "en": {
+   "value": "review",
+   "old": "review"
+  }
+ },
+ "guide_metric3_value": {
+  "uz": {
+   "value": "1",
+   "old": "1"
+  },
+  "ru": {
+   "value": "1",
+   "old": "1"
+  },
+  "en": {
+   "value": "1",
+   "old": "1"
+  }
+ },
+ "guide_metric3_label": {
+  "uz": {
+   "value": "tayyor karta",
+   "old": "tayyor karta"
+  },
+  "ru": {
+   "value": "готовая карточка",
+   "old": "готовая карточка"
+  },
+  "en": {
+   "value": "ready listing",
+   "old": "ready listing"
+  }
+ },
+ "guide_sidebar_kicker": {
+  "uz": {
+   "value": "Jarayon",
+   "old": "Jarayon"
+  },
+  "ru": {
+   "value": "Процесс",
+   "old": "Процесс"
+  },
+  "en": {
+   "value": "Process",
+   "old": "Process"
+  }
+ },
+ "guide_sidebar_title": {
+  "uz": {
+   "value": "Listing tayyorlash",
+   "old": "Listing tayyorlash"
+  },
+  "ru": {
+   "value": "Подготовка объявления",
+   "old": "Подготовка объявления"
+  },
+  "en": {
+   "value": "Preparing a listing",
+   "old": "Preparing a listing"
+  }
+ },
+ "guide_sidebar_text": {
+  "uz": {
+   "value": "Har bir qadam karta sifatini, mijoz ishonchini va bron konversiyasini oshirish uchun kerak.",
+   "old": "Har bir qadam karta sifatini, mijoz ishonchini va bron konversiyasini oshirish uchun kerak."
+  },
+  "ru": {
+   "value": "Каждый шаг повышает качество карточки, доверие клиентов и конверсию в бронь.",
+   "old": "Каждый шаг повышает качество карточки, доверие клиентов и конверсию в бронь."
+  },
+  "en": {
+   "value": "Each step improves listing quality, guest trust and booking conversion.",
+   "old": "Each step improves listing quality, guest trust and booking conversion."
+  }
+ },
+ "guide_steps_arr": {
+  "uz": {
+   "value": [
+    {
+     "step": "01",
+     "title": "Ariza yuborish",
+     "text": "Joy egasi yoki vakili asosiy ma'lumotlarni qoldiradi: tashkilot nomi, telefon, joy formati va manzil.",
+     "deliverable": "Kontakt va joy profili"
+    },
+    {
+     "step": "02",
+     "title": "Joyni tekshirish",
+     "text": "Joyzone jamoasi joy formati, sig'im, rasmlar sifati va mijoz uchun muhim bo'lgan shartlarni ko'rib chiqadi.",
+     "deliverable": "Moderatsiya statusi"
+    },
+    {
+     "step": "03",
+     "title": "Karta tayyorlash",
+     "text": "Rasmlar, narx, sig'im, qulayliklar, joy qoidalari va qisqa tavsif yagona karta ko'rinishiga keltiriladi.",
+     "deliverable": "Tayyor listing"
+    },
+    {
+     "step": "04",
+     "title": "Shartlarni kelishish",
+     "text": "Narx, bron qilish tartibi, bekor qilish qoidasi, aloqa va mas'uliyat chegaralari tasdiqlanadi.",
+     "deliverable": "Hamkorlik shartlari"
+    },
+    {
+     "step": "05",
+     "title": "E'longa chiqarish",
+     "text": "Karta katalogda ko'rinadi, foydalanuvchi joyni saqlashi, ko'rishi va bron so'rovini yuborishi mumkin.",
+     "deliverable": "Public ko'rinish"
+    },
+    {
+     "step": "06",
+     "title": "So'rovlar bilan ishlash",
+     "text": "Hamkor kelgan so'rovlarni ko'radi, tez javob beradi, band sanalarni yangilaydi va karta ma'lumotlarini dolzarb ushlab turadi.",
+     "deliverable": "Doimiy boshqaruv"
+    }
+   ],
+   "old": [
+    {
+     "step": "01",
+     "title": "Ariza yuborish",
+     "text": "Joy egasi yoki vakili asosiy ma'lumotlarni qoldiradi: tashkilot nomi, telefon, joy formati va manzil.",
+     "deliverable": "Kontakt va joy profili"
+    },
+    {
+     "step": "02",
+     "title": "Joyni tekshirish",
+     "text": "Joyzone jamoasi joy formati, sig'im, rasmlar sifati va mijoz uchun muhim bo'lgan shartlarni ko'rib chiqadi.",
+     "deliverable": "Moderatsiya statusi"
+    },
+    {
+     "step": "03",
+     "title": "Karta tayyorlash",
+     "text": "Rasmlar, narx, sig'im, qulayliklar, joy qoidalari va qisqa tavsif yagona karta ko'rinishiga keltiriladi.",
+     "deliverable": "Tayyor listing"
+    },
+    {
+     "step": "04",
+     "title": "Shartlarni kelishish",
+     "text": "Narx, bron qilish tartibi, bekor qilish qoidasi, aloqa va mas'uliyat chegaralari tasdiqlanadi.",
+     "deliverable": "Hamkorlik shartlari"
+    },
+    {
+     "step": "05",
+     "title": "E'longa chiqarish",
+     "text": "Karta katalogda ko'rinadi, foydalanuvchi joyni saqlashi, ko'rishi va bron so'rovini yuborishi mumkin.",
+     "deliverable": "Public ko'rinish"
+    },
+    {
+     "step": "06",
+     "title": "So'rovlar bilan ishlash",
+     "text": "Hamkor kelgan so'rovlarni ko'radi, tez javob beradi, band sanalarni yangilaydi va karta ma'lumotlarini dolzarb ushlab turadi.",
+     "deliverable": "Doimiy boshqaruv"
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "step": "01",
+     "title": "Заявка",
+     "text": "Владелец или представитель оставляет основные данные: название организации, телефон, формат и адрес места.",
+     "deliverable": "Контакт и профиль места"
+    },
+    {
+     "step": "02",
+     "title": "Проверка места",
+     "text": "Команда Joyzone проверяет формат, вместимость, качество фото и важные для клиента условия.",
+     "deliverable": "Статус модерации"
+    },
+    {
+     "step": "03",
+     "title": "Подготовка карточки",
+     "text": "Фото, цена, вместимость, удобства, правила и краткое описание собираются в единую карточку.",
+     "deliverable": "Готовое объявление"
+    },
+    {
+     "step": "04",
+     "title": "Согласование условий",
+     "text": "Утверждаются цена, порядок брони, правила отмены, связь и границы ответственности.",
+     "deliverable": "Условия партнёрства"
+    },
+    {
+     "step": "05",
+     "title": "Публикация",
+     "text": "Карточка появляется в каталоге: её можно сохранить, посмотреть и отправить заявку на бронь.",
+     "deliverable": "Публичная карточка"
+    },
+    {
+     "step": "06",
+     "title": "Работа с заявками",
+     "text": "Партнёр видит заявки, быстро отвечает, обновляет занятые даты и поддерживает данные актуальными.",
+     "deliverable": "Постоянное управление"
+    }
+   ],
+   "old": [
+    {
+     "step": "01",
+     "title": "Заявка",
+     "text": "Владелец или представитель оставляет основные данные: название организации, телефон, формат и адрес места.",
+     "deliverable": "Контакт и профиль места"
+    },
+    {
+     "step": "02",
+     "title": "Проверка места",
+     "text": "Команда Joyzone проверяет формат, вместимость, качество фото и важные для клиента условия.",
+     "deliverable": "Статус модерации"
+    },
+    {
+     "step": "03",
+     "title": "Подготовка карточки",
+     "text": "Фото, цена, вместимость, удобства, правила и краткое описание собираются в единую карточку.",
+     "deliverable": "Готовое объявление"
+    },
+    {
+     "step": "04",
+     "title": "Согласование условий",
+     "text": "Утверждаются цена, порядок брони, правила отмены, связь и границы ответственности.",
+     "deliverable": "Условия партнёрства"
+    },
+    {
+     "step": "05",
+     "title": "Публикация",
+     "text": "Карточка появляется в каталоге: её можно сохранить, посмотреть и отправить заявку на бронь.",
+     "deliverable": "Публичная карточка"
+    },
+    {
+     "step": "06",
+     "title": "Работа с заявками",
+     "text": "Партнёр видит заявки, быстро отвечает, обновляет занятые даты и поддерживает данные актуальными.",
+     "deliverable": "Постоянное управление"
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "step": "01",
+     "title": "Apply",
+     "text": "The owner or a representative leaves basic details: organization, phone, space format and address.",
+     "deliverable": "Contact and space profile"
+    },
+    {
+     "step": "02",
+     "title": "Space review",
+     "text": "The Joyzone team checks the format, capacity, photo quality and conditions that matter to customers.",
+     "deliverable": "Moderation status"
+    },
+    {
+     "step": "03",
+     "title": "Prepare the card",
+     "text": "Photos, price, capacity, amenities, rules and a short description are combined into one card.",
+     "deliverable": "Ready listing"
+    },
+    {
+     "step": "04",
+     "title": "Agree on terms",
+     "text": "Price, booking flow, cancellation rules, contacts and responsibilities are confirmed.",
+     "deliverable": "Partnership terms"
+    },
+    {
+     "step": "05",
+     "title": "Publish",
+     "text": "The card appears in the catalog; users can save it, view it and send a booking request.",
+     "deliverable": "Public listing"
+    },
+    {
+     "step": "06",
+     "title": "Handle requests",
+     "text": "The partner sees requests, replies quickly, updates busy dates and keeps the card current.",
+     "deliverable": "Ongoing management"
+    }
+   ],
+   "old": [
+    {
+     "step": "01",
+     "title": "Apply",
+     "text": "The owner or a representative leaves basic details: organization, phone, space format and address.",
+     "deliverable": "Contact and space profile"
+    },
+    {
+     "step": "02",
+     "title": "Space review",
+     "text": "The Joyzone team checks the format, capacity, photo quality and conditions that matter to customers.",
+     "deliverable": "Moderation status"
+    },
+    {
+     "step": "03",
+     "title": "Prepare the card",
+     "text": "Photos, price, capacity, amenities, rules and a short description are combined into one card.",
+     "deliverable": "Ready listing"
+    },
+    {
+     "step": "04",
+     "title": "Agree on terms",
+     "text": "Price, booking flow, cancellation rules, contacts and responsibilities are confirmed.",
+     "deliverable": "Partnership terms"
+    },
+    {
+     "step": "05",
+     "title": "Publish",
+     "text": "The card appears in the catalog; users can save it, view it and send a booking request.",
+     "deliverable": "Public listing"
+    },
+    {
+     "step": "06",
+     "title": "Handle requests",
+     "text": "The partner sees requests, replies quickly, updates busy dates and keeps the card current.",
+     "deliverable": "Ongoing management"
+    }
+   ]
+  }
+ },
+ "partner_terms_kicker": {
+  "uz": {
+   "value": "Hamkorlik shartlari",
+   "old": "Hamkorlik shartlari"
+  },
+  "ru": {
+   "value": "Условия партнёрства",
+   "old": "Условия партнёрства"
+  },
+  "en": {
+   "value": "Partnership terms",
+   "old": "Partnership terms"
+  }
+ },
+ "partner_terms_title": {
+  "uz": {
+   "value": "Hamkor bo'lish uchun asosiy qoidalar.",
+   "old": "Hamkor bo'lish uchun asosiy qoidalar."
+  },
+  "ru": {
+   "value": "Основные условия сотрудничества.",
+   "old": "Основные условия сотрудничества."
+  },
+  "en": {
+   "value": "Core partnership terms.",
+   "old": "Core partnership terms."
+  }
+ },
+ "partner_terms_text": {
+  "uz": {
+   "value": "Bu blok kelishuvning qisqa ko'rinishi. Yakuniy shartlar alohida hujjat yoki forma orqali tasdiqlanishi mumkin.",
+   "old": "Bu blok kelishuvning qisqa ko'rinishi. Yakuniy shartlar alohida hujjat yoki forma orqali tasdiqlanishi mumkin."
+  },
+  "ru": {
+   "value": "Здесь приведена краткая версия условий. Финальные договорённости могут подтверждаться отдельным документом или формой.",
+   "old": "Здесь приведена краткая версия условий. Финальные договорённости могут подтверждаться отдельным документом или формой."
+  },
+  "en": {
+   "value": "This is a short overview of the agreement. Final terms may be confirmed through a separate document or form.",
+   "old": "This is a short overview of the agreement. Final terms may be confirmed through a separate document or form."
+  }
+ },
+ "partner_terms_arr": {
+  "uz": {
+   "value": [
+    {
+     "title": "Joy egasi yoki vakolatli vakil",
+     "text": "Joyni platformaga joylashtirayotgan shaxs joy egasi bo'lishi yoki e'lon berishga ruxsatga ega bo'lishi kerak."
+    },
+    {
+     "title": "Aniq narx va real ma'lumot",
+     "text": "Narx, sig'im, manzil, qulayliklar va cheklovlar mijoz ko'rgan paytda amaldagi holatga mos bo'lishi kerak."
+    },
+    {
+     "title": "Sifatli rasmlar",
+     "text": "Rasmlar joyning haqiqiy ko'rinishini berishi, juda qorong'i, chalg'ituvchi yoki boshqa obyektga tegishli bo'lmasligi kerak."
+    },
+    {
+     "title": "Bron va bekor qilish qoidasi",
+     "text": "Tasdiqlash muddati, to'lov tartibi, bekor qilish sharti va qo'shimcha xizmatlar oldindan kelishiladi."
+    },
+    {
+     "title": "Xavfsizlik va tozalik",
+     "text": "Hamkor joyni foydalanuvchi keladigan vaqtda tayyor, toza va kelishilgan imkoniyatlar bilan ta'minlaydi."
+    },
+    {
+     "title": "Moderatsiya huquqi",
+     "text": "Joyzone karta matni, rasmlari yoki shartlari ishonchsiz bo'lsa, e'lonni tuzatish, pauza qilish yoki rad etish huquqini saqlaydi."
+    }
+   ],
+   "old": [
+    {
+     "title": "Joy egasi yoki vakolatli vakil",
+     "text": "Joyni platformaga joylashtirayotgan shaxs joy egasi bo'lishi yoki e'lon berishga ruxsatga ega bo'lishi kerak."
+    },
+    {
+     "title": "Aniq narx va real ma'lumot",
+     "text": "Narx, sig'im, manzil, qulayliklar va cheklovlar mijoz ko'rgan paytda amaldagi holatga mos bo'lishi kerak."
+    },
+    {
+     "title": "Sifatli rasmlar",
+     "text": "Rasmlar joyning haqiqiy ko'rinishini berishi, juda qorong'i, chalg'ituvchi yoki boshqa obyektga tegishli bo'lmasligi kerak."
+    },
+    {
+     "title": "Bron va bekor qilish qoidasi",
+     "text": "Tasdiqlash muddati, to'lov tartibi, bekor qilish sharti va qo'shimcha xizmatlar oldindan kelishiladi."
+    },
+    {
+     "title": "Xavfsizlik va tozalik",
+     "text": "Hamkor joyni foydalanuvchi keladigan vaqtda tayyor, toza va kelishilgan imkoniyatlar bilan ta'minlaydi."
+    },
+    {
+     "title": "Moderatsiya huquqi",
+     "text": "Joyzone karta matni, rasmlari yoki shartlari ishonchsiz bo'lsa, e'lonni tuzatish, pauza qilish yoki rad etish huquqini saqlaydi."
+    }
+   ]
+  },
+  "ru": {
+   "value": [
+    {
+     "title": "Владелец или представитель",
+     "text": "Человек, размещающий место, должен быть владельцем или иметь право размещать объявление."
+    },
+    {
+     "title": "Точная цена и реальные данные",
+     "text": "Цена, вместимость, адрес, удобства и ограничения должны соответствовать действительности."
+    },
+    {
+     "title": "Качественные фото",
+     "text": "Фото должны показывать реальный вид места, без сильного затемнения и чужих объектов."
+    },
+    {
+     "title": "Правила брони и отмены",
+     "text": "Срок подтверждения, порядок оплаты, условия отмены и доп. услуги согласуются заранее."
+    },
+    {
+     "title": "Безопасность и чистота",
+     "text": "Партнёр обеспечивает готовое, чистое место с оговорёнными удобствами к приходу клиента."
+    },
+    {
+     "title": "Право модерации",
+     "text": "Joyzone может исправить, приостановить или отклонить объявление, если данные недостоверны."
+    }
+   ],
+   "old": [
+    {
+     "title": "Владелец или представитель",
+     "text": "Человек, размещающий место, должен быть владельцем или иметь право размещать объявление."
+    },
+    {
+     "title": "Точная цена и реальные данные",
+     "text": "Цена, вместимость, адрес, удобства и ограничения должны соответствовать действительности."
+    },
+    {
+     "title": "Качественные фото",
+     "text": "Фото должны показывать реальный вид места, без сильного затемнения и чужих объектов."
+    },
+    {
+     "title": "Правила брони и отмены",
+     "text": "Срок подтверждения, порядок оплаты, условия отмены и доп. услуги согласуются заранее."
+    },
+    {
+     "title": "Безопасность и чистота",
+     "text": "Партнёр обеспечивает готовое, чистое место с оговорёнными удобствами к приходу клиента."
+    },
+    {
+     "title": "Право модерации",
+     "text": "Joyzone может исправить, приостановить или отклонить объявление, если данные недостоверны."
+    }
+   ]
+  },
+  "en": {
+   "value": [
+    {
+     "title": "Owner or authorized representative",
+     "text": "The person listing the space must own it or be allowed to publish the listing."
+    },
+    {
+     "title": "Accurate price and real data",
+     "text": "Price, capacity, address, amenities and restrictions must match reality."
+    },
+    {
+     "title": "Quality photos",
+     "text": "Photos must show the real space, not too dark, misleading or of another property."
+    },
+    {
+     "title": "Booking and cancellation rules",
+     "text": "Confirmation time, payment, cancellation terms and extra services are agreed in advance."
+    },
+    {
+     "title": "Safety and cleanliness",
+     "text": "The partner provides a ready, clean space with the agreed amenities when the customer arrives."
+    },
+    {
+     "title": "Moderation rights",
+     "text": "Joyzone may correct, pause or reject a listing if its details are unreliable."
+    }
+   ],
+   "old": [
+    {
+     "title": "Owner or authorized representative",
+     "text": "The person listing the space must own it or be allowed to publish the listing."
+    },
+    {
+     "title": "Accurate price and real data",
+     "text": "Price, capacity, address, amenities and restrictions must match reality."
+    },
+    {
+     "title": "Quality photos",
+     "text": "Photos must show the real space, not too dark, misleading or of another property."
+    },
+    {
+     "title": "Booking and cancellation rules",
+     "text": "Confirmation time, payment, cancellation terms and extra services are agreed in advance."
+    },
+    {
+     "title": "Safety and cleanliness",
+     "text": "The partner provides a ready, clean space with the agreed amenities when the customer arrives."
+    },
+    {
+     "title": "Moderation rights",
+     "text": "Joyzone may correct, pause or reject a listing if its details are unreliable."
+    }
+   ]
+  }
+ },
+ "guide_next_kicker": {
+  "uz": {
+   "value": "Keyingi qadam",
+   "old": "Keyingi qadam"
+  },
+  "ru": {
+   "value": "Следующий шаг",
+   "old": "Следующий шаг"
+  },
+  "en": {
+   "value": "Next step",
+   "old": "Next step"
+  }
+ },
+ "guide_next_text": {
+  "uz": {
+   "value": "Ma'lumotlarni tayyorlang: joy nomi, manzil, 6-8 ta rasm, narx, sig'im, ish vaqti va bron qoidalari.",
+   "old": "Ma'lumotlarni tayyorlang: joy nomi, manzil, 6-8 ta rasm, narx, sig'im, ish vaqti va bron qoidalari."
+  },
+  "ru": {
+   "value": "Подготовьте данные: название, адрес, 6–8 фото, цену, вместимость, часы работы и правила брони.",
+   "old": "Подготовьте данные: название, адрес, 6–8 фото, цену, вместимость, часы работы и правила брони."
+  },
+  "en": {
+   "value": "Prepare the details: name, address, 6–8 photos, price, capacity, opening hours and booking rules.",
+   "old": "Prepare the details: name, address, 6–8 photos, price, capacity, opening hours and booking rules."
+  }
+ },
+ "tariffs_kicker": {
+  "uz": {
+   "value": "Tariflar",
+   "old": "Tariflar"
+  },
+  "ru": {
+   "value": "Тарифы",
+   "old": "Тарифы"
+  },
+  "en": {
+   "value": "Plans",
+   "old": "Plans"
+  }
+ },
+ "tariffs_title": {
+  "uz": {
+   "value": "O'zingizga mos tarifni tanlang",
+   "old": "O'zingizga mos tarifni tanlang"
+  },
+  "ru": {
+   "value": "Выберите подходящий тариф",
+   "old": "Выберите подходящий тариф"
+  },
+  "en": {
+   "value": "Choose the right plan",
+   "old": "Choose the right plan"
+  }
+ },
+ "tariffs_subtitle": {
+  "uz": {
+   "value": "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring.",
+   "old": "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring."
+  },
+  "ru": {
+   "value": "Начните бесплатно и меняйте тариф по мере роста бизнеса.",
+   "old": "Начните бесплатно и меняйте тариф по мере роста бизнеса."
+  },
+  "en": {
+   "value": "Start free and change your plan as your business grows.",
+   "old": "Start free and change your plan as your business grows."
+  }
+ },
+ "tariffs_best": {
+  "uz": {
+   "value": "Eng yaxshi tanlov",
+   "old": "Eng yaxshi tanlov"
+  },
+  "ru": {
+   "value": "Лучший выбор",
+   "old": "Лучший выбор"
+  },
+  "en": {
+   "value": "Best choice",
+   "old": "Best choice"
+  }
+ },
+ "tariffs_free": {
+  "uz": {
+   "value": "Bepul",
+   "old": "Bepul"
+  },
+  "ru": {
+   "value": "Бесплатно",
+   "old": "Бесплатно"
+  },
+  "en": {
+   "value": "Free",
+   "old": "Free"
+  }
+ },
+ "tariffs_per_month": {
+  "uz": {
+   "value": "so'm / oy",
+   "old": "so'm / oy"
+  },
+  "ru": {
+   "value": "сум / мес",
+   "old": "сум / мес"
+  },
+  "en": {
+   "value": "UZS / month",
+   "old": "UZS / month"
+  }
+ },
+ "tariffs_unlimited": {
+  "uz": {
+   "value": "Muddatsiz",
+   "old": "Muddatsiz"
+  },
+  "ru": {
+   "value": "Бессрочно",
+   "old": "Бессрочно"
+  },
+  "en": {
+   "value": "No expiry",
+   "old": "No expiry"
+  }
+ }
+}

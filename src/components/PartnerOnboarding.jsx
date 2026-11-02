@@ -18,6 +18,8 @@ import { navigate, useQueryParam } from "../utils/router.js";
 // Wizard order. Step 4 (a manual address form whose fields were never saved)
 // was removed; the remaining numbers stay as they are referenced by validation.
 const WIZARD_STEPS = [0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12];
+// A place for sale is never booked: no booking/hours step and no discounts.
+const SALE_WIZARD_STEPS = WIZARD_STEPS.filter(item => item !== 10 && item !== 12);
 const MIN_PHOTOS = 4;
 
 const STEP_META = {
@@ -34,8 +36,15 @@ const STEP_META = {
   12: { label: "Скидки", title: "Добавьте скидки", hint: "Необязательно, но скидки помогают получить первые брони быстрее." },
 };
 
+const DEAL_HINTS = { rent: "Аренда", sale: "Продажа", both: "Аренда и продажа" };
+
+const SALE_PRICE_META = { label: "Цена", title: "Цена продажи", hint: "Укажите полную стоимость объекта. Клиенты свяжутся с вами напрямую — бронирования не будет." };
+
 // Sections the owner can jump to while editing an existing place.
-const EDIT_SECTIONS = WIZARD_STEPS.filter(item => item > 0).map(item => ({ step: item, label: STEP_META[item].label }));
+const editSectionsFor = (steps) => steps.filter(item => item > 0).map(item => ({
+  step: item,
+  label: (item === 11 && steps === SALE_WIZARD_STEPS ? SALE_PRICE_META : STEP_META[item]).label,
+}));
 
 const BOOKING_MODES = [
   { id: "request", title: "По запросу", text: "Вы подтверждаете каждую заявку сами в кабинете." },
@@ -113,6 +122,8 @@ function PartnerOnboarding({ initialEditId = null }) {
   
   const [prices, setPrices] = useState({ soatlik: "", kunlik: "", haftalik: "", oylik: "" });
   const [enabledPrices, setEnabledPrices] = useState({ soatlik: false, kunlik: false, haftalik: false, oylik: false });
+  const [salePrice, setSalePrice] = useState("");
+  const [dealType, setDealType] = useState("rent");
   
   const [photos, setPhotos] = useState([]);
   const [bookingType, setBookingType] = useState("request");
@@ -215,6 +226,8 @@ function PartnerOnboarding({ initialEditId = null }) {
           oylik: p.prices?.oylik ?? p.price_monthly ?? "",
         };
         setPrices(loadedPrices);
+        setSalePrice(p.sale_price != null ? String(Math.round(Number(p.sale_price))) : "");
+        setDealType(p.deal_type === "sale" ? "sale" : "rent");
         setEnabledPrices(Object.fromEntries(
           Object.entries(loadedPrices).map(([key, value]) => [key, value !== "" && value !== null]),
         ));
@@ -260,6 +273,11 @@ function PartnerOnboarding({ initialEditId = null }) {
   }, [editPlaceId]);
 
   const selectedCategory = categories.find(c => c.id === objectType);
+  // "both" categories let the owner pick; otherwise the category decides.
+  const allowedDeals = selectedCategory?.deal_types === "both" ? ["rent", "sale"] : [selectedCategory?.deal_types || "rent"];
+  const effectiveDeal = allowedDeals.includes(dealType) ? dealType : allowedDeals[0];
+  const isSale = effectiveDeal === "sale";
+  const wizardSteps = isSale ? SALE_WIZARD_STEPS : WIZARD_STEPS;
   const selectedSubCategory = selectedCategory?.subcategories?.find(s => s.id === accessType);
   
   
@@ -292,6 +310,9 @@ function PartnerOnboarding({ initialEditId = null }) {
     amenities,
     prices,
     enabledPrices,
+    isSale,
+    dealType: effectiveDeal,
+    salePrice,
     bookingType,
     opensAt,
     closesAt,
@@ -313,8 +334,8 @@ function PartnerOnboarding({ initialEditId = null }) {
       return;
     }
     setStepErrors(prev => ({ ...prev, [step]: [] }));
-    const index = WIZARD_STEPS.indexOf(step);
-    setStep(WIZARD_STEPS[Math.min(WIZARD_STEPS.length - 1, index + 1)]);
+    const index = wizardSteps.indexOf(step);
+    setStep(wizardSteps[Math.min(wizardSteps.length - 1, index + 1)]);
   };
 
   useEffect(() => {
@@ -465,8 +486,8 @@ function PartnerOnboarding({ initialEditId = null }) {
   };
 
   const goBack = () => {
-    const index = WIZARD_STEPS.indexOf(step);
-    setStep(WIZARD_STEPS[Math.max(0, index - 1)]);
+    const index = wizardSteps.indexOf(step);
+    setStep(wizardSteps[Math.max(0, index - 1)]);
   };
 
   useEffect(() => {
@@ -477,8 +498,8 @@ function PartnerOnboarding({ initialEditId = null }) {
     ? (submitting ? "Сохраняем..." : <>Сохранить<span className="pow-hide-mobile"> изменения</span></>)
     : (submitting ? "Публикация..." : "Опубликовать");
 
-  const stepNumber = WIZARD_STEPS.indexOf(step);
-  const stepMeta = STEP_META[step] || {};
+  const stepNumber = wizardSteps.indexOf(step);
+  const stepMeta = (isSale && step === 11 ? SALE_PRICE_META : STEP_META[step]) || {};
   const filledLangs = { ru: descRu.trim(), uz: descUz.trim(), en: descEn.trim() };
   const visibleDiscounts = apiDiscounts.filter(d => (
     d.is_active && (d.applicable_to === "all" || d.category_ids?.includes(objectType) || selectedDiscountIds.includes(d.id))
@@ -498,7 +519,7 @@ function PartnerOnboarding({ initialEditId = null }) {
 
   const renderCopy = () => (
     <div className="pow-copy">
-      <span className="pow-eyebrow">Шаг {stepNumber} из {WIZARD_STEPS.length - 1} · {stepMeta.label}</span>
+      <span className="pow-eyebrow">Шаг {stepNumber} из {wizardSteps.length - 1} · {stepMeta.label}</span>
       <h1>{stepMeta.title}</h1>
       {stepMeta.hint ? <p>{stepMeta.hint}</p> : null}
       {stepErrors[step]?.length > 0 ? (
@@ -521,7 +542,7 @@ function PartnerOnboarding({ initialEditId = null }) {
             <SelectionCard
               key={c.id}
               item={c}
-              hint={formatCount(c.subcategories?.length || 0)}
+              hint={`${DEAL_HINTS[c.deal_types] || DEAL_HINTS.rent} · ${formatCount(c.subcategories?.length || 0)}`}
               active={objectType === c.id}
               onClick={() => { setObjectType(c.id); setAccessType(null); }}
             />
@@ -532,6 +553,25 @@ function PartnerOnboarding({ initialEditId = null }) {
 
     if (step === 2) {
       return (
+        <div className="pow-stack">
+        {allowedDeals.length > 1 ? (
+          <div className="pow-deal-switch" role="radiogroup" aria-label="Тип сделки">
+            {[["rent", "Сдаю в аренду", "Бронь по часам, дням или месяцам"], ["sale", "Продаю", "Одна цена, клиенты звонят вам"]].map(([value, title, text]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={effectiveDeal === value}
+                data-testid={`onboarding-deal-${value}`}
+                className={effectiveDeal === value ? "is-active" : ""}
+                onClick={() => setDealType(value)}
+              >
+                <strong>{title}</strong>
+                <small>{text}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="pow-choice-grid">
           {!selectedCategory ? <p className="pow-muted">Сначала выберите тип объекта.</p> : null}
           {selectedCategory?.subcategories?.map(s => (
@@ -543,6 +583,7 @@ function PartnerOnboarding({ initialEditId = null }) {
               onClick={() => setAccessType(s.id)}
             />
           ))}
+        </div>
         </div>
       );
     }
@@ -754,6 +795,34 @@ function PartnerOnboarding({ initialEditId = null }) {
       );
     }
 
+    if (step === 11 && isSale) {
+      const perMeter = Number(salePrice) > 0 && Number(area) > 0 ? Math.round(Number(salePrice) / Number(area)) : 0;
+      return (
+        <div className="pow-stack">
+          <div className="pow-price is-on pow-sale-price">
+            <span className="pow-sale-price-label">
+              <strong>Стоимость объекта</strong>
+              <small>Полная цена продажи</small>
+            </span>
+            <span className="pow-suffix-input">
+              <input
+                data-testid="onboarding-sale-price"
+                inputMode="numeric"
+                placeholder="1 500 000 000"
+                value={groupDigits(salePrice)}
+                onChange={e => setSalePrice(digitsOnly(e.target.value))}
+                aria-label="Цена продажи"
+              />
+              <small>сум</small>
+            </span>
+          </div>
+          {perMeter > 0 ? (
+            <p className="pow-muted">≈ {groupDigits(String(perMeter))} сум за 1 м² при площади {area} м².</p>
+          ) : null}
+        </div>
+      );
+    }
+
     if (step === 11) {
       return (
         <div className="pow-price-list">
@@ -824,7 +893,7 @@ function PartnerOnboarding({ initialEditId = null }) {
     return null;
   };
 
-  const isLastStep = step === WIZARD_STEPS[WIZARD_STEPS.length - 1];
+  const isLastStep = step === wizardSteps[wizardSteps.length - 1];
 
   return (
     <main className={`partner-onboarding-page pow${isEditing ? " is-editing" : ""}`}>
@@ -836,7 +905,7 @@ function PartnerOnboarding({ initialEditId = null }) {
             <strong>{spaceTitle || "Объявление"}</strong>
           </div>
           <div className="pe-nav-steps">
-            {EDIT_SECTIONS.map(item => (
+            {editSectionsFor(wizardSteps).map(item => (
               <button
                 key={item.step}
                 type="button"
@@ -886,7 +955,7 @@ function PartnerOnboarding({ initialEditId = null }) {
       {step > 0 && (
         <footer className="pow-footer">
           <div className="pow-progress" aria-hidden="true">
-            <i style={{ width: `${(stepNumber / (WIZARD_STEPS.length - 1)) * 100}%` }} />
+            <i style={{ width: `${(stepNumber / (wizardSteps.length - 1)) * 100}%` }} />
           </div>
           <div className="pow-footer-row">
             <div className="pow-footer-left">
@@ -900,7 +969,7 @@ function PartnerOnboarding({ initialEditId = null }) {
               </button>
               {isEditing ? <button type="button" className="pow-btn is-link" disabled={submitting} onClick={cancelEditing}>Отменить</button> : null}
             </div>
-            <span className="pow-footer-step">{stepNumber} / {WIZARD_STEPS.length - 1}</span>
+            <span className="pow-footer-step">{stepNumber} / {wizardSteps.length - 1}</span>
             <div className="pow-footer-right">
               {!isLastStep ? (
                 <button data-testid="onboarding-next" type="button" className={`pow-btn ${isEditing ? "is-outline" : "is-primary"}`} disabled={submitting} onClick={handleNext}>

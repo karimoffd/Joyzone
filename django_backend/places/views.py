@@ -124,7 +124,7 @@ def _is_int_like(value):
 def _price_range_filter(min_price=None, max_price=None):
     """A place matches when any of its prices falls inside the range."""
     condition = Q(pk__in=[])
-    for field_name in PRICE_FIELDS:
+    for field_name in (*PRICE_FIELDS, 'sale_price'):
         field_condition = Q(**{f'{field_name}__isnull': False})
         if min_price is not None:
             field_condition &= Q(**{f'{field_name}__gte': min_price})
@@ -144,6 +144,29 @@ def _place_matches_amenities(place, required_amenities):
         place_amenities = set()
 
     return all(amenity.lower() in place_amenities for amenity in required_amenities)
+
+
+def _char_conditions(params, key):
+    conditions = {}
+    for item in _query_values(params, key):
+        slug, _, value = item.partition(':')
+        if slug.strip() and value.strip():
+            conditions.setdefault(slug.strip(), []).append(value.strip())
+    return conditions
+
+
+def _place_matches_characteristics(place, exact, minimum):
+    characteristics = place.characteristics if isinstance(place.characteristics, dict) else {}
+    for slug, values in exact.items():
+        if str(characteristics.get(slug, '')).lower() not in {value.lower() for value in values}:
+            return False
+    for slug, values in minimum.items():
+        try:
+            if float(characteristics.get(slug)) < max(float(value) for value in values):
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
 
 
 # ─── Category ViewSet (read for all, write for admins only) ──────────────────
@@ -287,6 +310,11 @@ class PlaceViewSet(viewsets.ModelViewSet):
             else:
                 qs = qs.filter(subcategory__category__slug__iexact=category)
 
+        # ?deal_type=sale lists places for sale, ?deal_type=rent rentable ones.
+        deal_type = (params.get('deal_type') or '').strip().lower()
+        if deal_type in ('sale', 'rent'):
+            qs = qs.filter(deal_type=deal_type)
+
         subcategory = (params.get('subcategory') or '').strip()
         if subcategory:
             if _is_int_like(subcategory):
@@ -308,6 +336,24 @@ class PlaceViewSet(viewsets.ModelViewSet):
         promoted = _parse_bool(params.get('promoted'))
         if promoted is not None:
             qs = qs.filter(promoted=promoted)
+
+        min_area = _parse_decimal(params.get('min_area'))
+        if min_area is not None:
+            qs = qs.filter(area__gte=min_area)
+        max_area = _parse_decimal(params.get('max_area'))
+        if max_area is not None:
+            qs = qs.filter(area__lte=max_area)
+
+        # Category characteristics: ?char=renovation:tamirlangan picks a select
+        # value, ?char_min=ceiling_height:6 a counter minimum.
+        char_exact = _char_conditions(params, 'char')
+        char_min = _char_conditions(params, 'char_min')
+        if char_exact or char_min:
+            matching_ids = [
+                place.pk for place in qs
+                if _place_matches_characteristics(place, char_exact, char_min)
+            ]
+            qs = qs.filter(pk__in=matching_ids)
 
         amenities = _query_values(params, 'amenities')
         if amenities:

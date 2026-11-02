@@ -339,9 +339,11 @@ class Command(BaseCommand):
         return parameters
 
     def seed_categories(self, parameters):
+        # The catalog itself comes from migrations (places 0024); only fill in
+        # what is missing so a reseed never reverts admin or migration names.
         subcategories = {}
         for category_data in CATEGORIES:
-            category, _ = Category.objects.update_or_create(
+            category, _ = Category.objects.get_or_create(
                 slug=category_data['slug'],
                 defaults={
                     'name_uz': category_data['name_uz'],
@@ -353,7 +355,7 @@ class Command(BaseCommand):
             )
 
             for slug, name_ru, name_en, name_uz, order, parameter_slugs in category_data['subcategories']:
-                subcategory, _ = SubCategory.objects.update_or_create(
+                subcategory, created = SubCategory.objects.get_or_create(
                     slug=slug,
                     defaults={
                         'category': category,
@@ -363,7 +365,8 @@ class Command(BaseCommand):
                         'order': order,
                     },
                 )
-                subcategory.parameters.set([parameters[item] for item in parameter_slugs if item in parameters])
+                if created:
+                    subcategory.parameters.set([parameters[item] for item in parameter_slugs if item in parameters])
                 subcategories[slug] = subcategory
 
         self.stdout.write(f'  categories: {len(CATEGORIES)}, subcategories: {len(subcategories)}')

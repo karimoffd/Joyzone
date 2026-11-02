@@ -1713,21 +1713,39 @@ textarea {
   }
 }
 
-/* Custom premium scrollbar */
+/* Scrollbar: an orange pill on a dark rail, so it shows on the navy background. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-color: #e46630 #0d1f33;
+  }
+}
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: linear-gradient(90deg, #0b1b2c, #12283f);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(41, 74, 109, 0.2);
-  border-radius: 10px;
-  transition: background 0.3s ease;
+  background: linear-gradient(180deg, #f08a4b 0%, #e46630 55%, #c9561e 100%);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(41, 74, 109, 0.4);
+  background: linear-gradient(180deg, #ffa168 0%, #f07438 55%, #d9602a 100%);
+  border-width: 2px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active {
+  background: #c9561e;
+  border-width: 2px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner {
+  background: #0d1f33;
 }
 
 

@@ -42,6 +42,7 @@ const NAV = [
     section: "Справочники",
     items: [
       { id: "categories", label: "Категории", icon: "tag", hint: "Типы пространств" },
+      { id: "filters", label: "Фильтр каталога", icon: "filter", hint: "Кнопки фильтра на сайте" },
       { id: "amenities", label: "Удобства", icon: "sparkles", hint: "Wi‑Fi, парковка и т.д." },
       { id: "parameters", label: "Характеристики", icon: "sliders", hint: "Счётчики и параметры" },
       { id: "discounts", label: "Скидки", icon: "percent", hint: "Скидки по длительности" },

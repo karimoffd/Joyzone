@@ -31,6 +31,7 @@ const FIELD_STEPS = {
   price_daily: 11,
   price_weekly: 11,
   price_monthly: 11,
+  sale_price: 11,
   currency: 11,
   discounts: 12,
   discount_ids: 12,
@@ -61,6 +62,7 @@ const FIELD_LABELS = {
   price_daily: "Посуточная цена",
   price_weekly: "Недельная цена",
   price_monthly: "Месячная цена",
+  sale_price: "Цена продажи",
   discounts: "Скидки",
   non_field_errors: "Данные объекта",
   detail: "Публикация",
@@ -136,11 +138,18 @@ export function validateOnboardingStep(step, data) {
     errors.push(error("amenities", "Удобства должны быть списком."));
   }
 
-  if (step === 10 && !["instant", "request"].includes(data.bookingType)) {
+  if (step === 10 && !data.isSale && !["instant", "request"].includes(data.bookingType)) {
     errors.push(error("booking_type", "Выберите формат бронирования."));
   }
 
-  if (step === 11) {
+  if (step === 11 && data.isSale) {
+    const amount = parsePositiveNumber(data.salePrice);
+    if (amount === null) {
+      errors.push(error("sale_price", "Укажите цену продажи больше нуля."));
+    } else if (amount >= 1e14) {
+      errors.push(error("sale_price", "Цена превышает допустимое значение."));
+    }
+  } else if (step === 11) {
     const enabled = PRICE_DEFINITIONS.filter(({ key }) => data.enabledPrices?.[key]);
     if (enabled.length === 0) {
       errors.push(error("prices", "Включите хотя бы один формат оплаты."));
@@ -155,7 +164,7 @@ export function validateOnboardingStep(step, data) {
     });
   }
 
-  if (step === 12 && !Array.isArray(data.selectedDiscountIds)) {
+  if (step === 12 && !data.isSale && !Array.isArray(data.selectedDiscountIds)) {
     errors.push(error("discounts", "Не удалось прочитать выбранные скидки."));
   }
 
@@ -187,6 +196,11 @@ export function buildPlacePayload(data, uploadedImageUrls) {
   const numericPrices = Object.fromEntries(
     PRICE_DEFINITIONS.map(({ key, field }) => [field, normalizedPrices[key] ?? null]),
   );
+  // A sale listing sends only its sale price; the server ignores the rest.
+  const sale = data.isSale
+    ? { sale_price: parsePositiveNumber(data.salePrice), price_hourly: null, price_daily: null, price_weekly: null, price_monthly: null, prices: {}, discounts: [] }
+    : { sale_price: null };
+  sale.deal_type = data.isSale ? "sale" : "rent";
 
   return {
     title: String(data.spaceTitle).trim(),
@@ -210,6 +224,7 @@ export function buildPlacePayload(data, uploadedImageUrls) {
     amenities: [...new Set((data.amenities || []).filter((item) => typeof item === "string"))],
     characteristics,
     images: (uploadedImageUrls || []).filter((url) => typeof url === "string" && url.trim()),
+    ...sale,
   };
 }
 

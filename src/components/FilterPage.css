@@ -369,6 +369,26 @@
   box-shadow: 0 4px 14px rgba(18, 40, 63, 0.08);
 }
 
+/* A yes/no parameter the admin put on its own button (e.g. "Wi-Fi"). */
+.fp-filter-toggle-mark {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(41, 74, 109, 0.3);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.fp-filter-toggle.is-on {
+  border-color: #e46630;
+  background: #fff5f0;
+}
+
+.fp-filter-toggle.is-on .fp-filter-toggle-mark {
+  border-color: #e46630;
+  background: #e46630 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
 .fp-filter-dropdown.is-open .fp-filter-button {
   border-color: #e46630;
   box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.12);
@@ -819,8 +839,11 @@
 @media (min-width: 901px) {
   .fp-cats-duration-row {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
+    column-gap: 16px;
+    row-gap: 8px;
   }
 }
 
@@ -1021,4 +1044,33 @@
     min-height: 38px;
     padding: 0 12px;
   }
+}
+
+/* Rent / sale switch next to the duration pills */
+.fp-deal-switch {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-right: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.fp-deal-switch button {
+  min-height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.22s ease, color 0.22s ease;
+}
+.fp-deal-switch button:hover { color: #ffffff; }
+.fp-deal-switch button.is-active {
+  background: #e46630;
+  color: #ffffff;
 }

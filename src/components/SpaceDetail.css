@@ -2814,3 +2814,102 @@ a.sd-location:hover {
   white-space: normal;
   line-height: 1.2;
 }
+
+/* ===== Sale listing card (no booking) ===== */
+.sd-sale-card {
+  display: grid;
+  gap: 12px;
+}
+
+.sd-sale-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sd-sale-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #294a6d;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sd-sale-label {
+  margin-top: 4px;
+  color: #7a8794;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sd-sale-price {
+  margin-top: -6px;
+  color: #12283f;
+  font-size: clamp(24px, 2.2vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.sd-sale-per {
+  margin: -4px 0 0;
+  color: #61707e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sd-sale-facts {
+  display: grid;
+  gap: 0;
+  margin: 6px 0 4px;
+  padding: 4px 16px;
+  border-radius: 16px;
+  background: #f6f1ee;
+  list-style: none;
+}
+
+.sd-sale-facts li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid rgba(41, 74, 109, 0.08);
+  font-size: 14px;
+}
+
+.sd-sale-facts li:first-child {
+  border-top: 0;
+}
+
+.sd-sale-facts span {
+  color: #7a8794;
+  font-weight: 450;
+}
+
+.sd-sale-facts b {
+  min-width: 0;
+  color: #12283f;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.sd-sale-card .sd-primary-btn,
+.sd-sale-card .sd-secondary-btn {
+  margin: 0;
+}
+
+.sd-sale-note {
+  margin: 2px 0 0;
+  color: #7a8794;
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.5;
+}

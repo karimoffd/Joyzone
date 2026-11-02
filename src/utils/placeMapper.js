@@ -1,4 +1,4 @@
-import { buildPlacePrices, getPrimaryPlacePriceText, getPrimaryPlacePriceValue } from "./placePricing.js";
+import { buildPlacePrices, getPrimaryPlacePriceText, getPrimaryPlacePriceValue, isSalePlace } from "./placePricing.js";
 
 const DEFAULT_PLACE_IMAGE = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=800&q=80";
 
@@ -115,6 +115,9 @@ export function normalizePlace(place = {}, options = {}) {
     price_weekly: place.price_weekly ?? prices.haftalik ?? null,
     price_monthly: place.price_monthly ?? prices.oylik ?? null,
     currency: place.currency || "UZS",
+    deal_type: place.deal_type || "rent",
+    isForSale: isSalePlace(place),
+    sale_price: place.sale_price ?? null,
 
     people: normalizeNumeric(place.people, 0),
     area: normalizeNumeric(place.area, 0),

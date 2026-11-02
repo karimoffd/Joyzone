@@ -14,6 +14,11 @@
   --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 /* ---------- Shell: floating sidebar + sticky topbar ---------- */
+/* The site's body has overflow-x:hidden, which makes it a scroll container and
+   switches off position:sticky. The admin needs sticky panels (Контент сайта),
+   so only here body clips instead. The public pages keep their behaviour. */
+body:has(.adm-shell) { overflow-x:clip; overflow-y:visible; }
+
 .adm-shell { --side-w: 264px; --side-gap: 14px; display:flex; min-height:100vh; background:var(--cream); font-family:'Inter',sans-serif; color:var(--text); }
 .adm-shell.is-collapsed { --side-w: 76px; }
 .adm-sidebar-logo-mark { width:40px; height:40px; border-radius:12px; background:linear-gradient(135deg,var(--orange) 0%,#cf5820 100%); display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px; color:#fff; }
@@ -729,22 +734,10 @@ select.param-input { -webkit-appearance:none; -moz-appearance:none; appearance:n
 .param-btn-add { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:10px; border:1.5px dashed var(--orange); background:#fff5f0; cursor:pointer; font-size:13px; font-weight:700; color:var(--orange); font-family:'Inter',sans-serif; }
 .param-btn-add:hover { background:#ffedd5; }
 
-/* Custom premium scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(41, 74, 109, 0.2);
-  border-radius: 10px;
-  transition: background 0.3s ease;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(41, 74, 109, 0.4);
-}
+/* Admin scrollbar: the same orange pill on a light rail. */
+@supports not selector(::-webkit-scrollbar) { body:has(.adm-shell) { scrollbar-color:#e46630 #eef2f7; } }
+body:has(.adm-shell) ::-webkit-scrollbar-track { background:#eef2f7; box-shadow:inset 1px 0 0 #e2e8f0; }
+body:has(.adm-shell) ::-webkit-scrollbar-corner { background:#eef2f7; }
 
 /* ============================================
    DISCOUNTS MANAGEMENT STYLING

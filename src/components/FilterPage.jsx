@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import api, { getApiErrorMessage, isRequestCanceled } from "../api/client.js";
 import { ChevronIcon } from "./ui/Shared.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import { Header as JoyNavbar } from "./HomeHero.jsx";
 import { JoyFooter, PropertyCard } from "./ListingsSection.jsx";
 import BottomSheet from "./ui/BottomSheet.jsx";
 import { propertyCards } from "../data/content.js";
 import { getPlacePriceValues } from "../utils/placePricing.js";
 import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
+import { counterLabel, counterUnit, paramName, resolveCategoryFilters } from "../utils/categoryFilters.js";
 import "./FilterPage.css";
 import "./ListingsSection.css";
 
@@ -150,16 +152,19 @@ function initialFilterQuery() {
       exactCapacity: numberParam("min_people"),
       extra: [],
       amenities: [],
+      ...EMPTY_CATEGORY_FILTERS,
     },
+    dealType: ["rent", "sale"].includes(params.get("deal_type")) ? params.get("deal_type") : "",
   };
 }
 
-function buildPlaceFilterParams({ filters, selectedCategory, selectedSubCat, amenitySlugByLabel }) {
+function buildPlaceFilterParams({ filters, selectedCategory, selectedSubCat, amenitySlugByLabel, dealType, areaRanges = [], priceLimit = MAX_PRICE_LIMIT }) {
   const params = new URLSearchParams();
   const search = filters.search.trim();
   if (search) params.set("search", search);
   if (selectedCategory) params.set("category", selectedCategory);
   if (selectedSubCat) params.set("subcategory", selectedSubCat);
+  if (dealType) params.set("deal_type", dealType);
 
   filters.location.forEach((location) => {
     if (location) params.append("location", location);
@@ -170,12 +175,23 @@ function buildPlaceFilterParams({ filters, selectedCategory, selectedSubCat, ame
 
   if (filters.price.length === 2) {
     params.set("min_price", String(filters.price[0]));
-    if (filters.price[1] < MAX_PRICE_LIMIT) {
+    if (filters.price[1] < priceLimit) {
       params.set("max_price", String(filters.price[1]));
     }
   }
 
+  const area = areaRanges.find((option) => option.label === filters.area);
+  if (area?.min) params.set("min_area", String(area.min));
+  if (area?.max) params.set("max_area", String(area.max));
+  Object.entries(filters.chars || {}).forEach(([slug, value]) => {
+    if (value) params.append("char", `${slug}:${value}`);
+  });
+  Object.entries(filters.charMins || {}).forEach(([slug, value]) => {
+    if (value) params.append("char_min", `${slug}:${value}`);
+  });
+
   const amenitySlugs = [...new Set([
+    ...(filters.features || []),
     ...filters.amenities.map((label) => amenitySlugByLabel[label] || label),
     ...filters.extra.map((label) => amenitySlugByLabel[label] || EXTRA_AMENITY_SLUGS[label]),
   ].filter(Boolean))];
@@ -210,16 +226,28 @@ const durationOptions = [
 // ===== Kategoriyalar va sub-kategoriyalar =====
 
 
-// Extra filters per category (shown alongside common ones)
-const CATEGORY_EXTRA_OPTIONS = {
-  ofis: ["Mebel bor", "Internet bor", "Avtoturargoh"],
-  kovorking: ["Wi-Fi", "Printer", "Kofe burchagi"],
-  zal: ["Proyektor", "Mikrofon", "Keytering"],
-  tijorat: ["1-qavat", "Vitrina bor"],
-  turarjoy: ["Mebellanmagan", "Qisman mebellanmagan", "To'liq mebellanmagan"]
-};
+const DEAL_OPTIONS = [
+  { id: "rent", label: "Ijara" },
+  { id: "sale", label: "Sotuv" },
+];
+const SALE_PRICE_LIMIT = 10000000000;
+const EMPTY_CATEGORY_FILTERS = { features: [], area: "", chars: {}, charMins: {} };
+
+function optionLabel(option) {
+  return option?.uz || option?.ru || option?.slug || "";
+}
+
+function findCategory(categories, selected) {
+  if (!selected) return null;
+  return categories.find((category) => String(category.id) === String(selected) || category.slug === selected) || null;
+}
+
+function localName(item, lang) {
+  return item?.[`name_${lang}`] || item?.name_uz || item?.name_ru || "";
+}
 
 function CategoryTabs({ categories, selected, onSelect }) {
+  const { lang } = useLanguage();
   return (
     <div className="fp-category-tabs">
       <button
@@ -236,7 +264,7 @@ function CategoryTabs({ categories, selected, onSelect }) {
           className={`fp-cat-tab ${selected === cat.id ? "is-active" : ""}`}
           onClick={() => onSelect(cat.id)}
         >
-          {cat.name_ru || cat.name_uz}
+          {localName(cat, lang)}
         </button>
       ))}
     </div>
@@ -244,6 +272,7 @@ function CategoryTabs({ categories, selected, onSelect }) {
 }
 
 function SubCategoryPills({ categories, categoryId, selected, onSelect }) {
+  const { lang } = useLanguage();
   const subs = categories.find(c => c.id === categoryId)?.subcategories || [];
   if (subs.length === 0) return null;
   return (
@@ -256,7 +285,7 @@ function SubCategoryPills({ categories, categoryId, selected, onSelect }) {
           className={`fp-subcat-pill ${selected === sub.id ? "is-active" : ""}`}
           onClick={() => onSelect(selected === sub.id ? "" : sub.id)}
         >
-          {sub.name_ru || sub.name_uz}
+          {localName(sub, lang)}
           {selected === sub.id && (
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", marginLeft: "4px", opacity: 0.8 }}><path d="M18 6 6 18M6 6l12 12"/></svg>
           )}
@@ -266,10 +295,12 @@ function SubCategoryPills({ categories, categoryId, selected, onSelect }) {
   );
 }
 
-function FilterDropdown({ label, options, selectedOptions, onToggle }) {
+function FilterDropdown({ label, options, selectedOptions, onToggle, single = false }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const selectedLabel = selectedOptions.length === 0 ? label : `${selectedOptions.length} ta tanlangan`;
+  const selectedLabel = selectedOptions.length === 0
+    ? label
+    : single ? selectedOptions[0] : `${label}: ${selectedOptions.length}`;
 
   useEffect(() => {
     if (!open || window.innerWidth <= 900) return;
@@ -295,7 +326,10 @@ function FilterDropdown({ label, options, selectedOptions, onToggle }) {
             type="button"
             key={option}
             className={`fp-filter-option ${selectedOptions.includes(option) ? "is-selected" : ""}`}
-            onClick={() => onToggle(option)}
+            onClick={() => {
+              onToggle(option);
+              if (single) setOpen(false);
+            }}
           >
             <span className="fp-filter-option-text">{option}</span>
             {selectedOptions.includes(option) && (
@@ -320,7 +354,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
       const parts = loc.split(",").map(s => s.trim());
       const region = parts[0];
       const district = parts[1] || "";
-      
+
       if (!groups[region]) groups[region] = [];
       if (district && !groups[region].includes(district)) {
         groups[region].push(district);
@@ -371,7 +405,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M18 6 6 18M6 6l12 12"/></svg>
                 )}
               </button>
-              
+
               {districts.length > 0 && (
                 <button
                   type="button"
@@ -384,7 +418,7 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
                 </button>
               )}
             </div>
-            
+
             {expandedRegions[region] && districts.length > 0 && (
               <div 
                 className="fp-district-list" 
@@ -436,13 +470,12 @@ function LocationFilterDropdown({ label, options, selectedOptions, onToggle }) {
   );
 }
 
-function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
+function PriceRangeDropdown({ label, priceRange, onRangeChange, maxLimit = MAX_PRICE_LIMIT }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
-  
+
   const minLimit = 0;
-  const maxLimit = 10000000;
-  const step = 100000;
+  const step = maxLimit > MAX_PRICE_LIMIT ? 50000000 : 100000;
 
   const [localMin, setLocalMin] = useState(priceRange[0] ?? minLimit);
   const [localMax, setLocalMax] = useState(priceRange[1] ?? maxLimit);
@@ -450,7 +483,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
   useEffect(() => {
     setLocalMin(priceRange[0] ?? minLimit);
     setLocalMax(priceRange[1] ?? maxLimit);
-  }, [priceRange]);
+  }, [priceRange, maxLimit]);
 
   const handleSliderMin = (e) => {
     const value = Math.min(Number(e.target.value), localMax - step);
@@ -465,7 +498,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
   const applyRange = () => {
     let validMin = Number(localMin) || minLimit;
     let validMax = Number(localMax) || maxLimit;
-    
+
     if (validMin > validMax - step) validMin = validMax - step;
     if (validMin < minLimit) validMin = minLimit;
     if (validMax > maxLimit) validMax = maxLimit;
@@ -484,8 +517,11 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
     setOpen(false);
   };
 
-  const formatPrice = (p) => p >= 1000000 ? `${p / 1000000} mln` : `${p / 1000} ming`;
-  
+  const formatPrice = (p) => {
+    if (p >= 1000000000) return `${Number((p / 1000000000).toFixed(2))} mlrd`;
+    return p >= 1000000 ? `${Number((p / 1000000).toFixed(1))} mln` : `${p / 1000} ming`;
+  };
+
   const isDefault = priceRange.length === 0 || (priceRange[0] === minLimit && priceRange[1] === maxLimit);
   const selectedLabel = isDefault 
     ? label 
@@ -542,7 +578,7 @@ function PriceRangeDropdown({ label, priceRange, onRangeChange }) {
             <span style={{ fontSize: "12.5px", color: "rgba(41, 74, 109, 0.6)", marginLeft: "4px", fontWeight: "600", userSelect: "none" }}>so'm</span>
           </div>
         </div>
-        
+
         <div className="range-slider-container">
           <div className="slider-track" style={{ 
             left: `${(Number(localMin) / maxLimit) * 100}%`,
@@ -574,7 +610,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
   }, [open]);
 
   const hasSelection = selectedOptions.length > 0 || exactCapacity > 0;
-  
+
   let selectedLabel = label;
   if (exactCapacity > 0) {
     selectedLabel = `${exactCapacity}+ kishi`;
@@ -604,7 +640,7 @@ function CapacityDropdown({ label, options, selectedOptions, exactCapacity, onTo
       </button>
 
       <DropdownPanel open={open} setOpen={setOpen} label={label} style={{ padding: "16px", minWidth: "260px" }}>
-        
+
         <div style={{ marginBottom: "16px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "14px", fontWeight: "600", color: "#12283f" }}>
             <span>Aniq odam soni</span>
@@ -693,7 +729,7 @@ export default function FilterPage({ userState, setUserState }) {
       return acc;
     }, {});
   }, [allAmenityParams]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
     const requestConfig = { skipAuth: true, signal: controller.signal };
@@ -725,11 +761,25 @@ export default function FilterPage({ userState, setUserState }) {
   const [usingMockFallback, setUsingMockFallback] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [sortOption, setSortOption] = useState("Relevans");
-  
+
   const [selectedCategory, setSelectedCategory] = useState(() => initialFilterQuery().category);
   const [selectedSubCat, setSelectedSubCat] = useState(() => initialFilterQuery().subcategory);
   const [selectedDuration, setSelectedDuration] = useState("");
+  const [dealType, setDealType] = useState(() => initialFilterQuery().dealType);
   const [filters, setFilters] = useState(() => initialFilterQuery().filters);
+  const activeCategory = findCategory(categories, selectedCategory);
+  const allowedDeals = activeCategory
+    ? (activeCategory.deal_types === "both" ? ["rent", "sale"] : [activeCategory.deal_types || "rent"])
+    : ["rent", "sale"];
+  // A one-deal category decides the deal; otherwise the visitor's pick applies.
+  const effectiveDeal = allowedDeals.length === 1 ? allowedDeals[0] : dealType;
+  const requestDeal = allowedDeals.length === 1 ? "" : dealType;
+  const priceLimit = effectiveDeal === "sale" ? SALE_PRICE_LIMIT : MAX_PRICE_LIMIT;
+  // Which filters this category shows and in what order: set in the admin (Категории → Фильтр).
+  const filterLayout = useMemo(
+    () => resolveCategoryFilters(activeCategory, selectedSubCat),
+    [activeCategory, selectedSubCat],
+  );
   const debouncedSearch = useDebouncedValue(filters.search, 350);
   const [spaces, setSpaces] = useState([]);
   const requestQuery = useMemo(() => {
@@ -739,8 +789,17 @@ export default function FilterPage({ userState, setUserState }) {
       selectedCategory,
       selectedSubCat,
       amenitySlugByLabel,
+      dealType: requestDeal,
+      areaRanges: filterLayout.areaRanges,
+      priceLimit,
     }).toString();
   }, [
+    filters.features,
+    filters.area,
+    filters.chars,
+    filters.charMins,
+    requestDeal,
+    priceLimit,
     debouncedSearch,
     filters.location,
     filters.price,
@@ -751,6 +810,7 @@ export default function FilterPage({ userState, setUserState }) {
     selectedCategory,
     selectedSubCat,
     amenitySlugByLabel,
+    filterLayout.areaRanges,
   ]);
   const searchDebouncing = filters.search !== debouncedSearch;
   const locationOptions = useMemo(
@@ -766,7 +826,17 @@ export default function FilterPage({ userState, setUserState }) {
       return;
     }
     setSelectedSubCat("");
+    setFilters((current) => ({ ...current, ...EMPTY_CATEGORY_FILTERS }));
   }, [selectedCategory]);
+
+  // Rent and sale prices live on different scales.
+  const previousDealRef = useRef(effectiveDeal);
+  useEffect(() => {
+    if (previousDealRef.current === effectiveDeal) return;
+    previousDealRef.current = effectiveDeal;
+    setFilters((current) => ({ ...current, price: [] }));
+    if (effectiveDeal === "sale") setSelectedDuration("");
+  }, [effectiveDeal]);
 
   // Django is the source of truth for every filter it supports.
   useEffect(() => {
@@ -849,7 +919,7 @@ export default function FilterPage({ userState, setUserState }) {
       if (selectedCategory) {
         if (String(item.categoryId) !== String(selectedCategory)) return false;
       }
-      
+
       // SubCategory filter (using Django ID)
       if (selectedSubCat) {
         if (String(item.subcategoryId) !== String(selectedSubCat)) return false;
@@ -864,7 +934,7 @@ export default function FilterPage({ userState, setUserState }) {
       if (filters.capacity.length || filters.exactCapacity > 0) {
         const count = Number(item.people || 0);
         const matchesExact = filters.exactCapacity > 0 ? count >= filters.exactCapacity : true;
-        
+
         let matchesCapacity = true;
         if (filters.capacity.length) {
           matchesCapacity = filters.capacity.some((range) => {
@@ -915,7 +985,8 @@ export default function FilterPage({ userState, setUserState }) {
   }, [filters, spaces, selectedCategory, selectedSubCat, amenitySlugByLabel, usingMockFallback]);
 
   const clearFilters = () => {
-    setFilters({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [] });
+    setFilters({ search: "", location: [], price: [], capacity: [], exactCapacity: 0, extra: [], amenities: [], ...EMPTY_CATEGORY_FILTERS });
+    setDealType("");
     setSelectedCategory("");
     setSelectedSubCat("");
     setSelectedDuration("");
@@ -931,13 +1002,21 @@ export default function FilterPage({ userState, setUserState }) {
   };
 
 
-  // Category-specific extra options (add to the "extra" filter)
-  const selectedCategorySlug = categories.find((category) => (
-    String(category.id) === String(selectedCategory)
-  ))?.slug || "";
-  const activeExtraOptions = selectedCategorySlug
-    ? [...extraOptions, ...(CATEGORY_EXTRA_OPTIONS[selectedCategorySlug] || [])]
-    : extraOptions;
+  const { base: baseFilters, labels: filterLabels, areaRanges, params: paramFilters, features: featureParams } = filterLayout;
+  const showDurations = effectiveDeal !== "sale" && baseFilters.durations;
+  const featureLabelBySlug = Object.fromEntries(featureParams.map((param) => [param.slug, paramName(param)]));
+  const featureSlugByLabel = Object.fromEntries(featureParams.map((param) => [paramName(param), param.slug]));
+  const toggleFeature = (slug) => setFilters((current) => ({
+    ...current,
+    features: current.features.includes(slug)
+      ? current.features.filter((item) => item !== slug)
+      : [...current.features, slug],
+  }));
+  const setChar = (key, slug, value) => setFilters((current) => ({
+    ...current,
+    [key]: { ...current[key], [slug]: current[key]?.[slug] === value ? "" : value },
+  }));
+  const activeExtraOptions = extraOptions;
   const resultsLoading = loading || searchDebouncing;
 
   return (
@@ -953,9 +1032,25 @@ export default function FilterPage({ userState, setUserState }) {
         </div>
         {/* Category tabs row: tabs left, duration pills right */}
         <div className="fp-cats-duration-row">
-          <CategoryTabs categories={categories} selected={selectedCategory} onSelect={setSelectedCategory} />
+          <CategoryTabs categories={categories} selected={activeCategory?.id ?? ""} onSelect={setSelectedCategory} />
           <div className="fp-duration-row">
-            {durationOptions.map((d) => (
+            {allowedDeals.length > 1 ? (
+              <div className="fp-deal-switch" role="radiogroup" aria-label="Bitim turi">
+                {DEAL_OPTIONS.map((deal) => (
+                  <button
+                    key={deal.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={dealType === deal.id}
+                    className={dealType === deal.id ? "is-active" : ""}
+                    onClick={() => setDealType(dealType === deal.id ? "" : deal.id)}
+                  >
+                    {deal.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {showDurations && durationOptions.map((d) => (
               <button
                 key={d.id}
                 type="button"
@@ -974,10 +1069,10 @@ export default function FilterPage({ userState, setUserState }) {
         </div>
 
         {/* Sub-category pills (shown when a category is selected) */}
-        {selectedCategory && (
+        {activeCategory && (
           <SubCategoryPills
             categories={categories}
-            categoryId={selectedCategory}
+            categoryId={activeCategory.id}
             selected={selectedSubCat}
             onSelect={setSelectedSubCat}
           />
@@ -985,32 +1080,103 @@ export default function FilterPage({ userState, setUserState }) {
 
         {/* Common filters */}
         <div className="filter-dropdown-grid">
-          <LocationFilterDropdown
-            label="Manzil"
-            options={locationOptions}
-            selectedOptions={filters.location}
-            onToggle={(value) => toggleFilter("location", value)}
-          />
-          <PriceRangeDropdown
-            label="Narx"
-            priceRange={filters.price}
-            onRangeChange={(range) => setFilters(prev => ({ ...prev, price: range }))}
-          />
+          {baseFilters.location ? (
+            <LocationFilterDropdown
+              label={filterLabels.location || "Manzil"}
+              options={locationOptions}
+              selectedOptions={filters.location}
+              onToggle={(value) => toggleFilter("location", value)}
+            />
+          ) : null}
+          {baseFilters.price ? (
+            <PriceRangeDropdown
+              label={filterLabels.price || (effectiveDeal === "sale" ? "Sotuv narxi" : "Narx")}
+              priceRange={filters.price}
+              maxLimit={priceLimit}
+              onRangeChange={(range) => setFilters(prev => ({ ...prev, price: range }))}
+            />
+          ) : null}
+          {baseFilters.area ? (
+            <FilterDropdown
+              label={filterLabels.area || "Maydon"}
+              single
+              options={areaRanges.map((option) => option.label)}
+              selectedOptions={filters.area ? [filters.area] : []}
+              onToggle={(value) => setFilters((current) => ({ ...current, area: current.area === value ? "" : value }))}
+            />
+          ) : null}
+          {paramFilters.map(({ param, settings, kind }) => {
+            if (kind === "select") {
+              const options = param.config.options;
+              const picked = options.find((option) => option.slug === filters.chars?.[param.slug]);
+              return (
+                <FilterDropdown
+                  key={param.slug}
+                  label={paramName(param)}
+                  single
+                  options={options.map(optionLabel)}
+                  selectedOptions={picked ? [optionLabel(picked)] : []}
+                  onToggle={(label) => setChar("chars", param.slug, options.find((option) => optionLabel(option) === label)?.slug || "")}
+                />
+              );
+            }
+            if (kind === "counter") {
+              const unit = counterUnit(param);
+              const labelFor = (value) => `${value}+${unit ? ` ${unit}` : ""}`;
+              const current = filters.charMins?.[param.slug];
+              return (
+                <FilterDropdown
+                  key={param.slug}
+                  label={counterLabel(param)}
+                  single
+                  options={settings.steps.map(labelFor)}
+                  selectedOptions={current ? [labelFor(current)] : []}
+                  onToggle={(label) => setChar("charMins", param.slug, settings.steps.find((value) => labelFor(value) === label) || "")}
+                />
+              );
+            }
+            const isOn = filters.features.includes(param.slug);
+            return (
+              <div className="fp-filter-dropdown" key={param.slug}>
+                <button
+                  type="button"
+                  className={`fp-filter-button fp-filter-toggle${isOn ? " is-on" : ""}`}
+                  aria-pressed={isOn}
+                  onClick={() => toggleFeature(param.slug)}
+                >
+                  <span className="fp-button-label">{paramName(param)}</span>
+                  <span className="fp-filter-toggle-mark" aria-hidden="true" />
+                </button>
+              </div>
+            );
+          })}
+          {baseFilters.capacity ? (
           <CapacityDropdown
-            label="Sig'im"
+            label={filterLabels.capacity || "Sig'im"}
             options={capacityOptions}
             selectedOptions={filters.capacity}
             exactCapacity={filters.exactCapacity}
             onToggle={(value) => toggleFilter("capacity", value)}
             onExactChange={(val) => setFilters(prev => ({ ...prev, exactCapacity: val }))}
           />
-          <FilterDropdown
-            label="Qo'shimcha"
-            options={activeExtraOptions}
-            selectedOptions={filters.extra}
-            onToggle={(value) => toggleFilter("extra", value)}
-          />
-          {allAmenities.length > 0 && (
+          ) : null}
+          {featureParams.length > 0 ? (
+            <FilterDropdown
+              label={filterLabels.features || "Qulayliklar"}
+              options={featureParams.map((param) => paramName(param))}
+              selectedOptions={(filters.features || []).map((slug) => featureLabelBySlug[slug]).filter(Boolean)}
+              onToggle={(label) => toggleFeature(featureSlugByLabel[label])}
+            />
+          ) : null}
+          {baseFilters.extra ? (
+            <FilterDropdown
+              label={filterLabels.extra || "Qo'shimcha"}
+              options={activeExtraOptions}
+              selectedOptions={filters.extra}
+              onToggle={(value) => toggleFilter("extra", value)}
+            />
+          ) : null}
+          {!activeCategory && allAmenities.length > 0 && (
             <FilterDropdown
               label="Список удобств"
               options={allAmenities}

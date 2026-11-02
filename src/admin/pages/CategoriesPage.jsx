@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../../api/client.js";
+import { resolveCategoryFilters } from "../../utils/categoryFilters.js";
+import { FILTER_CATEGORY_KEY } from "./CatalogFilterPage.jsx";
 
 const API = "/api";
 
@@ -24,6 +26,11 @@ const IconTrash = () => (
   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
     <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+  </svg>
+);
+const IconFilter = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+    <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
   </svg>
 );
 const IconChevron = ({ open }) => (
@@ -78,6 +85,7 @@ function CategoryModal({ initial, onSave, onClose }) {
     name_uz: initial?.name_uz || "",
     name_ru: initial?.name_ru || "",
     name_en: initial?.name_en || "",
+    deal_types: initial?.deal_types || "rent",
     order: initial?.order ?? 0,
   });
   const [saving, setSaving] = useState(false);
@@ -118,6 +126,13 @@ function CategoryModal({ initial, onSave, onClose }) {
           <input style={inputStyle} value={form.name_en} onChange={e => set("name_en", e.target.value)} placeholder="Office" />
         </FormField>
       </div>
+      <FormField label="Тип сделки" hint="Продажа: одна цена, без брони, календаря и посуточных цен. «Аренда и продажа» — партнёр выбирает сам.">
+        <select style={inputStyle} value={form.deal_types} onChange={e => set("deal_types", e.target.value)}>
+          <option value="rent">Только аренда — места бронируют</option>
+          <option value="sale">Только продажа — места продают</option>
+          <option value="both">Аренда и продажа</option>
+        </select>
+      </FormField>
       <FormField label="Порядок отображения">
         <input type="number" style={inputStyle} value={form.order} onChange={e => set("order", +e.target.value)} min={0} />
       </FormField>
@@ -243,9 +258,12 @@ function SubCategoryModal({ initial, categoryId, categoryName, onSave, onClose }
 }
 
 // ─── CATEGORY CARD ────────────────────────────────────────────────────────────
-function CategoryCard({ cat, onEdit, onDelete, onRefresh }) {
+function CategoryCard({ cat, onEdit, onDelete, onRefresh, onOpenFilter }) {
   const [expanded, setExpanded] = useState(true);
   const [subModal, setSubModal] = useState(null); // null | 'create' | subcat-object
+  const filterLayout = resolveCategoryFilters(cat);
+  const filterCount = Object.values(filterLayout.base).filter(Boolean).length
+    + filterLayout.params.length + (filterLayout.features.length ? 1 : 0);
 
   const COLORS = ["#294a6d", "#e46630", "#1a6b6b", "#5b3a8c", "#1f78d1"];
   const colorIdx = (cat.order - 1) % COLORS.length;
@@ -260,6 +278,11 @@ function CategoryCard({ cat, onEdit, onDelete, onRefresh }) {
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1a1a2e" }}>{cat.name_ru}</h3>
+            {cat.deal_types === "sale" || cat.deal_types === "both" ? (
+              <span style={{ fontSize: 11, background: "#e46630", color: "#fff", padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
+                {cat.deal_types === "both" ? "Аренда и продажа" : "Продажа"}
+              </span>
+            ) : null}
             <span style={{ fontSize: 11, background: COLORS[colorIdx] + "18", color: COLORS[colorIdx], padding: "2px 8px", borderRadius: 20, fontWeight: 700 }}>
               {cat.name_uz}
             </span>
@@ -268,10 +291,13 @@ function CategoryCard({ cat, onEdit, onDelete, onRefresh }) {
             </span>
           </div>
           <p style={{ margin: "3px 0 0", fontSize: 13, color: "#64748b" }}>
-            {cat.name_en} · Подкатегорий: <strong>{cat.subcategories?.length || 0}</strong> · Порядок: <strong>#{cat.order}</strong>
+            {cat.name_en} · Подкатегорий: <strong>{cat.subcategories?.length || 0}</strong> · Фильтров в каталоге: <strong>{filterCount}</strong> · Порядок: <strong>#{cat.order}</strong>
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={() => onOpenFilter(cat)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1.5px solid #e46630", background: "#fff5f0", cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#e46630" }}>
+            <IconFilter /> Фильтр
+          </button>
           <button onClick={() => onEdit(cat)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#475569" }}>
             <IconEdit /> Изменить
           </button>
@@ -334,7 +360,7 @@ function CategoryCard({ cat, onEdit, onDelete, onRefresh }) {
 }
 
 // ─── MAIN PAGE ────────────────────────────────────────────────────────────────
-export default function CategoriesPage() {
+export default function CategoriesPage({ setPage }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [catModal, setCatModal] = useState(null); // null | 'create' | cat-object
@@ -412,6 +438,10 @@ export default function CategoriesPage() {
             onEdit={c => setCatModal(c)}
             onDelete={handleDelete}
             onRefresh={fetchCategories}
+            onOpenFilter={(category) => {
+              try { window.sessionStorage.setItem(FILTER_CATEGORY_KEY, String(category.id)); } catch { /* storage may be blocked */ }
+              setPage?.("filters");
+            }}
           />
         ))
       )}

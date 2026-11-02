@@ -171,6 +171,9 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
 
   // Resolve displayed price and label
   const { displayPrice, priceLabel, priceUnavailable } = (() => {
+    if (item.isForSale) {
+      return { displayPrice: item.price, priceLabel: "sotuv narxi", priceUnavailable: false };
+    }
     if (!selectedDuration) {
       return { displayPrice: item.price, priceLabel: primaryPriceLabel(item), priceUnavailable: false };
     }
@@ -257,6 +260,9 @@ export function PropertyCard({ item, index, href, onClick, selectedDuration, vie
         ))}
         <span className="property-slide-glow" />
         {(item.is_ad ?? item.promoted) ? <span className="variant-pill is-ad">Reklama</span> : null}
+        {item.isForSale ? (
+          <span className={`variant-pill is-sale ${(item.is_ad ?? item.promoted) ? "is-stacked" : ""}`}>Sotuvda</span>
+        ) : null}
         <div className="variant-dots" aria-label="Rasmni tanlash" style={{ zIndex: 20 }}>
           {item.images.map((_, imageIndex) => (
             <button

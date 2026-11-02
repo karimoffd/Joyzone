@@ -15,12 +15,29 @@ from .prices import (
 
 
 class Category(models.Model):
-    """3 main top-level categories: Ofis, Kovorking, Zal/Tadbir"""
+    """Top-level categories: Ofislar, Kovorking, Muzokara va tadbirlar, Savdo, Tijorat, Ombor."""
+    DEAL_RENT = 'rent'
+    DEAL_SALE = 'sale'
+    DEAL_BOTH = 'both'
+    DEAL_TYPES_CHOICES = (
+        (DEAL_RENT, 'Faqat ijara'),
+        (DEAL_SALE, 'Faqat sotuv'),
+        (DEAL_BOTH, 'Ijara va sotuv'),
+    )
+
     slug = models.SlugField(unique=True)
     name_uz = models.CharField(max_length=100)
     name_ru = models.CharField(max_length=100)
     name_en = models.CharField(max_length=100)
     icon = models.CharField(max_length=10, default='🏢')
+    # Which deals a listing in this category may offer (Place.deal_type).
+    deal_types = models.CharField(max_length=10, choices=DEAL_TYPES_CHOICES, default=DEAL_RENT)
+    # How the catalog filter looks for this category (set in the admin):
+    # {"base": {"area": false, ...}, "labels": {"price": "Narxi"}, "area_ranges": [{"min": 0, "max": 50}],
+    #  "params": {"<parameter slug>": {"show": true, "order": 0, "steps": [3, 4], "separate": false}}}
+    # Parameters missing from "params" use the defaults, so a parameter added
+    # to a subcategory shows up in the filter on its own.
+    filter_config = models.JSONField(default=dict, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -30,6 +47,12 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name_ru
+
+    @property
+    def allowed_deal_types(self):
+        if self.deal_types == self.DEAL_BOTH:
+            return (self.DEAL_RENT, self.DEAL_SALE)
+        return (self.deal_types,)
 
 
 class ParameterGroup(models.Model):
@@ -123,6 +146,15 @@ class Place(models.Model):
     price_weekly = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     price_monthly = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     currency = models.CharField(max_length=3, default='UZS')
+    # Rent listings are booked by hour/day/week/month; sale listings have one
+    # sale price and no booking, calendar or rental prices.
+    deal_type = models.CharField(
+        max_length=10,
+        choices=((Category.DEAL_RENT, 'Ijara'), (Category.DEAL_SALE, 'Sotuv')),
+        default=Category.DEAL_RENT,
+        db_index=True,
+    )
+    sale_price = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
     
     # Working hours (local Tashkent time). Hourly slots and the default time of
     # daily bookings follow them.
@@ -166,6 +198,10 @@ class Place(models.Model):
 
     def __str__(self):
         return f"{self.title} [{self.status}]"
+
+    @property
+    def is_for_sale(self):
+        return self.deal_type == Category.DEAL_SALE
 
     # Legacy accessors kept for old API clients, seeds and tests. Setting them
     # fills the matching price_* field; an explicit price_* value always wins.

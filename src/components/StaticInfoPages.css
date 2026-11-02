@@ -76,7 +76,7 @@
 .partner-final-strip,
 .footer-variant-intro,
 .footer-showcase {
-  width: min(100%, 1120px);
+  width: min(100%, 1240px);
   margin-inline: auto;
 }
 
@@ -364,17 +364,19 @@
   letter-spacing: 0;
 }
 
+/* Wide screens: the cream card fills the screen with a thin navy frame, and
+   the back button sits inside it, in line with the content. */
 @media (min-width: 1180px) {
   .static-page {
-    padding-inline: 120px;
+    padding-inline: clamp(64px, 6vw, 96px);
   }
 
   .static-page::before {
-    inset: 24px 120px;
+    inset: 24px;
   }
 
   .static-back-button {
-    margin-left: -72px;
+    margin-left: max(0px, calc((100% - 1240px) / 2));
   }
 }
 

@@ -14,6 +14,7 @@ import MessagesPage from "./pages/AdminMessagesPage.jsx";
 import ModerationPage from "./pages/ModerationPage.jsx";
 import TariffsPage from "./pages/TariffsPage.jsx";
 import CategoriesPage from "./pages/CategoriesPage.jsx";
+import CatalogFilterPage from "./pages/CatalogFilterPage.jsx";
 import ParametersPage from "./pages/ParametersPage.jsx";
 import AmenitiesPage from "./pages/AmenitiesPage.jsx";
 import DiscountsPage from "./pages/DiscountsPage.jsx";
@@ -36,6 +37,7 @@ export const PAGES = {
   audit:      { title: "Журнал действий",     eyebrow: "Управление",   component: AuditLogPage, adminOnly: true },
   tariffs:    { title: "Тарифы",              eyebrow: "Справочники",  component: TariffsPage, adminOnly: true },
   categories: { title: "Категории",           eyebrow: "Справочники",  component: CategoriesPage, adminOnly: true },
+  filters:    { title: "Фильтр каталога",     eyebrow: "Справочники",  component: CatalogFilterPage, adminOnly: true },
   amenities:  { title: "Удобства",            eyebrow: "Справочники",  component: AmenitiesPage, adminOnly: true },
   parameters: { title: "Счётчики и характеристики", eyebrow: "Справочники", component: ParametersPage, adminOnly: true },
   discounts:  { title: "Скидки",              eyebrow: "Справочники",  component: DiscountsPage, adminOnly: true },

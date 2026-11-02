@@ -1,3 +1,5 @@
+import json
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -14,7 +16,7 @@ class ContentPermissionTests(TestCase):
         self.staff = User.objects.create_user(username='staff', password='pass', is_staff=True)
 
     def test_get_content_is_public(self):
-        SiteContent.objects.create(key='hero_title', value_ru='Привет', value_uz='Salom', value_en='Hello')
+        SiteContent.objects.update_or_create(key='hero_title', defaults={'value_ru': 'Привет', 'value_uz': 'Salom', 'value_en': 'Hello'})
 
         response = self.client.get('/api/content/')
 
@@ -112,3 +114,24 @@ class BannerApiTests(TestCase):
         self.assertEqual(created.status_code, 201)
         self.assertEqual(updated.status_code, 200)
         self.assertEqual(deleted.status_code, 204)
+
+
+class FillSiteCopyMigrationTests(TestCase):
+    def test_fills_empty_texts_and_keeps_admin_edits(self):
+        import importlib
+        from django.apps import apps as django_apps
+
+        fill = importlib.import_module('content.migrations.0007_fill_site_copy').fill
+        SiteContent.objects.update_or_create(key='popular_title', defaults={'value_uz': '', 'value_ru': 'Мой заголовок', 'value_en': ''})
+        SiteContent.objects.update_or_create(key='faq_arr', defaults={'value_ru': "[{'question': 'broken repr'}]"})
+        SiteContent.objects.filter(key='footer_about').delete()
+
+        fill(django_apps, None)
+
+        title = SiteContent.objects.get(key='popular_title')
+        self.assertEqual(title.value_ru, 'Мой заголовок')
+        self.assertEqual(title.value_uz, 'Ommabop joylar')
+        self.assertTrue(title.value_en)
+        faq = json.loads(SiteContent.objects.get(key='faq_arr').value_ru)
+        self.assertTrue(any('купить' in item['question'] for item in faq))
+        self.assertIn('Joyzone', SiteContent.objects.get(key='footer_about').value_uz)

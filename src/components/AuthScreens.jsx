@@ -117,6 +117,18 @@ export function AuthForm({ onSuccess }) {
   const otpSub = db.auth_otp_sub || (lang === 'uz' ? "Telegram botimizga yuborilgan 6 xonali tasdiqlash kodini kiriting." : "Мы отправили код на ваш номер");
 
   const [step, setStep] = useState("phone"); // phone, otp, profile"
+  // The admin content preview opens a step to show where its texts appear.
+  useEffect(() => {
+    if (window.parent === window) return undefined;
+    const handleMessage = (event) => {
+      const next = event.data?.authStep;
+      if (event.origin === window.location.origin && event.data?.type === "joyzone-cms-preview" && ["phone", "otp", "profile"].includes(next)) {
+        setStep(next);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
   const [phone, setPhone] = useState("+998 ");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [devOtpCode, setDevOtpCode] = useState("");

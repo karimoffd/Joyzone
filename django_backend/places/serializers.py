@@ -54,13 +54,112 @@ class SubCategorySerializer(serializers.ModelSerializer):
         )
 
 
+FILTER_BASE_KEYS = ('location', 'price', 'area', 'capacity', 'durations', 'extra')
+# Buttons whose caption the admin may rename ("features" is the «Qulayliklar» list).
+FILTER_LABEL_KEYS = ('location', 'price', 'area', 'capacity', 'features', 'extra')
+FILTER_MAX_LABEL = 40
+FILTER_MAX_AREA_RANGES = 8
+FILTER_MAX_STEPS = 8
+
+
+def _filter_number(value, field):
+    if value in (None, ''):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise serializers.ValidationError(f'{field}: нужно число.')
+    if number < 0:
+        raise serializers.ValidationError(f'{field}: число не может быть отрицательным.')
+    return int(number) if number.is_integer() else number
+
+
+def clean_filter_config(value):
+    """Keep only the known filter settings, in a fixed shape."""
+    if value in (None, ''):
+        return {}
+    if not isinstance(value, dict):
+        raise serializers.ValidationError('Настройки фильтра должны быть объектом.')
+
+    clean = {}
+    base = value.get('base') or {}
+    if not isinstance(base, dict):
+        raise serializers.ValidationError('base: нужен объект.')
+    clean_base = {key: bool(base[key]) for key in FILTER_BASE_KEYS if key in base}
+    if clean_base:
+        clean['base'] = clean_base
+
+    labels = value.get('labels') or {}
+    if not isinstance(labels, dict):
+        raise serializers.ValidationError('labels: нужен объект.')
+    clean_labels = {}
+    for key in FILTER_LABEL_KEYS:
+        text = str(labels.get(key) or '').strip()
+        if len(text) > FILTER_MAX_LABEL:
+            raise serializers.ValidationError(f'Название кнопки длиннее {FILTER_MAX_LABEL} символов.')
+        if text:
+            clean_labels[key] = text
+    if clean_labels:
+        clean['labels'] = clean_labels
+
+    if 'area_ranges' in value:
+        ranges = value.get('area_ranges') or []
+        if not isinstance(ranges, list) or len(ranges) > FILTER_MAX_AREA_RANGES:
+            raise serializers.ValidationError(f'Диапазонов площади может быть не больше {FILTER_MAX_AREA_RANGES}.')
+        clean_ranges = []
+        for item in ranges:
+            if not isinstance(item, dict):
+                raise serializers.ValidationError('Диапазон площади: нужен объект {min, max}.')
+            low = _filter_number(item.get('min'), 'Площадь от')
+            high = _filter_number(item.get('max'), 'Площадь до')
+            if low is None and high is None:
+                raise serializers.ValidationError('Диапазон площади: укажите «от» или «до».')
+            if low is not None and high is not None and low >= high:
+                raise serializers.ValidationError('Диапазон площади: «от» должно быть меньше «до».')
+            clean_ranges.append({'min': low, 'max': high})
+        clean['area_ranges'] = clean_ranges
+
+    params = value.get('params') or {}
+    if not isinstance(params, dict):
+        raise serializers.ValidationError('params: нужен объект.')
+    clean_params = {}
+    for slug, settings in params.items():
+        if not isinstance(settings, dict):
+            raise serializers.ValidationError(f'{slug}: нужен объект.')
+        entry = {}
+        if 'show' in settings:
+            entry['show'] = bool(settings['show'])
+        if 'separate' in settings:
+            entry['separate'] = bool(settings['separate'])
+        if settings.get('order') is not None:
+            order = _filter_number(settings['order'], f'{slug}: порядок')
+            entry['order'] = int(order)
+        if 'steps' in settings:
+            steps = settings.get('steps') or []
+            if not isinstance(steps, list) or len(steps) > FILTER_MAX_STEPS:
+                raise serializers.ValidationError(f'{slug}: шагов может быть не больше {FILTER_MAX_STEPS}.')
+            numbers = [_filter_number(step, f'{slug}: шаг') for step in steps]
+            entry['steps'] = sorted({number for number in numbers if number is not None})
+        if entry:
+            clean_params[str(slug)] = entry
+    if clean_params:
+        clean['params'] = clean_params
+    return clean
+
+
 class CategoryWithSubsSerializer(serializers.ModelSerializer):
     """Full category tree with nested subcategories - used by frontend forms."""
     subcategories = SubCategorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Category
-        fields = ('id', 'slug', 'name_uz', 'name_ru', 'name_en', 'icon', 'order', 'subcategories')
+        fields = (
+            'id', 'slug', 'name_uz', 'name_ru', 'name_en', 'icon', 'deal_types', 'filter_config', 'order',
+            'subcategories',
+        )
+
+    def validate_filter_config(self, value):
+        return clean_filter_config(value)
 
 
 class PlaceSerializer(serializers.ModelSerializer):
@@ -170,6 +269,28 @@ class PlaceSerializer(serializers.ModelSerializer):
             value = attrs.get(field_name)
             if value is not None and value <= 0:
                 raise serializers.ValidationError({field_name: 'Price must be greater than zero.'})
+        subcategory = attrs.get('subcategory', getattr(self.instance, 'subcategory', None))
+        deal_type = attrs.get('deal_type', getattr(self.instance, 'deal_type', None) or Category.DEAL_RENT)
+        if subcategory is not None:
+            allowed = subcategory.category.allowed_deal_types
+            if 'deal_type' not in attrs and deal_type not in allowed:
+                # A category with one deal decides it for the listing.
+                deal_type = allowed[0]
+            if deal_type not in allowed:
+                raise serializers.ValidationError({'deal_type': 'This category does not allow this deal type.'})
+        attrs['deal_type'] = deal_type
+        if deal_type == Category.DEAL_SALE:
+            # A sale listing has one price and is never booked: rental prices,
+            # discounts and instant booking do not apply.
+            sale_price = attrs.get('sale_price', getattr(self.instance, 'sale_price', None))
+            if sale_price is None or sale_price <= 0:
+                raise serializers.ValidationError({'sale_price': 'Sale price is required for a sale listing.'})
+            for field_name in PRICE_FIELDS:
+                attrs[field_name] = None
+            attrs['discounts'] = []
+            attrs['booking_type'] = 'request'
+            return attrs
+        attrs['sale_price'] = None
         # An edit that touches prices must leave at least one of them set.
         if self.instance is not None and any(name in attrs for name in PRICE_FIELDS):
             if all(attrs.get(name, getattr(self.instance, name)) is None for name in PRICE_FIELDS):

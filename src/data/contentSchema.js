@@ -4,6 +4,8 @@
 //
 // Field types: text, textarea, phone, email, url, words (comma separated),
 // links (label + href list) and list (objects described by itemFields).
+// audience: "guest" marks texts only signed-out visitors see; the admin
+// preview then shows the site as a guest.
 
 const ICON_FIELD = {
   name: "icon",
@@ -24,7 +26,7 @@ export const CONTENT_SCHEMA = [
         where: "Самый верх сайта, на каждой странице.",
         fields: [
           { key: "nav_links_arr", label: "Ссылки в шапке", type: "links", hint: "Пункты в центре шапки на компьютере. Ссылка — путь страницы (/filter) или якорь блока (#faq)." },
-          { key: "nav_login", label: "Кнопка «Войти»", type: "text", hint: "Справа в шапке, когда гость не вошёл в аккаунт." },
+          { key: "nav_login", audience: "guest", label: "Кнопка «Войти»", type: "text", hint: "Справа в шапке, когда гость не вошёл в аккаунт." },
           { key: "nav_profile", label: "Кнопка «Кабинет»", type: "text", hint: "Справа в шапке, когда пользователь вошёл." },
         ],
       },
@@ -57,7 +59,7 @@ export const CONTENT_SCHEMA = [
           { key: "menu_saved_desc", label: "03 · Избранное — подпись", type: "text" },
           { key: "menu_contact_label", label: "04 · Контакты — название", type: "text" },
           { key: "menu_contact_desc", label: "04 · Контакты — подпись", type: "text" },
-          { key: "menu_requires_auth", label: "Подпись «нужно войти»", type: "text", hint: "Показывается вместо подписи у «Избранного», если гость не вошёл." },
+          { key: "menu_requires_auth", audience: "guest", label: "Подпись «нужно войти»", type: "text", hint: "Показывается вместо подписи у «Избранного», если гость не вошёл." },
           { key: "menu_back", label: "Кнопка «Назад» в подменю", type: "text" },
           { key: "menu_submenu", label: "Надпись «Подменю»", type: "text" },
           { key: "menu_logout", label: "Пункт «Выйти»", type: "text" },
@@ -66,9 +68,10 @@ export const CONTENT_SCHEMA = [
       },
       {
         title: "Меню на телефоне",
+        device: "mobile",
         where: "Верх открытого меню на телефоне: профиль и две быстрые кнопки.",
         fields: [
-          { key: "menu_guest_mode", label: "Статус гостя", type: "text" },
+          { key: "menu_guest_mode", audience: "guest", label: "Статус гостя", type: "text", hint: "Вверху меню на телефоне, когда гость не вошёл." },
           { key: "menu_account", label: "Статус вошедшего пользователя", type: "text" },
           { key: "menu_quick_find_label", label: "Быстрая кнопка 1", type: "text" },
           { key: "menu_quick_find_desc", label: "Быстрая кнопка 1 — подпись", type: "text" },
@@ -80,8 +83,8 @@ export const CONTENT_SCHEMA = [
         title: "Меню: нижние карточки",
         where: "Низ открытого меню: блок входа и промо для партнёров.",
         fields: [
-          { key: "menu_guest_text", label: "Текст для гостя", type: "textarea" },
-          { key: "menu_register", label: "Кнопка «Регистрация»", type: "text" },
+          { key: "menu_guest_text", audience: "guest", label: "Текст для гостя", type: "textarea", hint: "Внизу открытого меню, когда гость не вошёл." },
+          { key: "menu_register", audience: "guest", label: "Кнопка «Регистрация»", type: "text", hint: "Внизу открытого меню, когда гость не вошёл." },
           { key: "menu_cabinet_link", label: "Кнопка «В кабинет»", type: "text", hint: "Видна, когда пользователь вошёл." },
           { key: "menu_partner_tag", label: "Промо партнёрам: метка", type: "text" },
           { key: "menu_partner_title", label: "Промо партнёрам: заголовок", type: "text" },
@@ -158,7 +161,7 @@ export const CONTENT_SCHEMA = [
           { key: "how_guest_title", label: "Клиенты — заголовок", type: "text", hint: "Число и следующее слово выделяются оранжевым (например «3 qadamda»)." },
           { key: "how_guest_text", label: "Клиенты — текст", type: "textarea" },
           { key: "how_guest_cta", label: "Клиенты — кнопка", type: "text", hint: "Ведёт в каталог." },
-          { key: "how_video_guest", label: "Клиенты — ссылка на видео", type: "url", hint: "YouTube, Vimeo или прямая ссылка на .mp4. Пусто — только анимированная инструкция." },
+          { key: "how_video_guest", optional: true, label: "Клиенты — ссылка на видео", type: "url", hint: "YouTube, Vimeo или прямая ссылка на .mp4. Пусто — только анимированная инструкция." },
           { key: "how_step1_title", label: "Клиенты · шаг 01 — заголовок", type: "text" },
           { key: "how_step1", label: "Клиенты · шаг 01 — текст", type: "textarea" },
           { key: "how_step2_title", label: "Клиенты · шаг 02 — заголовок", type: "text" },
@@ -170,7 +173,7 @@ export const CONTENT_SCHEMA = [
           { key: "how_partner_text", label: "Партнёры — текст", type: "textarea" },
           { key: "how_partner_cta", label: "Партнёры — кнопка", type: "text", hint: "Ведёт на добавление места." },
           { key: "how_partner_guide", label: "Партнёры — ссылка на руководство", type: "text" },
-          { key: "how_video_partner", label: "Партнёры — ссылка на видео", type: "url", hint: "YouTube, Vimeo или прямая ссылка на .mp4." },
+          { key: "how_video_partner", optional: true, label: "Партнёры — ссылка на видео", type: "url", hint: "YouTube, Vimeo или прямая ссылка на .mp4." },
           { key: "how_partner_step1_title", label: "Партнёры · шаг 01 — заголовок", type: "text" },
           { key: "how_partner_step1", label: "Партнёры · шаг 01 — текст", type: "textarea" },
           { key: "how_partner_step2_title", label: "Партнёры · шаг 02 — заголовок", type: "text" },
@@ -201,10 +204,10 @@ export const CONTENT_SCHEMA = [
           { key: "faq_kicker", label: "Вопросы — метка", type: "text" },
           { key: "faq_title", label: "Вопросы — заголовок", type: "text" },
           { key: "faq_search", label: "Подсказка в поиске", type: "text" },
-          { key: "faq_empty", label: "Текст, если ничего не найдено", type: "text" },
+          { key: "faq_empty", label: "Текст, если ничего не найдено", type: "text", hint: "Появляется, когда в поиске по вопросам ничего не нашлось." },
           { key: "faq_help_title", label: "Карточка поддержки — заголовок", type: "text", hint: "Кнопки: Telegram и телефон из «Футер и контакты»." },
           { key: "faq_help_text", label: "Карточка поддержки — текст", type: "textarea" },
-          { key: "faq_video_label", label: "Кнопка видео в ответе", type: "text" },
+          { key: "faq_video_label", label: "Кнопка видео в ответе", type: "text", hint: "Видна в открытом ответе, если у вопроса есть ссылка на видео." },
           {
             key: "faq_arr", label: "Вопросы и ответы", type: "list", itemLabel: "Вопрос",
             itemFields: [
@@ -234,7 +237,7 @@ export const CONTENT_SCHEMA = [
           { key: "social_telegram", label: "Telegram", type: "url", hint: "Полная ссылка. Пустое поле — иконка скрывается." },
           { key: "social_instagram", label: "Instagram", type: "url" },
           { key: "social_facebook", label: "Facebook", type: "url" },
-          { key: "social_linkedin", label: "LinkedIn", type: "url" },
+          { key: "social_linkedin", optional: true, label: "LinkedIn", type: "url" },
         ],
       },
       {
@@ -282,18 +285,20 @@ export const CONTENT_SCHEMA = [
     sections: [
       {
         title: "Шаг 1 · Номер телефона",
+        authStep: "phone",
         where: "Страница /login — первый экран.",
         fields: [
           { key: "auth_login_title", label: "Заголовок", type: "text", hint: "Последнее слово выделяется цветом." },
           { key: "auth_login_sub", label: "Подзаголовок", type: "textarea" },
           { key: "auth_phone_placeholder", label: "Подсказка в поле телефона", type: "text" },
-          { key: "auth_or", label: "Разделитель «или»", type: "text" },
-          { key: "auth_google", label: "Кнопка Google", type: "text" },
+          { key: "auth_or", label: "Разделитель «или»", type: "text", hint: "Сейчас не показывается: вход через Google выключен." },
+          { key: "auth_google", label: "Кнопка Google", type: "text", hint: "Сейчас не показывается: вход через Google выключен." },
           { key: "auth_get_code", label: "Кнопка «Получить код»", type: "text" },
         ],
       },
       {
         title: "Шаг 2 · Код подтверждения",
+        authStep: "otp",
         where: "После ввода номера.",
         fields: [
           { key: "auth_otp_title", label: "Заголовок", type: "text" },
@@ -303,6 +308,7 @@ export const CONTENT_SCHEMA = [
       },
       {
         title: "Шаг 3 · Имя и фамилия",
+        authStep: "profile",
         where: "Только для новых пользователей, после кода.",
         fields: [
           { key: "auth_reg_title", label: "Заголовок", type: "text" },
@@ -314,6 +320,7 @@ export const CONTENT_SCHEMA = [
       },
       {
         title: "Восстановление доступа",
+        path: "/forgot",
         where: "Страницы /forgot и /verify.",
         fields: [
           { key: "auth_forgot_title", label: "Заголовок восстановления", type: "text" },
@@ -321,10 +328,10 @@ export const CONTENT_SCHEMA = [
           { key: "auth_forgot_placeholder", label: "Подсказка в поле", type: "text" },
           { key: "auth_forgot_btn", label: "Кнопка отправки", type: "text" },
           { key: "auth_forgot_login", label: "Ссылка «Вспомнили? Войти»", type: "text", hint: "Текст после «?» становится ссылкой." },
-          { key: "auth_verify_title", label: "Заголовок подтверждения", type: "text" },
-          { key: "auth_verify_sub", label: "Текст подтверждения", type: "textarea" },
-          { key: "auth_verify_btn", label: "Кнопка подтверждения", type: "text" },
-          { key: "auth_verify_resend", label: "Ссылка «Отправить снова»", type: "text", hint: "Текст после «?» становится ссылкой." },
+          { key: "auth_verify_title", path: "/verify", label: "Заголовок подтверждения", type: "text" },
+          { key: "auth_verify_sub", path: "/verify", label: "Текст подтверждения", type: "textarea" },
+          { key: "auth_verify_btn", path: "/verify", label: "Кнопка подтверждения", type: "text" },
+          { key: "auth_verify_resend", path: "/verify", label: "Ссылка «Отправить снова»", type: "text", hint: "Текст после «?» становится ссылкой." },
         ],
       },
     ],
