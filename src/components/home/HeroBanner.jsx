@@ -1,5 +1,6 @@
 import { FilterSelect, MultiFilterSelect, PriceFilter } from "./HeroFilters.jsx";
 import HeroLocationList from "./HeroLocationList.jsx";
+import { counterUnit, orderedParameters } from "../../utils/categoryFilters.js";
 import { useIsMobile } from "./HeaderNav.jsx";
 import React, { useEffect, useRef, useState, useContext } from "react";
 import { LanguageContext } from "../../context/LanguageContext.jsx";
@@ -462,32 +463,42 @@ export function Banner({
                           </>
                         )}
                         
-                        {/* Dynamic Filters from API */}
+                        {/* Filters of the chosen subcategory, as set up in the admin
+                            (Категории → Фильтр) — the same set the catalog shows. A
+                            characteristic with nothing to choose from is not shown. */}
                         {(() => {
-                           const params = selectedSubCat ? (activeCategory?.subcategories?.find(s => s.id === selectedSubCat)?.parameters || []) : [];
-                           const characteristics = params.filter(p => p.type !== 'boolean' && p.type !== 'text');
-                           const amenities = params.filter(p => p.type === 'boolean');
-                           
+                           if (!activeCategory || !selectedSubCat) return null;
+                           const items = orderedParameters(activeCategory, selectedSubCat).filter((item) => item.settings.show);
+                           const choices = items
+                             .map(({ param, settings, kind }) => {
+                               if (kind === "select") {
+                                 const options = (param.config?.options || []).map(localOption).filter(Boolean);
+                                 return options.length ? { param, label: localParamName(param), options } : null;
+                               }
+                               if (kind === "counter") {
+                                 const unit = counterUnit(param);
+                                 const options = (settings.steps || []).map((step) => `${step}+${unit ? ` ${unit}` : ""}`);
+                                 return options.length ? { param, label: localParamName(param).replace(/\s*\([^)]*\)\s*$/, ""), options } : null;
+                               }
+                               return null;
+                             })
+                             .filter(Boolean);
+                           const amenities = items.filter((item) => item.kind === "feature" || item.kind === "toggle").map((item) => localParamName(item.param));
+
                            return (
                              <>
-                               {characteristics.map((p) => {
-                                 let options = [ft.any];
-                                 if (p.type === 'counter' || p.type === 'select') {
-                                    options = [ft.any, ...(Array.isArray(p.config?.options) ? p.config.options.map(localOption) : [])];
-                                 }
-                                 return (
-                                   <FilterSelect key={p.slug} name={p.slug} label={localParamName(p)} unit="" options={options} openFilter={openFilter} setOpenFilter={setOpenFilter} />
-                                 );
-                               })}
-                               
+                               {choices.map(({ param, label, options }) => (
+                                 <FilterSelect key={`${selectedSubCat}-${param.slug}`} name={param.slug} label={label} unit="" options={[ft.any, ...options]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                               ))}
                                {amenities.length > 0 && (
-                                 <MultiFilterSelect 
-                                   name="amenities_group" 
+                                 <MultiFilterSelect
+                                   key={`${selectedSubCat}-amenities`}
+                                   name="amenities_group"
                                    label={ft.amenities}
                                    pickedLabel={ft.picked}
-                                   options={amenities.map(localParamName)} 
-                                   openFilter={openFilter} 
-                                   setOpenFilter={setOpenFilter} 
+                                   options={amenities}
+                                   openFilter={openFilter}
+                                   setOpenFilter={setOpenFilter}
                                  />
                                )}
                              </>
