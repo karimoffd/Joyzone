@@ -1,12 +1,13 @@
 import { mailHref, phoneHref, socialLinks } from "../../utils/cmsLinks.js";
-import React, { useEffect, useRef, useState, useContext } from "react";
+import React, { useEffect, useId, useRef, useState, useContext } from "react";
 import { createPortal } from "react-dom";
 import { gsap } from "gsap";
 import { logoutSession } from "../../api/client.js";
 import { LanguageContext } from "../../context/LanguageContext.jsx";
 import { getStorageItem, STORAGE_KEYS } from "../../utils/storageKeys.js";
 import logoImage from "../../assets/img/Logo.png";
-import { navigate } from "../../utils/router.js";
+import { navigate, useRoute } from "../../utils/router.js";
+import { ADD_PLACE_PATH, BECOME_PARTNER_PATH, PARTNER_CTA_TEXT, useAccountRole } from "../../utils/partnerAccess.js";
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 900);
@@ -33,6 +34,30 @@ export const dashboardNavLinks = [
   { href: "/host-messages", label: "Xabarlar" },
   { href: "/host-tariffs", label: "Tariflar" }
 ];
+
+// The user's photo, or a drawn default avatar when there is none (or it fails to load).
+export function UserAvatar({ src }) {
+  const [broken, setBroken] = useState(false);
+  const id = useId();
+  useEffect(() => setBroken(false), [src]);
+  if (src && !broken) return <img className="user-avatar-img" src={src} alt="" onError={() => setBroken(true)} />;
+  return (
+    <svg className="user-avatar-default" viewBox="0 0 40 40" aria-hidden="true">
+      <defs>
+        <linearGradient id={`${id}-bg`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#4a77a3" />
+          <stop offset="1" stopColor="#1b3654" />
+        </linearGradient>
+        <clipPath id={`${id}-clip`}><circle cx="20" cy="20" r="20" /></clipPath>
+      </defs>
+      <g clipPath={`url(#${id}-clip)`}>
+        <rect width="40" height="40" fill={`url(#${id}-bg)`} />
+        <circle cx="20" cy="16" r="7" fill="#ffffff" />
+        <path d="M5 40c1.5-8.5 7.5-13 15-13s13.5 4.5 15 13Z" fill="#ffffff" />
+      </g>
+    </svg>
+  );
+}
 
 export function MenuIcon({ open = false }) {
   return (
@@ -98,10 +123,60 @@ export function MobileBottomMenu({ userState, isMenuOpen, setIsMenuOpen, variant
   );
 }
 
-export function Header({ userState, setUserState, activeIndex = 0, variant = "default" }) {
+// The partner button floats in the free space left of the right-hand group so the
+// bar never reflows; where that space is too narrow, the button is not shown.
+const PARTNER_BUTTON_ROOM = 54;
+
+function usePartnerButtonRoom(navRef, rightRef, logoRef) {
+  const [fits, setFits] = useState(false);
+
+  useEffect(() => {
+    const measure = () => {
+      const right = rightRef.current;
+      if (!right || window.innerWidth <= 900) return setFits(false);
+      const nav = navRef.current;
+      const navVisible = nav && nav.offsetParent !== null;
+      const leftEdge = (navVisible ? nav : logoRef.current)?.getBoundingClientRect().right ?? 0;
+      setFits(right.getBoundingClientRect().left - leftEdge >= PARTNER_BUTTON_ROOM);
+    };
+    // The bar eases its size over 0.5s, so measure again once it has settled.
+    let settleTimer = null;
+    const schedule = () => {
+      measure();
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(measure, 600);
+    };
+    schedule();
+    const observer = new ResizeObserver(schedule);
+    // The bar's width drives where everything sits; its children may keep their size.
+    const bar = rightRef.current?.parentElement;
+    [bar, navRef.current, rightRef.current].forEach((element) => element && observer.observe(element));
+    window.addEventListener("resize", schedule);
+    return () => {
+      clearTimeout(settleTimer);
+      observer.disconnect();
+      window.removeEventListener("resize", schedule);
+    };
+  }, [navRef, rightRef, logoRef]);
+
+  return fits;
+}
+
+// Which top-nav link a page belongs to. The CMS can reorder the links, so the
+// active one is found by its href rather than by a fixed position.
+function navHrefForRoute(route) {
+  if (route === "home") return "/";
+  if (route === "filter" || route.startsWith("space-")) return "/filter";
+  if (route === "about-us") return "/about-us";
+  return null;
+}
+
+export function Header({ userState, setUserState, activeIndex: activeIndexProp = 0, variant = "default" }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { lang, setLang, content } = useContext(LanguageContext);
   const navRef = useRef(null);
+  const rightRef = useRef(null);
+  const logoRef = useRef(null);
   const waveRef = useRef(null);
   const headerRef = useRef(null);
   const isDashboard = variant === "dashboard";
@@ -113,6 +188,11 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
   }
   
   const navigationLinks = isDashboard ? dashboardNavLinks : currentNavLinks;
+  const route = useRoute();
+  const routeHref = navHrefForRoute(route);
+  const activeIndex = isDashboard
+    ? activeIndexProp
+    : routeHref ? navigationLinks.findIndex((link) => link.href === routeHref) : -1;
 
   useEffect(() => {
     const nav = navRef.current;
@@ -185,14 +265,16 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
       ? (userState.isPartner ? "Partner" : (db.nav_profile || "Profil"))
       : (db.nav_login || "Kirish");
   const statusHref = isDashboard ? "/" : userState.isAuthed ? (userState.isPartner ? "/partner" : "/profile") : "/login";
-
+  const { canListPlaces } = useAccountRole();
+  const ctaText = PARTNER_CTA_TEXT[lang] || PARTNER_CTA_TEXT.uz;
+  const partnerFits = usePartnerButtonRoom(navRef, rightRef, logoRef);
   return (
     <>
       <header ref={headerRef} className={`joy-header ${isDashboard ? "joy-header-dashboard" : ""} ${isScrolled && !isDashboard ? "is-scrolled" : ""}`}>
         <div className="container-fluid">
           <div className="nav-hover-zone">
             <nav className="navbar d-flex justify-content-between align-items-center">
-              <a href="/" className="logo">
+              <a href="/" className="logo" ref={logoRef}>
                 <img src={logoImage} alt="Joyzone" />
               </a>
 
@@ -205,13 +287,21 @@ export function Header({ userState, setUserState, activeIndex = 0, variant = "de
                 ))}
               </div>
 
-              <div className="nav-right d-flex align-items-center">
+              <div className="nav-right d-flex align-items-center" ref={rightRef}>
+                {!isDashboard && partnerFits ? (
+                  <a
+                    className="nav-partner-fab"
+                    href={canListPlaces ? ADD_PLACE_PATH : BECOME_PARTNER_PATH}
+                    aria-label={canListPlaces ? ctaText.add : ctaText.become}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                    <span className="nav-partner-tip">{canListPlaces ? ctaText.add : ctaText.become}</span>
+                  </a>
+                ) : null}
                 <a className="login-button btn-shine" href={statusHref}>
                   <span className="nav-btn-avatar">
-                    {userState.avatar ? (
-                      <img src={userState.avatar} alt="User" />
-                    ) : userState.isAuthed && userState.name ? (
-                      <span>{userState.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}</span>
+                    {userState.isAuthed ? (
+                      <UserAvatar src={userState.avatar} />
                     ) : (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -244,7 +334,8 @@ export const menuNavLinks = [
     desc: "Kompaniya haqida",
     icon: "info",
     subLinks: [
-      { id: "info", href: "/mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil" },
+      { id: "company", href: "/about-us", label: "Biz haqimizda", desc: "Kompaniya, jamoa va maqsadlar" },
+      { id: "info", href: "/mobile-info", label: "Afzalliklar va FAQ", desc: "Joyzone haqida batafsil", mobileOnly: true },
       { id: "guide", href: "/partner-guide", label: "Hamkorlar qo'llanmasi", desc: "Joy egasi uchun yo'l xaritasi" }
     ]
   },
@@ -358,18 +449,26 @@ export const mobileQuickActions = [
 ];
 
 // Menu labels come from the CMS (menu_<id>_label / _desc), constants are fallbacks.
-function localizeMenuLink(link, cms, prefix = "menu") {
+// Desktop shows the same sections on the home page, so mobileOnly links are dropped there.
+function localizeMenuLink(link, cms, prefix = "menu", isMobile = true) {
   const key = `${prefix}_${link.id}`;
   return {
     ...link,
     label: cms[`${key}_label`] || link.label,
     desc: cms[`${key}_desc`] || link.desc,
-    subLinks: link.subLinks?.map((sub) => ({
+    subLinks: link.subLinks?.filter((sub) => isMobile || !sub.mobileOnly).map((sub) => ({
       ...sub,
       label: cms[`${key}_${sub.id}_label`] || sub.label,
       desc: cms[`${key}_${sub.id}_desc`] || sub.desc,
     })),
   };
+}
+
+// "Add a place" links lead non-partners to the partner form first.
+function withPartnerEntry(link, canListPlaces, ctaText) {
+  if (link.id !== "add") return link;
+  if (canListPlaces) return { ...link, href: ADD_PLACE_PATH };
+  return { ...link, href: BECOME_PARTNER_PATH, label: ctaText.become, desc: ctaText.becomeDesc };
 }
 
 export function SideDrawer({ open, onClose, userState, setUserState, variant = "default" }) {
@@ -380,8 +479,14 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
   const tlRef = useRef(null);
   const [activeSubmenuId, setActiveSubmenuId] = useState(null);
   const isDashboard = variant === "dashboard";
-  const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks.map((link) => localizeMenuLink(link, cms));
-  const quickActions = mobileQuickActions.map((action) => localizeMenuLink(action, cms, "menu_quick"));
+  const isMobile = useIsMobile();
+  const { canListPlaces } = useAccountRole();
+  const ctaText = PARTNER_CTA_TEXT[lang] || PARTNER_CTA_TEXT.uz;
+  const currentMenuLinks = isDashboard ? profileMenuLinks : menuNavLinks.map((link) => {
+    const localized = localizeMenuLink(link, cms, "menu", isMobile);
+    return { ...localized, subLinks: localized.subLinks?.map((sub) => withPartnerEntry(sub, canListPlaces, ctaText)) };
+  });
+  const quickActions = mobileQuickActions.map((action) => withPartnerEntry(localizeMenuLink(action, cms, "menu_quick"), canListPlaces, ctaText));
   const activeSubmenu = currentMenuLinks.find((link) => link.id === activeSubmenuId);
 
   const resolveLinkHref = (link) => (link.requiresAuth && !userState.isAuthed ? "/login" : link.href);
@@ -577,11 +682,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                 <div className="menu-mobile-hero">
                   <div className="menu-mobile-profile">
                     <div className="menu-mobile-avatar">
-                      {userState.avatar ? (
-                        <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        userState.isAuthed && userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
-                      )}
+                      {userState.isAuthed ? <UserAvatar src={userState.avatar} /> : "JZ"}
                     </div>
                     <div>
                       <span>{userState.isAuthed ? (cms.menu_account || "Akkaunt") : (cms.menu_guest_mode || "Mehmon rejimi")}</span>
@@ -662,11 +763,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                   {isDashboard ? (
                     <div className="menu-widget-user">
                       <div className="menu-user-avatar">
-                        {userState.avatar ? (
-                          <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
-                        ) : (
-                          userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
-                        )}
+                        <UserAvatar src={userState.avatar} />
                       </div>
                       <div className="menu-user-details">
                         <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
@@ -680,11 +777,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                     userState.isAuthed ? (
                       <div className="menu-widget-user">
                         <div className="menu-user-avatar">
-                          {userState.avatar ? (
-                            <img src={userState.avatar} alt="User" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "14px" }} />
-                          ) : (
-                            userState.name ? userState.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "JZ"
-                          )}
+                          <UserAvatar src={userState.avatar} />
                         </div>
                         <div className="menu-user-details">
                           <strong>{userState.name || getStorageItem(STORAGE_KEYS.profile.name) || "Foydalanuvchi"}</strong>
@@ -712,7 +805,7 @@ export function SideDrawer({ open, onClose, userState, setUserState, variant = "
                         <h4>{cms.menu_partner_title || "Joyingiz bormi?"}</h4>
                         <p>{cms.menu_partner_text || "Uni Joyzone-da e'lon qiling va daromad olishni boshlang"}</p>
                       </div>
-                      <a href="/partner" className="partner-widget-cta" onClick={closeDrawer}>
+                      <a href={canListPlaces ? ADD_PLACE_PATH : BECOME_PARTNER_PATH} className="partner-widget-cta" onClick={closeDrawer}>
                         {cms.menu_partner_cta || "Boshlash"}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: "6px" }}>
                           <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/>

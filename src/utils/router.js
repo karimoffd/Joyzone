@@ -48,7 +48,7 @@ export function routePath(target) {
 
 export function navigate(target, { replace = false } = {}) {
   const path = routePath(target);
-  const current = `${window.location.pathname}${window.location.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   if (path !== current) {
     window.history[replace ? "replaceState" : "pushState"]({}, "", path);
   }
@@ -111,7 +111,8 @@ export function installLinkInterceptor() {
     if (key && !isRouteKey(key)) return;
     if (!key && url.hash && url.pathname === window.location.pathname) return;
     event.preventDefault();
-    navigate(`${url.pathname}${url.hash}`);
+    // Keep ?query: catalog links such as /filter?category=ofis rely on it.
+    navigate(`${url.pathname}${url.search}${url.hash}`);
   };
 
   document.addEventListener("click", onClick);

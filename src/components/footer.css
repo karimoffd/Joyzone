@@ -1,0 +1,366 @@
+/* ===== Site footer (light card on the navy band) ===== */
+
+.joy-footer-card {
+  --jf-orange: #e46630;
+  --jf-navy: #12283f;
+  --jf-text: #4e5660;
+  --jf-line: #ded8d3;
+  --jf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  margin: var(--section-gap) 0 0;
+  padding: clamp(26px, 4vw, 42px) clamp(22px, 5vw, 66px) 22px;
+  border-radius: 22px 22px 0 0;
+  background: #f6f1ee;
+  box-shadow: 0 30px 80px rgba(2, 14, 27, 0.26);
+  color: var(--jf-navy);
+}
+
+.joy-footer-card svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- top row: logo · phone · mail · button ---------- */
+
+.joy-footer-top {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto auto;
+  align-items: center;
+  gap: clamp(18px, 3vw, 44px);
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--jf-line);
+}
+
+.joy-footer-logo {
+  justify-self: start;
+  display: inline-flex;
+  transition: transform 320ms var(--jf-ease), opacity 200ms ease;
+}
+
+.joy-footer-logo img {
+  width: 146px;
+  height: auto;
+  object-fit: contain;
+}
+
+.joy-footer-logo:hover { transform: translateY(-2px) scale(1.03); }
+
+.joy-footer-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--jf-text);
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Same tile for both contacts, so the icons are the same size and line up. */
+.joy-footer-contact-icon {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(18, 40, 63, 0.06), 0 6px 16px rgba(18, 40, 63, 0.06);
+  color: var(--jf-orange);
+  transition: background 260ms ease, color 260ms ease, transform 320ms var(--jf-ease), box-shadow 260ms ease;
+}
+
+.joy-footer-contact-text {
+  position: relative;
+  padding-bottom: 2px;
+  background: linear-gradient(currentColor, currentColor) left bottom / 0 1.5px no-repeat;
+  transition: color 220ms ease, background-size 320ms var(--jf-ease);
+}
+
+.joy-footer-contact:hover .joy-footer-contact-text {
+  color: var(--jf-navy);
+  background-size: 100% 1.5px;
+}
+
+.joy-footer-contact:hover .joy-footer-contact-icon {
+  background: var(--jf-orange);
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(228, 102, 48, 0.3);
+  transform: translateY(-2px);
+}
+
+.joy-footer-contact.is-phone:hover svg { animation: jf-ring 700ms ease; }
+.joy-footer-contact.is-mail:hover svg { animation: jf-mail 600ms var(--jf-ease); }
+
+@keyframes jf-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(-16deg); }
+  30% { transform: rotate(13deg); }
+  45% { transform: rotate(-9deg); }
+  60% { transform: rotate(6deg); }
+  75% { transform: rotate(-3deg); }
+}
+
+@keyframes jf-mail {
+  0% { transform: translateY(0); }
+  40% { transform: translateY(-3px) scale(1.08); }
+  100% { transform: translateY(0); }
+}
+
+.joy-footer-cta {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--jf-orange);
+  box-shadow: 0 14px 30px rgba(228, 102, 48, 0.22);
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 17px;
+  font-weight: 900;
+  white-space: nowrap;
+  transition: background 240ms ease, transform 240ms var(--jf-ease), box-shadow 240ms ease;
+}
+
+.joy-footer-cta svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.2;
+  transition: transform 300ms var(--jf-ease);
+}
+
+.joy-footer-cta:hover {
+  background: var(--jf-navy);
+  box-shadow: 0 18px 36px rgba(18, 40, 63, 0.2);
+  transform: translateY(-2px);
+}
+
+.joy-footer-cta:hover svg { transform: translateX(4px); }
+
+/* ---------- columns ---------- */
+
+.joy-footer-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.9fr 0.9fr;
+  gap: clamp(28px, 4vw, 58px);
+  padding: 36px 0 72px;
+}
+
+.joy-footer-about p {
+  max-width: 280px;
+  margin: 0;
+  color: var(--jf-text);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.joy-footer-grid strong {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--jf-navy);
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.joy-footer-nav {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+/* A short orange dash slides in before the label on hover. */
+.joy-footer-nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  padding: 3px 0;
+  color: var(--jf-text);
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.45;
+  transition: color 220ms ease, transform 320ms var(--jf-ease);
+}
+
+.joy-footer-nav a::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--jf-orange);
+  transition: width 320ms var(--jf-ease);
+}
+
+.joy-footer-nav a svg {
+  width: 15px;
+  height: 15px;
+  opacity: 0.55;
+  transition: transform 300ms var(--jf-ease), opacity 200ms ease;
+}
+
+.joy-footer-nav a:hover,
+.joy-footer-nav a:focus-visible {
+  color: var(--jf-orange);
+  transform: translateX(16px);
+}
+
+.joy-footer-nav a:hover::before,
+.joy-footer-nav a:focus-visible::before {
+  left: -16px;
+  width: 10px;
+}
+
+.joy-footer-nav a:hover svg {
+  opacity: 1;
+  transform: translate(2px, -2px);
+}
+
+/* ---------- socials: equal circles, equal glyphs ---------- */
+
+.joy-footer-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.joy-footer-socials a {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--jf-orange);
+  color: #ffffff;
+  transition: transform 320ms var(--jf-ease), box-shadow 260ms ease;
+}
+
+/* Brand colour fills the circle from below. */
+.joy-footer-socials a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--jf-brand, var(--jf-navy));
+  transform: translateY(101%);
+  transition: transform 380ms var(--jf-ease);
+}
+
+.joy-footer-socials a.is-telegram { --jf-brand: #229ed9; }
+.joy-footer-socials a.is-instagram { --jf-brand: linear-gradient(45deg, #f9a03f 0%, #e1306c 50%, #833ab4 100%); }
+.joy-footer-socials a.is-facebook { --jf-brand: #1877f2; }
+.joy-footer-socials a.is-linkedin { --jf-brand: #0a66c2; }
+
+.joy-footer-socials svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.9;
+  transition: transform 380ms var(--jf-ease);
+}
+
+.joy-footer-socials a:hover,
+.joy-footer-socials a:focus-visible {
+  box-shadow: 0 12px 24px rgba(18, 40, 63, 0.22);
+  transform: translateY(-4px);
+}
+
+.joy-footer-socials a:hover::before,
+.joy-footer-socials a:focus-visible::before { transform: translateY(0); }
+
+.joy-footer-socials a:hover svg { transform: scale(1.12) rotate(-8deg); }
+
+/* ---------- bottom line ---------- */
+
+.joy-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--jf-line);
+  color: #81858b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 1180px) {
+  .joy-footer-top { grid-template-columns: 1fr auto auto; }
+  .joy-footer-cta { grid-column: 1 / -1; justify-self: start; }
+}
+
+@media (max-width: 980px) {
+  .joy-footer-top { grid-template-columns: 1fr 1fr; }
+  .joy-footer-logo { grid-column: 1 / -1; }
+  .joy-footer-grid { grid-template-columns: 1fr 1fr; padding-bottom: 48px; }
+}
+
+@media (max-width: 640px) {
+  .joy-footer-section { padding-inline: 0; }
+
+  .joy-footer-card {
+    margin-top: 34px;
+    /* Room for the fixed bottom tab bar (64px) so the last line stays visible. */
+    padding: 24px 18px calc(84px + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px 18px 0 0;
+  }
+
+  .joy-footer-top {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .joy-footer-cta { width: 100%; }
+  .joy-footer-contact { font-size: 16px; }
+  .joy-footer-contact-icon { width: 40px; height: 40px; border-radius: 12px; }
+
+  .joy-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 26px 18px;
+    padding: 26px 0 30px;
+  }
+
+  .joy-footer-about,
+  .joy-footer-social-col { grid-column: 1 / -1; }
+
+  .joy-footer-about p,
+  .joy-footer-nav a { font-size: 16px; }
+
+  .joy-footer-grid strong { margin-bottom: 8px; font-size: 17px; }
+
+  .joy-footer-bottom {
+    display: grid;
+    gap: 6px;
+  }
+}
+
+@media (hover: none) {
+  .joy-footer-nav a:hover { transform: none; }
+  .joy-footer-nav a:hover::before { width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .joy-footer-card *,
+  .joy-footer-card *::before {
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}

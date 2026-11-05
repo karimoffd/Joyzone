@@ -1,0 +1,307 @@
+/* ===== "Become a partner" form ("bp") ===== */
+
+.bp-card {
+  --bp-ink: #12283f;
+  --bp-navy: #294a6d;
+  --bp-orange: #e46630;
+  --bp-muted: #5b6b7c;
+  --bp-line: #e2e8f0;
+  display: grid;
+  gap: 18px;
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: 26px;
+  background: #ffffff;
+  box-shadow: 0 30px 70px rgba(18, 40, 63, 0.14);
+  color: var(--bp-ink);
+}
+
+.bp-card h3 {
+  margin: 0;
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.bp-card header p,
+.bp-card > p {
+  margin: 6px 0 0;
+  color: var(--bp-muted);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.bp-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bp-row.is-choices { grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); }
+
+.bp-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.bp-field > span,
+.bp-field > legend {
+  padding: 0;
+  margin-bottom: 7px;
+  color: var(--bp-navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bp-field > span { margin-bottom: 0; }
+
+.bp-field input,
+.bp-field select,
+.bp-field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--bp-line);
+  border-radius: 14px;
+  background: #f8fafc;
+  color: var(--bp-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.bp-field textarea {
+  min-height: 84px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+
+.bp-field input:focus,
+.bp-field select:focus,
+.bp-field textarea:focus {
+  border-color: var(--bp-orange);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.12);
+}
+
+.bp-error {
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Category chips with a drawn tick. */
+.bp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  border: 1.5px solid var(--bp-line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--bp-ink);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.bp-chip i {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 7px;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.bp-chip i::after {
+  content: "";
+  width: 4.5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bp-chip:hover { border-color: rgba(228, 102, 48, 0.5); }
+
+.bp-chip.is-active {
+  border-color: var(--bp-orange);
+  background: #fff4ec;
+}
+
+.bp-chip.is-active i {
+  border-color: var(--bp-orange);
+  background: var(--bp-orange);
+}
+
+.bp-chip.is-active i::after { transform: rotate(45deg) scale(1); }
+
+/* Segmented choice. */
+.bp-segment {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f1f5f9;
+}
+
+.bp-segment button {
+  flex: 1;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--bp-muted);
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.bp-segment button.is-active {
+  background: #ffffff;
+  color: var(--bp-ink);
+  box-shadow: 0 2px 8px rgba(18, 40, 63, 0.12);
+}
+
+.bp-alert {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 15px;
+  font-size: 15.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+}
+
+.bp-btn.is-primary {
+  background: var(--bp-orange, #e46630);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(228, 102, 48, 0.3);
+}
+
+.bp-btn.is-primary:hover:not(:disabled) {
+  background: #c9521f;
+  transform: translateY(-1px);
+}
+
+.bp-btn.is-ghost {
+  background: #f1f5f9;
+  color: var(--bp-ink, #12283f);
+}
+
+.bp-btn.is-ghost:hover { background: #e2e8f0; }
+.bp-btn:disabled { opacity: 0.6; cursor: wait; }
+.bp-btn.is-wide { width: 100%; }
+
+.bp-terms {
+  margin: -6px 0 0 !important;
+  font-size: 12.5px !important;
+  text-align: center;
+}
+
+/* Guest and "you are a partner" states. */
+.bp-guest,
+.bp-ready {
+  justify-items: center;
+  padding-block: clamp(32px, 5vw, 52px);
+  text-align: center;
+}
+
+.bp-guest p,
+.bp-ready p { max-width: 360px; }
+
+.bp-guest-icon,
+.bp-ready-badge {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 22px;
+  background: #fff4ec;
+  color: var(--bp-orange);
+}
+
+.bp-guest-icon svg,
+.bp-ready-badge svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bp-ready-badge {
+  background: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 0 0 10px rgba(22, 163, 74, 0.12);
+  animation: bp-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.bp-ready-badge path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: bp-draw 420ms ease 260ms forwards;
+}
+
+@keyframes bp-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bp-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.bp-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .bp-row,
+  .bp-row.is-choices { grid-template-columns: minmax(0, 1fr); }
+  .bp-segment button { font-size: 12.5px; }
+  .bp-ready-actions .bp-btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-ready-badge,
+  .bp-ready-badge path { animation: none; stroke-dashoffset: 0; }
+}

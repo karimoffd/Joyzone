@@ -1079,3 +1079,55 @@ class ProfileDetailsTests(TestCase):
         self.assertEqual(second.data['profile_details'], {'city': 'Toshkent', 'birth_year': '1996'})
         self.assertEqual(unknown.status_code, 400)
         self.assertEqual(bad_year.status_code, 400)
+
+
+class BecomePartnerApiTests(TestCase):
+    def setUp(self):
+        from places.models import Category
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='+998900000111', password='pass', phone_number='+998900000111')
+        self.category = Category.objects.create(slug='ofislar', name_uz='Ofislar', name_ru='Офисы', name_en='Offices')
+        self.payload = {
+            'company_name': 'Nur Office',
+            'contact_name': 'Aziz',
+            'phone_number': '+998 90 000 01 11',
+            'city': 'Toshkent',
+            'categories': [self.category.id],
+            'places_count': '2-5',
+            'deal_type': 'rent',
+        }
+
+    def test_requires_login(self):
+        response = self.client.post('/api/auth/become-partner/', self.payload, format='json')
+        self.assertEqual(response.status_code, 401)
+
+    def test_client_becomes_partner_and_form_is_saved(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post('/api/auth/become-partner/', self.payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['role'], 'partner')
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, 'partner')
+        self.assertEqual(self.user.company_name, 'Nur Office')
+        application = self.user.partner_applications.get()
+        self.assertEqual(application.phone_number, '+998900000111')
+        self.assertEqual(list(application.categories.all()), [self.category])
+        self.assertTrue(AuditLog.objects.filter(action='user.role_updated', object_id=str(self.user.id)).exists())
+
+    def test_requires_category_and_full_phone(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.post('/api/auth/become-partner/', {**self.payload, 'categories': [], 'phone_number': '123'}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('categories', response.data)
+        self.assertIn('phone_number', response.data)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, 'client')
+
+    def test_admin_keeps_role(self):
+        self.user.role = 'admin'
+        self.user.save()
+        self.client.force_authenticate(self.user)
+        response = self.client.post('/api/auth/become-partner/', self.payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.role, 'admin')

@@ -30,6 +30,8 @@ import { defaultContent } from "./data/defaultContent.js";
 import { currentRoute, navigate, useRoute } from "./utils/router.js";
 import { setRouteMeta } from "./utils/seo.js";
 import { useVisiblePolling } from "./utils/polling.js";
+import { useIsMobile } from "./components/home/HeaderNav.jsx";
+import { consumeLoginReturn } from "./utils/partnerAccess.js";
 
 // Screens other than home/auth load on demand, so visitors do not download the
 // admin panel, partner dashboard and checkout up front.
@@ -47,6 +49,7 @@ const AboutUsPage = named(() => import("./components/StaticInfoPages.jsx"), "Abo
 const PartnerGuidePage = named(() => import("./components/StaticInfoPages.jsx"), "PartnerGuidePage");
 const MobileInfoPage = lazy(() => import("./components/MobileInfoPage.jsx"));
 const BookingCheckout = lazy(() => import("./components/BookingCheckout.jsx"));
+const PartnerPromo = lazy(() => import("./components/partner/PartnerPromo.jsx"));
 
 function useUserState() {
   const readState = () => {
@@ -236,6 +239,13 @@ function AppContent() {
     }));
   }, [remoteBanners, lang]);
 
+  // /mobile-info repeats the home page's benefits and FAQ for phones; on a
+  // desktop those sections are already on the home page.
+  const isMobile = useIsMobile();
+  useEffect(() => {
+    if (route === "mobile-info" && !isMobile) navigate("/", { replace: true });
+  }, [route, isMobile]);
+
   useEffect(() => {
     // Hide boot loader after short delay
     const timer = setTimeout(() => {
@@ -382,7 +392,7 @@ function AppContent() {
     const normalized = cacheProfile(profile);
     setUserState(profileToUserState(normalized, userState));
     mergeAnonymousFavorites().catch((err) => console.warn("Failed to merge favorites after login:", err));
-    navigate("/");
+    navigate(consumeLoginReturn() || "/");
   };
 
   if (displayedRoute === "admin") {
@@ -503,7 +513,7 @@ function AppContent() {
     );
   }
 
-  if (displayedRoute === "mobile-info") {
+  if (displayedRoute === "mobile-info" && isMobile) {
     return (
       <>
         <div className="route-screen route-screen-mobile-info app-route-shell">
@@ -680,6 +690,7 @@ export default function App() {
       <Suspense fallback={<JoyLoader active={true} />}>
         <AppContent />
       </Suspense>
+      {isEditMode ? null : <Suspense fallback={null}><PartnerPromo /></Suspense>}
       {hideBell ? null : <FloatingNotificationBell onOpenChat={(id) => setActiveChatId(id)} />}
       <ChatNotificationToast activeChatId={activeChatId} onOpenChat={(id) => setActiveChatId(id)} />
       {activeChatId && (

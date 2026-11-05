@@ -1321,3 +1321,21 @@ class CategoryFilterConfigTests(TestCase):
         self.client.force_authenticate(partner)
         response = self.client.patch(self.url, {'filter_config': {'base': {'price': False}}}, format='json')
         self.assertEqual(response.status_code, 403)
+
+
+class PlaceCreateRoleTests(TestCase):
+    """A client must fill the partner form before listing a place."""
+
+    def test_client_cannot_create_place(self):
+        client_user = get_user_model().objects.create_user(username='+998900000222', password='pass')
+        api = APIClient()
+        api.force_authenticate(client_user)
+        response = api.post('/api/places/', {}, format='json')
+        self.assertEqual(response.status_code, 403)
+
+    def test_partner_reaches_validation(self):
+        partner = get_user_model().objects.create_user(username='+998900000333', password='pass', role='partner')
+        api = APIClient()
+        api.force_authenticate(partner)
+        response = api.post('/api/places/', {}, format='json')
+        self.assertEqual(response.status_code, 400)

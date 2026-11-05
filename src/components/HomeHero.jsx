@@ -107,22 +107,39 @@ export default function HomeHero({ userState, setUserState, slides }) {
         // Cleanup
       };
     }
+    // Hero <-> listings snap. A fast mouse-wheel spin sends a burst of events
+    // (and the browser animates each of them), so one burst must give exactly
+    // one snap: events are swallowed while the snap runs and until the burst
+    // ends, and the scroll listener stays out of the way of wheel scrolling.
     let snapTween;
     let lastY = window.scrollY;
     let isSnapping = false;
+    let lastWheelAt = 0;
+    let swallowUntil = 0;
+    const WHEEL_GAP = 220; // ms of silence that ends a wheel burst
+    const setY = (y) => window.scrollTo({ top: y, behavior: "instant" });
     const snapTo = (target) => {
-      if (isSnapping || Math.abs(window.scrollY - target) < 8) return;
+      if (isSnapping) return;
+      const from = window.scrollY;
+      const distance = Math.abs(from - target);
+      if (distance < 4) return;
       isSnapping = true;
       snapTween?.kill();
-      const scrollState = { y: window.scrollY };
+      const viewport = window.innerHeight || 1;
+      const share = Math.min(1, distance / viewport);
+      const scrollState = { y: from };
       snapTween = gsap.to(scrollState, {
         y: target,
-        duration: 1,
-        ease: "power2.inOut",
-        onUpdate: () => window.scrollTo(0, scrollState.y),
+        // Shorter trip when we are already part of the way there.
+        duration: 0.45 + 0.45 * share,
+        // From rest a soft start; mid-way (already moving) no slow start.
+        ease: share > 0.75 ? "power2.inOut" : "power2.out",
+        onUpdate: () => setY(scrollState.y),
         onComplete: () => {
+          setY(target);
           isSnapping = false;
-          lastY = window.scrollY;
+          lastY = target;
+          swallowUntil = performance.now() + WHEEL_GAP;
         },
         onInterrupt: () => {
           isSnapping = false;
@@ -134,13 +151,24 @@ export default function HomeHero({ userState, setUserState, slides }) {
       if (event.target.closest('.dropdown, .options, .filter-dropdown, .districts-list')) {
         return;
       }
+      const now = performance.now();
+      const inBurst = now - lastWheelAt < WHEEL_GAP;
+      lastWheelAt = now;
       const y = window.scrollY;
       const viewport = window.innerHeight;
-      if (isSnapping) {
+      const inHero = y < viewport - 2;
+
+      // While snapping, and for the rest of the burst that caused it.
+      if (isSnapping || (inBurst && now < swallowUntil + WHEEL_GAP && (inHero || y <= viewport + 2))) {
         event.preventDefault();
+        if (!isSnapping) swallowUntil = now;
         return;
       }
-      if (event.deltaY > 0 && y < viewport - 24) {
+      if (Math.abs(event.deltaY) < 2) {
+        if (inHero) event.preventDefault();
+        return;
+      }
+      if (event.deltaY > 0 && inHero) {
         event.preventDefault();
         snapTo(viewport);
       } else if (event.deltaY < 0 && y > 0 && y <= viewport + 64) {
@@ -148,21 +176,74 @@ export default function HomeHero({ userState, setUserState, slides }) {
         snapTo(0);
       }
     };
+    // Scrollbar drag, middle-click autoscroll, keyboard. Snapping while the
+    // user is still moving the page makes it fight the user and jump, so we
+    // never snap mid-move: only once the page has stood still, no mouse
+    // button is held and autoscroll is off, and only if it stopped half-way.
+    let settleTimer;
+    let buttonHeld = false;
+    let autoScroll = false;
+    let middleDownAt = 0;
+    let moveDirection = "down";
+    const settle = () => {
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        if (window.innerWidth <= 992 || isSnapping || buttonHeld || autoScroll) return;
+        if (performance.now() - lastWheelAt < WHEEL_GAP + 200) return;
+        const y = window.scrollY;
+        const viewport = window.innerHeight;
+        if (y <= 2 || y >= viewport - 2) return;
+        // Follow the way the user was going, unless they barely moved.
+        if (moveDirection === "down") snapTo(y > viewport * 0.12 ? viewport : 0);
+        else snapTo(y < viewport * 0.88 ? 0 : viewport);
+      }, 180);
+    };
     const handleScroll = () => {
-      if (window.innerWidth <= 992) return;
-      if (isSnapping) return;
       const y = window.scrollY;
-      const viewport = window.innerHeight;
-      const direction = y > lastY ? "down" : "up";
-      if (direction === "down" && y >= 96 && y < viewport - 24) snapTo(viewport);
-      if (direction === "up" && y <= viewport - 96 && y > viewport * 0.34) snapTo(0);
+      if (y !== lastY) moveDirection = y > lastY ? "down" : "up";
       lastY = y;
+      if (isSnapping) return;
+      settle();
+    };
+    const handlePointerDown = (event) => {
+      // The user takes over: stop our animation where it is.
+      if (isSnapping) snapTween?.kill();
+      if (autoScroll) {
+        autoScroll = false; // any click ends middle-click autoscroll
+        settle();
+      }
+      if (event.button === 1) {
+        autoScroll = true;
+        middleDownAt = performance.now();
+      }
+      buttonHeld = true;
+    };
+    const handlePointerUp = (event) => {
+      buttonHeld = false;
+      // Middle button held and dragged: autoscroll ends on release.
+      if (event.button === 1 && performance.now() - middleDownAt > 300) autoScroll = false;
+      settle();
+    };
+    const handleKeyDown = () => {
+      if (autoScroll) {
+        autoScroll = false;
+        settle();
+      }
     };
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("mousedown", handlePointerDown, true);
+    window.addEventListener("mouseup", handlePointerUp, true);
+    window.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("blur", handlePointerUp);
     return () => {
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("mousedown", handlePointerDown, true);
+      window.removeEventListener("mouseup", handlePointerUp, true);
+      window.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("blur", handlePointerUp);
+      clearTimeout(settleTimer);
       snapTween?.kill();
     };
   }, []);

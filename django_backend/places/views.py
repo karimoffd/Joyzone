@@ -379,6 +379,12 @@ class PlaceViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
+    def create(self, request, *args, **kwargs):
+        # Only partners list places; clients fill the partner form first.
+        if not (is_partner(request.user) or is_admin_or_moderator(request.user)):
+            raise PermissionDenied("Joy qo'shish uchun avval hamkor bo'ling (/partner-guide).")
+        return super().create(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         user = self.request.user
 

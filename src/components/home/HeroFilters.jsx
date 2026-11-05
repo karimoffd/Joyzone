@@ -92,7 +92,7 @@ export function FilterSelect({ name, label, unit, options, openFilter, setOpenFi
   );
 }
 
-export function MultiFilterSelect({ name, label, options, openFilter, setOpenFilter }) {
+export function MultiFilterSelect({ name, label, options, openFilter, setOpenFilter, pickedLabel = "ta tanlandi" }) {
   const isMobile = useIsMobile();
   const [selected, setSelected] = useState([]);
   const [openAbove, setOpenAbove] = useState(false);
@@ -129,7 +129,7 @@ export function MultiFilterSelect({ name, label, options, openFilter, setOpenFil
     setSelected(prev => prev.includes(opt) ? prev.filter(x => x !== opt) : [...prev, opt]);
   };
 
-  const displayValue = selected.length === 0 ? "" : `${selected.length} выбрано`;
+  const displayValue = selected.length === 0 ? "" : `${selected.length} ${pickedLabel}`;
 
   return (
     <div ref={containerRef} className={`filter-select ${isOpen && !isMobile ? "open" : ""} ${displayValue ? "has-value" : ""} ${openAbove ? "open-above" : ""}`}>

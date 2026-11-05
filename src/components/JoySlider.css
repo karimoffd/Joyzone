@@ -121,3 +121,67 @@
     min-height: 0;
   }
 }
+
+/* ---------- arrows (home hero) ---------- */
+
+.slider-frame.has-nav .slider-dots {
+  left: 26px;
+  bottom: 36px;
+  transform: none;
+}
+
+.slider-nav {
+  position: absolute;
+  right: 20px;
+  bottom: 18px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-arrow {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(4, 14, 26, 0.22);
+  color: #12283f;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.slider-arrow.is-next {
+  background: #e46630;
+  color: #ffffff;
+}
+
+.slider-arrow svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.slider-arrow:active { transform: scale(0.95); }
+
+
+.slider-arrow:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .slider-frame.has-nav .slider-dots { left: 16px; bottom: 28px; }
+  .slider-nav { right: 12px; bottom: 12px; gap: 8px; }
+  .slider-arrow { width: 38px; height: 38px; }
+}

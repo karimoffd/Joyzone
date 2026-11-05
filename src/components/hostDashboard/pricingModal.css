@@ -307,17 +307,28 @@
   width: 22px;
   height: 22px;
   border: 2px solid #cbd5e1;
-  border-radius: 6px;
-  color: #ffffff;
-  font-size: 13px;
-  font-style: normal;
-  font-weight: 800;
+  border-radius: 7px;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+/* Tick drawn with borders; pops in when the discount is on. */
+.hpm-discounts i::after {
+  content: "";
+  width: 5px;
+  height: 10px;
+  margin-top: -2px;
+  border: solid #ffffff;
+  border-width: 0 2.2px 2.2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .hpm-discounts button.is-active i {
   border-color: #12283f;
   background: #12283f;
 }
+
+.hpm-discounts button.is-active i::after { transform: rotate(45deg) scale(1); }
 
 .hpm-foot {
   display: grid;

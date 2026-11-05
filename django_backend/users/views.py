@@ -35,6 +35,7 @@ from .serializers import (
     DemoLoginSerializer,
     JoyzoneTokenRefreshSerializer,
     LogoutSerializer,
+    PartnerApplicationSerializer,
     SendOTPSerializer,
     UserSerializer,
     VerifyOTPSerializer,
@@ -301,6 +302,57 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class BecomePartnerView(APIView):
+    """Save the partner form and switch a client to the partner role.
+
+    There is no approval step: every place a partner adds still goes through
+    moderation. Staff roles keep their role; the form is still stored.
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    @extend_schema(request=PartnerApplicationSerializer, responses=UserSerializer, tags=['auth'])
+    def post(self, request):
+        serializer = PartnerApplicationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        with transaction.atomic():
+            application = serializer.save(user=user)
+            previous_role = user.role
+            update_fields = []
+            if user.role == 'client':
+                user.role = 'partner'
+                update_fields.append('role')
+            if not user.company_name:
+                user.company_name = application.company_name
+                update_fields.append('company_name')
+            if not user.first_name:
+                user.first_name = application.contact_name[:150]
+                update_fields.append('first_name')
+            if update_fields:
+                user.save(update_fields=update_fields)
+        create_audit_log(
+            actor=user,
+            action='partner.application_created',
+            object_type='PartnerApplication',
+            object_id=application.id,
+            metadata={'company_name': application.company_name, 'city': application.city},
+        )
+        if previous_role != user.role:
+            create_audit_log(
+                actor=user,
+                action='user.role_updated',
+                object_type='User',
+                object_id=user.id,
+                metadata={
+                    'username': user.username,
+                    'previous_role': previous_role,
+                    'role': user.role,
+                    'source': 'partner_application',
+                },
+            )
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 class DevAdminLoginView(APIView):

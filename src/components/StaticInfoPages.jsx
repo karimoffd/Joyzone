@@ -1,4 +1,4 @@
-import { cmsList } from "../utils/cmsLinks.js";
+import { cmsList, mailHref, phoneHref, socialLinks } from "../utils/cmsLinks.js";
 import React, { useState, useEffect, useContext } from "react";
 import api, { getAccessToken, getApiErrorMessage } from "../api/client.js";
 import { LanguageContext, useSiteContent } from "../context/LanguageContext.jsx";
@@ -6,6 +6,13 @@ import { cacheProfile } from "../utils/profileMapper.js";
 import PaymentModal from "./PaymentModal.jsx";
 import logoImage from "../assets/img/Logo.png";
 import "./StaticInfoPages.css";
+import "./partner/partnerGuide.css";
+import BecomePartnerForm from "./partner/BecomePartnerForm.jsx";
+import { GUIDE_TEXT } from "./partner/guideText.js";
+import { partnerEntryHref, useAccountRole } from "../utils/partnerAccess.js";
+import { getPlacesFromApiResponse, normalizePlace } from "../utils/placeMapper.js";
+import { ABOUT_TEXT } from "./about/aboutText.js";
+import "./about/aboutPage.css";
 import { navigate } from "../utils/router.js";
 
 function PageIcon({ type }) {
@@ -16,7 +23,7 @@ function PageIcon({ type }) {
     shield: ["M12 3 20 6v6c0 5-3.4 8.1-8 9-4.6-.9-8-4-8-9V6z", "m9 12 2 2 4-5"],
     building: ["M5 21V8l7-4 7 4v13", "M9 21v-5h6v5", "M9 10h.01M12 10h.01M15 10h.01M9 13h.01M12 13h.01M15 13h.01"],
     check: ["M20 6 9 17l-5-5"],
-    chat: ["M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4.4A8 8 0 1 1 21 12Z", "M8 11h8M8 14h5"],
+    chat: ["M12 3.2c5 0 9 3.6 9 8s-4 8-9 8c-1.1 0-2.1-.2-3.1-.5L4.4 20.8l1.3-3.9C4 15.4 3 13.4 3 11.2c0-4.4 4-8 9-8Z", "M7.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M11.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M15.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0"],
     eye: ["M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z", "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"],
     phone: ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6.4 6.4l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2.1Z"],
     mail: ["M4 6h16v12H4z", "m4 7 8 6 8-6"],
@@ -38,74 +45,150 @@ function PageIcon({ type }) {
 function BackButton() {
   const { cms } = useSiteContent();
   return (
-    <a className="static-back-button" href="/">
+    <a className="static-back-button" href="/" aria-label={cms.back_button || "Ortga qaytish"}>
       <PageIcon type="back" />
-      {cms.back_button || "Ortga qaytish"}
+      <span>{cms.back_button || "Ortga qaytish"}</span>
     </a>
   );
 }
 
+// Up to three real listings with photos for the about page collage.
+function useShowcasePlaces() {
+  const [places, setPlaces] = useState([]);
+  useEffect(() => {
+    api.get("/api/places/popular/", { skipAuth: true })
+      .then((res) => setPlaces(
+        getPlacesFromApiResponse(res.data)
+          .map((item) => normalizePlace(item))
+          .filter((item) => /^https?:/.test(item.images?.[0] || ""))
+          .slice(0, 3),
+      ))
+      .catch(() => setPlaces([]));
+  }, []);
+  return places;
+}
+
 function AboutUsPage() {
   const { cms } = useSiteContent();
+  const { lang } = useContext(LanguageContext);
+  const t = ABOUT_TEXT[lang] || ABOUT_TEXT.uz;
+  const { role } = useAccountRole();
+  const places = useShowcasePlaces();
+  const partnerHref = partnerEntryHref(role);
+  const isPartner = partnerHref === "/partner";
+  const socials = socialLinks(cms).filter(([type]) => type === "telegram" || type === "instagram");
+
   return (
-    <main className="static-page static-about-page">
+    <main className="static-page ab">
       <BackButton />
-      <section className="static-hero">
-        <div className="static-hero-copy">
-          <span className="static-kicker">{cms.about_page_kicker}</span>
+
+      <section className="ab-hero">
+        <div className="ab-hero-copy">
           <h1>{cms.about_page_title}</h1>
           <p>{cms.about_page_text}</p>
-        </div>
-        <div className="about-visual-panel" aria-label="Joyzone platformasi">
-          <div className="about-browser-card">
-            <div className="about-browser-top">
-              <span />
-              <span />
-              <span />
-              <strong>joyzone.uz</strong>
-            </div>
-            <div className="about-preview-grid">
-              <b />
-              <b />
-              <b />
-              <b />
-            </div>
-            <div className="about-preview-line">
-              <i />
-              <i />
-              <i />
-            </div>
+          <div className="ab-actions">
+            <a className="bp-btn is-primary" href="/filter">{t.findCta}<PageIcon type="arrow" /></a>
+            <a className="bp-btn is-ghost" href={partnerHref}>{isPartner ? t.addCta : t.becomeCta}</a>
           </div>
         </div>
+
+        <div className={`ab-collage${places.length ? "" : " is-empty"}`} aria-hidden="true">
+          {[0, 1, 2].map((index) => {
+            const place = places[index];
+            return (
+              <div key={index} className={`ab-shot ab-shot-${index + 1}`} style={place ? { backgroundImage: `url("${place.images[0]}")` } : undefined}>
+                {place && index === 0 ? (
+                  <span className="ab-shot-card">
+                    <strong>{place.title}</strong>
+                    <small><PageIcon type="map" />{place.location}</small>
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </section>
 
-      <section className="about-stats-grid" aria-label="Joyzone raqamlari">
+      <section className="ab-stats" aria-label="Joyzone raqamlari">
         {cmsList(cms, "about_stats_arr").map(({ value, label }) => (
-          <article key={label}>
+          <div key={label}>
             <strong>{value}</strong>
             <span>{label}</span>
-          </article>
+          </div>
         ))}
       </section>
 
-      <section className="about-values-grid">
-        {cmsList(cms, "about_values_arr").map((item) => (
-          <article key={item.title}>
-            <div className="static-icon">
-              <PageIcon type={item.icon} />
-            </div>
-            <h2>{item.title}</h2>
-            <p>{item.text}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="about-story-section">
-        <div>
-          <span className="static-kicker">{cms.about_story_kicker}</span>
-          <h2>{cms.about_story_title}</h2>
+      <section className="ab-section">
+        <header className="ab-head">
+          <h2>{t.forTitle}</h2>
+        </header>
+        <div className="ab-audiences">
+          {[["renters", "/filter", "eye"], ["owners", partnerHref, "building"]].map(([key, href, icon]) => {
+            const block = t[key];
+            return (
+              <article key={key} className={`ab-audience is-${key}`}>
+                <span className="ab-audience-icon"><PageIcon type={icon} /></span>
+                <span className="ab-tag">{block.tag}</span>
+                <h3>{block.title}</h3>
+                <ul>
+                  {block.points.map((point) => <li key={point}><PageIcon type="check" />{point}</li>)}
+                </ul>
+                <a href={href} className="ab-link">{block.cta}<PageIcon type="arrow" /></a>
+              </article>
+            );
+          })}
         </div>
-        <p>{cms.about_story_text}</p>
+      </section>
+
+      <section className="ab-section">
+        <header className="ab-head is-center">
+          <h2>{t.howTitle}</h2>
+        </header>
+        <ol className="ab-steps">
+          {t.how.map((step, index) => (
+            <li key={step.title}>
+              <b>{index + 1}</b>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="ab-section ab-values-wrap">
+        <header className="ab-head">
+          <h2>{t.valuesTitle}</h2>
+        </header>
+        <div className="ab-values">
+          {cmsList(cms, "about_values_arr").map((item) => (
+            <article key={item.title}>
+              <span className="ab-value-icon"><PageIcon type={item.icon} /></span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="ab-section ab-story">
+        <blockquote>
+          <h2>{cms.about_story_title}</h2>
+          <p>{cms.about_story_text}</p>
+        </blockquote>
+      </section>
+
+      <section className="ab-section ab-contact">
+        <div>
+          <h2>{t.contactTitle}</h2>
+          <p>{t.contactText}</p>
+        </div>
+        <div className="ab-contact-links">
+          {cms.footer_phone ? <a href={phoneHref(cms.footer_phone)}><PageIcon type="phone" />{cms.footer_phone}</a> : null}
+          {cms.footer_email ? <a href={mailHref(cms.footer_email)}><PageIcon type="mail" />{cms.footer_email}</a> : null}
+          {socials.map(([type, label, href]) => (
+            <a key={type} href={href} target="_blank" rel="noreferrer"><PageIcon type={type} />{label}</a>
+          ))}
+        </div>
       </section>
     </main>
   );
@@ -113,90 +196,132 @@ function AboutUsPage() {
 
 function PartnerGuidePage() {
   const { cms } = useSiteContent();
+  const { lang } = useContext(LanguageContext);
+  const t = GUIDE_TEXT[lang] || GUIDE_TEXT.uz;
+  const account = useAccountRole();
+  const isPartner = account.isAuthed && account.canListPlaces;
+
+  // /partner-guide#become (from buttons and the promo) opens on the form.
+  useEffect(() => {
+    if (window.location.hash !== "#become") return undefined;
+    const timer = setTimeout(() => document.getElementById("become")?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
   return (
-    <main className="static-page partner-guide-page">
+    <main className="static-page pg">
       <BackButton />
-      <section className="partner-guide-hero">
-        <div className="partner-guide-copy">
-          <span className="static-kicker">{cms.partner_guide_kicker}</span>
+
+      <section className="pg-hero">
+        <div className="pg-hero-copy">
           <h1>{cms.partner_guide_title}</h1>
           <p>{cms.partner_guide_text}</p>
-          <div className="partner-hero-metrics" aria-label="Partner jarayoni">
-            <span><strong>{cms.guide_metric1_value}</strong> {cms.guide_metric1_label}</span>
-            <span><strong>{cms.guide_metric2_value}</strong> {cms.guide_metric2_label}</span>
-            <span><strong>{cms.guide_metric3_value}</strong> {cms.guide_metric3_label}</span>
+          <div className="pg-actions">
+            {isPartner ? (
+              <button type="button" className="bp-btn is-primary" onClick={() => navigate("/partner")}>{t.addPlaceCta}<PageIcon type="arrow" /></button>
+            ) : (
+              <button type="button" className="bp-btn is-primary" onClick={() => scrollTo("become")}>{t.becomeCta}<PageIcon type="arrow" /></button>
+            )}
+            <button type="button" className="bp-btn is-ghost" onClick={() => scrollTo("tariffs")}>{t.tariffsCta}</button>
           </div>
+          <ul className="pg-metrics" aria-label="Partner jarayoni">
+            <li><strong>{cms.guide_metric1_value}</strong>{cms.guide_metric1_label}</li>
+            <li><strong>{cms.guide_metric2_value}</strong>{cms.guide_metric2_label}</li>
+            <li><strong>{cms.guide_metric3_value}</strong>{cms.guide_metric3_label}</li>
+          </ul>
         </div>
-        <aside className="partner-console" aria-label="Partner kabineti namunasi">
-          <div className="partner-console-top">
-            <span />
-            <span />
-            <span />
-            <strong>Joyzone Partner</strong>
+
+        <div className="pg-cabinet" aria-hidden="true">
+          <div className="pg-cabinet-top">
+            <span className="pg-dots"><i /><i /><i /></span>
+            <strong>{t.cabinetTitle}</strong>
           </div>
-          <div className="partner-console-body">
-            <div className="partner-console-status">
-              <small>Status</small>
-              <b>Moderatsiyaga tayyor</b>
-            </div>
-            <div className="partner-console-row">
-              <span>Rasmlar</span>
-              <strong>8/8</strong>
-            </div>
-            <div className="partner-console-row">
-              <span>Narx</span>
-              <strong>499 000 so'm</strong>
-            </div>
-            <div className="partner-console-row">
-              <span>Sig'im</span>
-              <strong>24 kishi</strong>
-            </div>
-            <div className="partner-console-progress">
-              <i />
-            </div>
+          <div className="pg-cabinet-stats">
+            {t.cabinetStats.map(([label, value]) => (
+              <div key={label}><b>{value}</b><small>{label}</small></div>
+            ))}
           </div>
-        </aside>
+          <ul className="pg-requests">
+            {t.cabinetRequests.map(([title, time], index) => (
+              <li key={title} style={{ "--i": index }}>
+                <span className="pg-request-avatar">{title[0]}</span>
+                <span><strong>{title}</strong><small>{time}</small></span>
+                <i />
+              </li>
+            ))}
+          </ul>
+          <span className="pg-cabinet-ping"><PageIcon type="spark" />{t.cabinetNew}</span>
+        </div>
       </section>
 
-      <section className="partner-guide-layout">
-        <aside className="partner-guide-sidebar">
-          <span>{cms.guide_sidebar_kicker}</span>
-          <strong>{cms.guide_sidebar_title}</strong>
-          <p>{cms.guide_sidebar_text}</p>
-        </aside>
-        <div className="partner-process-list">
-          {cmsList(cms, "guide_steps_arr").map((item) => (
-            <article className="partner-process-item" key={item.step}>
-              <span>{item.step}</span>
-              <div>
-                <h2>{item.title}</h2>
-                <p>{item.text}</p>
-              </div>
-              <b>{item.deliverable}</b>
+      <section className="pg-section">
+        <header className="pg-head">
+          <h2>{t.whyTitle}</h2>
+        </header>
+        <div className="pg-why">
+          {t.why.map((item) => (
+            <article key={item.title}>
+              <span className="pg-why-icon"><PageIcon type={item.icon} /></span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="partner-terms-section">
-        <div className="partner-terms-head">
-          <span className="static-kicker">{cms.partner_terms_kicker}</span>
+      <section className="pg-section pg-process">
+        <aside className="pg-process-side">
+          <h2>{cms.guide_sidebar_title}</h2>
+          <p>{cms.guide_sidebar_text}</p>
+        </aside>
+        <ol className="pg-steps">
+          {cmsList(cms, "guide_steps_arr").map((item) => (
+            <li key={item.step}>
+              <span className="pg-step-num">{item.step}</span>
+              <div>
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+                {item.deliverable ? <b>{item.deliverable}</b> : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="pg-section pg-become" id="become">
+        <div className="pg-become-copy">
+          <h2>{t.becomeTitle}</h2>
+          <p>{t.becomeText}</p>
+          <h3>{t.afterTitle}</h3>
+          <ol className="pg-after">
+            {t.after.map((line) => <li key={line}>{line}</li>)}
+          </ol>
+          {cms.guide_next_text ? (
+            <div className="pg-note">
+              <PageIcon type="check" />
+              <span><strong>{cms.guide_next_kicker}</strong>{cms.guide_next_text}</span>
+            </div>
+          ) : null}
+        </div>
+        <BecomePartnerForm />
+      </section>
+
+      <section className="pg-section">
+        <header className="pg-head">
           <h2>{cms.partner_terms_title}</h2>
           <p>{cms.partner_terms_text}</p>
-        </div>
-        <div className="partner-terms-grid">
-          {cmsList(cms, "partner_terms_arr").map((term) => (
+        </header>
+        <div className="pg-terms">
+          {cmsList(cms, "partner_terms_arr").map((term, index) => (
             <article key={term.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
               <h3>{term.title}</h3>
               <p>{term.text}</p>
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="partner-final-strip">
-        <span>{cms.guide_next_kicker}</span>
-        <p>{cms.guide_next_text}</p>
       </section>
 
       <TariffPlansSection />
@@ -300,7 +425,6 @@ function TariffPlansSection() {
   return (
     <section className="tariff-section" id="tariffs">
       <div className="tariff-head">
-        <span className="static-kicker">{cms.tariffs_kicker || "Tariflar"}</span>
         <h2>{cms.tariffs_title || "O'zingizga mos tarifni tanlang"}</h2>
         <p>{cms.tariffs_subtitle || "Bepul boshlang va biznes o'sishi bilan tarifni o'zgartiring."}</p>
       </div>

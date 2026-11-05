@@ -55,7 +55,13 @@ export const iconPaths = {
   projector: ["M3 8h18v8H3z", "M15 12h.01", "M8 12a2 2 0 1 0 0 .01", "M6 16l-1 3M18 16l1 3"],
   restroom: ["M8 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M16 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z", "M6 21v-6H5l1-7h4l1 7h-1v6", "M14 21v-7l-1-6h6l-1 6v7", "M12 3v18"],
   stairs: ["M4 20h4v-4h4v-4h4V8h4", "M4 20V4"],
-  "check-circle": ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "M22 4L12 14.01l-3-3"]
+  "check-circle": ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "M22 4L12 14.01l-3-3"],
+  bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9", "M10.3 21a1.94 1.94 0 0 0 3.4 0"],
+  chat: ["M12 3.2c5 0 9 3.6 9 8s-4 8-9 8c-1.1 0-2.1-.2-3.1-.5L4.4 20.8l1.3-3.9C4 15.4 3 13.4 3 11.2c0-4.4 4-8 9-8Z", "M7.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M11.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M15.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0"],
+  trend: ["M3 17l6-6 4 4 8-8", "M14 7h7v7"],
+  percent: ["M19 5 5 19", "M6.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z", "M17.5 20a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"],
+  text: ["M4 6h16", "M4 12h16", "M4 18h10"],
+  shield: ["M12 3 5 6v6c0 4.4 3 7.8 7 9 4-1.2 7-4.6 7-9V6l-7-3Z", "m9 12 2 2 4-4"]
 };
 
 // Category / parameter icons in the database are emoji or empty, so pick the
@@ -145,7 +151,7 @@ export function SelectionCard({ item, active, onClick, hint }) {
         <strong>{item.name_ru || item.name}</strong>
         {hint ? <small>{hint}</small> : null}
       </span>
-      <i className="pow-choice-check" aria-hidden="true">{active ? "✓" : ""}</i>
+      <i className="pow-choice-check" aria-hidden="true" />
     </button>
   );
 }

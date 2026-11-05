@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { VideoModal } from "./VideoModal.jsx";
 import "./howItWorks.css";
+import { partnerEntryHref, useAccountRole } from "../../utils/partnerAccess.js";
 
 // "Qanday ishlaydi": two audiences (guests / partners), three steps each.
 // Every step has a small animated screen demo that plays like a video and is
@@ -211,7 +212,7 @@ const SCREEN_URLS = {
   partner: ["joyzone.uz/login", "joyzone.uz/partner", "joyzone.uz/host-today"],
 };
 
-function buildAudiences(cms) {
+function buildAudiences(cms, role) {
   return {
     guest: {
       tab: cms.how_tab_guest || "Mijozlar uchun",
@@ -229,7 +230,7 @@ function buildAudiences(cms) {
       tab: cms.how_tab_partner || "Hamkorlar uchun",
       title: cms.how_partner_title || "Joyingizni 3 qadamda ijaraga bering",
       text: cms.how_partner_text || "Joy qo'shing, moderatsiyadan o'ting va so'rovlarni bitta kabinetda qabul qiling.",
-      cta: { label: cms.how_partner_cta || "Joy qo'shish", href: "/partner" },
+      cta: { label: cms.how_partner_cta || "Joy qo'shish", href: partnerEntryHref(role) },
       guide: { label: cms.how_partner_guide || "Hamkorlar qo'llanmasi", href: "/partner-guide" },
       video: cms.how_video_partner || "",
       steps: [
@@ -278,7 +279,8 @@ export function HowItWorksSection({ cms = {} }) {
   const sectionRef = useRef(null);
   const bodyRef = useRef(null);
 
-  const audiences = useMemo(() => buildAudiences(cms), [cms]);
+  const { role } = useAccountRole();
+  const audiences = useMemo(() => buildAudiences(cms, role), [cms, role]);
   const current = audiences[audience];
   const Scene = SCENES[audience][step];
   const playing = inView && !userPaused && !reducedMotion && !videoOpen;
@@ -323,7 +325,6 @@ export function HowItWorksSection({ cms = {} }) {
       <div className="hiw-inner">
         <header className="hiw-head">
           <div>
-            <span className="hiw-kicker">{cms.how_kicker || "Qanday ishlaydi"}</span>
             <h2 key={`title-${audience}`}><AccentTitle text={current.title} /></h2>
             <p key={`text-${audience}`}>{current.text}</p>
           </div>

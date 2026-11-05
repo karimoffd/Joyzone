@@ -1,6 +1,7 @@
 /* Partner wizard ("pow"): header, optional edit nav, step card and footer
    share one 100dvh column, so every step fits the screen without page scroll. */
 .partner-onboarding-page.pow {
+  --pow-width: 1440px;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -18,7 +19,7 @@
 .pow .partner-onboarding-header {
   position: relative;
   flex-shrink: 0;
-  width: min(100%, 1240px);
+  width: min(100%, var(--pow-width));
   margin: 0 auto;
   padding: 14px 0;
   border-bottom: 0;
@@ -28,7 +29,7 @@
 
 .pow .pe-nav {
   flex-shrink: 0;
-  width: min(100%, 1240px);
+  width: min(100%, var(--pow-width));
   margin: 0 auto 12px;
 }
 
@@ -36,7 +37,7 @@
   position: relative;
   flex: 1;
   min-height: 0;
-  width: min(100%, 1240px);
+  width: min(100%, var(--pow-width));
   margin: 0 auto;
   padding: clamp(24px, 3.2vw, 44px) clamp(22px, 3.6vw, 52px);
   overflow-y: auto;
@@ -47,8 +48,7 @@
   scrollbar-width: thin;
 }
 
-.pow-step,
-.pow-welcome {
+.pow-step {
   display: grid;
   grid-template-columns: minmax(260px, 0.82fr) minmax(0, 1.18fr);
   gap: clamp(28px, 4vw, 64px);
@@ -279,9 +279,13 @@
 .pow-choice-text strong { font-size: 17px; font-weight: 800; }
 .pow-choice-text small { color: #8292a3; font-size: 13px; }
 
+/* Check marks: single choice is a circle, multi-select a rounded square.
+   The tick itself is drawn with borders and pops in when selected. */
 .pow-choice-check,
 .pow-amenity i,
-.pow-discount i {
+.pow-discount i,
+.pow-tabs i {
+  position: relative;
   display: grid;
   place-items: center;
   width: 24px;
@@ -289,18 +293,44 @@
   flex-shrink: 0;
   border: 2px solid #cbd5e1;
   border-radius: 50%;
-  color: #ffffff;
-  font-size: 13px;
-  font-style: normal;
-  font-weight: 900;
+  background: #ffffff;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
+
+.pow-amenity i,
+.pow-discount i { border-radius: 8px; }
+
+.pow-choice-check::after,
+.pow-amenity i::after,
+.pow-discount i::after,
+.pow-tabs i::after {
+  content: "";
+  width: 6px;
+  height: 11px;
+  margin-top: -2px;
+  border: solid #ffffff;
+  border-width: 0 2.5px 2.5px 0;
+  border-radius: 1px;
+  transform: rotate(45deg) scale(0);
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pow-choice:hover .pow-choice-check,
+.pow-amenity:hover i,
+.pow-discount:hover i { border-color: #e46630; }
 
 .pow-choice.is-selected .pow-choice-check,
 .pow-amenity.is-selected i,
 .pow-discount.is-selected i {
   border-color: #e46630;
   background: #e46630;
+  box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.16);
 }
+
+.pow-choice.is-selected .pow-choice-check::after,
+.pow-amenity.is-selected i::after,
+.pow-discount.is-selected i::after,
+.pow-tabs i.is-filled::after { transform: rotate(45deg) scale(1); }
 
 /* Address */
 .pow-address {
@@ -604,16 +634,17 @@
 }
 
 .pow-tabs i {
-  display: grid;
-  place-items: center;
   width: 18px;
   height: 18px;
   border: 1.5px dashed #cbd5e1;
-  border-radius: 50%;
-  color: #ffffff;
-  font-size: 10px;
-  font-style: normal;
-  font-weight: 900;
+  background: transparent;
+}
+
+.pow-tabs i::after {
+  width: 4px;
+  height: 8px;
+  margin-top: -1.5px;
+  border-width: 0 2px 2px 0;
 }
 
 .pow-tabs i.is-filled { border: 0; background: #16a34a; }
@@ -935,39 +966,7 @@
 
 .pow-empty p { margin: 0; font-size: 14px; }
 
-/* Welcome */
-.pow-welcome .pow-copy h1 { font-size: clamp(32px, 3.6vw, 50px); }
-
-.pow-welcome-steps {
-  display: grid;
-  gap: 12px;
-  margin: 10px 0 8px;
-  padding: 0;
-  list-style: none;
-}
-
-.pow-welcome-steps li {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.pow-welcome-steps b {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  background: #fff4ec;
-  color: #e46630;
-  font-size: 15px;
-}
-
-.pow-welcome-steps span { display: grid; }
-.pow-welcome-steps strong { font-size: 15.5px; font-weight: 800; }
-.pow-welcome-steps small { color: #64748b; font-size: 13.5px; }
-
+/* Start button, shared with the welcome screen */
 .pow-start {
   justify-self: start;
   min-height: 54px;
@@ -984,19 +983,10 @@
 
 .pow-start:hover { background: #c9521f; }
 
-.pow-welcome-art img {
-  display: block;
-  width: 100%;
-  max-height: 60vh;
-  border-radius: 24px;
-  object-fit: cover;
-  box-shadow: 0 24px 50px rgba(18, 40, 63, 0.16);
-}
-
 /* Footer */
 .pow-footer {
   flex-shrink: 0;
-  width: min(100%, 1240px);
+  width: min(100%, var(--pow-width));
   margin: 0 auto;
 }
 
@@ -1090,8 +1080,7 @@
   .pow .partner-onboarding-header { padding: 10px 0; }
   .pow-card { padding: 20px 16px; border-radius: 22px; }
 
-  .pow-step,
-  .pow-welcome {
+  .pow-step {
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
     gap: 18px;
@@ -1101,7 +1090,6 @@
   .pow-copy h1 { font-size: 26px; }
   .pow-copy > p { font-size: 14.5px; }
   .pow-tip { display: none; }
-  .pow-welcome-art { display: none; }
   .pow-choice-grid,
   .pow-counter-grid,
   .pow-mode-grid { grid-template-columns: minmax(0, 1fr); }

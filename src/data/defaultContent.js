@@ -21,7 +21,7 @@ const baseContent = {
     home_partner_text: "Ofis, do'kon yoki omboringizni joylashtiring: ijaraga bering yoki soting.",
     home_partner_cta: "Batafsil",
     
-    tab_all: "barchasi",
+    tab_all: "Barchasi",
 
 
     popular_title: "Ommabop joylar",
@@ -79,6 +79,19 @@ const baseContent = {
     footer_link_about: "Biz haqimizda",
     footer_link_dirs: "Yo'nalishlar",
     footer_link_contact: "Kontaktlar",
+    footer_col1_links: [
+      { label: "Biz haqimizda", href: "/about-us" },
+      { label: "Katalog", href: "/filter" },
+      { label: "Savol-javob", href: "/#faq" },
+      { label: "Hamkorlik shartlari", href: "/partner-guide" }
+    ],
+    footer_col2_links: [
+      { label: "Ofislar", href: "/filter?category=ofis" },
+      { label: "Kovorking", href: "/filter?category=kovorking" },
+      { label: "Savdo maydonlari", href: "/filter?category=savdo" },
+      { label: "Omborlar", href: "/filter?category=ombor" },
+      { label: "Hamkor bo'lish", href: "/partner-guide#become" }
+    ],
     
   },
   ru: {
@@ -100,7 +113,7 @@ const baseContent = {
     home_partner_text: "Разместите офис, магазин или склад: сдайте в аренду или продайте.",
     home_partner_cta: "Подробнее",
     
-    tab_all: "все",
+    tab_all: "Все",
 
 
     popular_title: "Популярные места",
@@ -158,6 +171,19 @@ const baseContent = {
     footer_link_about: "О нас",
     footer_link_dirs: "Направления",
     footer_link_contact: "Контакты",
+    footer_col1_links: [
+      { label: "О нас", href: "/about-us" },
+      { label: "Каталог", href: "/filter" },
+      { label: "Вопросы и ответы", href: "/#faq" },
+      { label: "Условия партнёрства", href: "/partner-guide" }
+    ],
+    footer_col2_links: [
+      { label: "Офисы", href: "/filter?category=ofis" },
+      { label: "Коворкинги", href: "/filter?category=kovorking" },
+      { label: "Торговые площади", href: "/filter?category=savdo" },
+      { label: "Склады", href: "/filter?category=ombor" },
+      { label: "Стать партнёром", href: "/partner-guide#become" }
+    ],
     
   },
   en: {
@@ -179,7 +205,7 @@ const baseContent = {
     home_partner_text: "List your office, shop or warehouse — rent it out or sell it.",
     home_partner_cta: "Learn more",
     
-    tab_all: "all",
+    tab_all: "All",
 
 
     popular_title: "Popular Spaces",
@@ -237,6 +263,19 @@ const baseContent = {
     footer_link_about: "About Us",
     footer_link_dirs: "Categories",
     footer_link_contact: "Contact",
+    footer_col1_links: [
+      { label: "About us", href: "/about-us" },
+      { label: "Catalog", href: "/filter" },
+      { label: "FAQ", href: "/#faq" },
+      { label: "Partner terms", href: "/partner-guide" }
+    ],
+    footer_col2_links: [
+      { label: "Offices", href: "/filter?category=ofis" },
+      { label: "Coworking", href: "/filter?category=kovorking" },
+      { label: "Retail space", href: "/filter?category=savdo" },
+      { label: "Warehouses", href: "/filter?category=ombor" },
+      { label: "Become a partner", href: "/partner-guide#become" }
+    ],
     
   }
 };

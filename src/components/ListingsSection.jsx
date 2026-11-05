@@ -13,12 +13,15 @@ import { getPlacesFromApiResponse, normalizePlace, slugifyPlaceTitle } from "../
 import logoImage from "../assets/img/Logo.png";
 import { mailHref, phoneHref, socialLinks } from "../utils/cmsLinks.js";
 import "./ListingsSection.css";
+import "./footer.css";
+import SupportIcon from "./ui/SupportIcon.jsx";
 import "./CardVariants.css";
 import { useSiteContent } from "../context/LanguageContext.jsx";
 import { HowItWorksSection } from "./home/HowItWorks.jsx";
 import { ReviewsFaqSection } from "./home/ReviewsFaq.jsx";
 import { BenefitsSection } from "./home/Benefits.jsx";
 import "./home/ownerStrip.css";
+import { ADD_PLACE_PATH, BECOME_PARTNER_PATH, PARTNER_CTA_TEXT, partnerEntryHref, useAccountRole } from "../utils/partnerAccess.js";
 
 export { BenefitsSection, ReviewsFaqSection };
 
@@ -348,6 +351,8 @@ function PartnerAgents({ cms = {} }) {
   const sectionRef = useRef(null);
   const viewportRef = useRef(null);
   const timerRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+  const previousActiveRef = useRef(0);
   const maxStart = Math.max(0, agents.length - visible);
 
   useEffect(() => {
@@ -360,12 +365,15 @@ function PartnerAgents({ cms = {} }) {
     return () => window.removeEventListener("resize", updateVisible);
   }, []);
 
+  // Autoplay; stops while the pointer (or keyboard focus) is on the slider.
+  // Restarting on every slide change gives a full pause after a manual pick.
   useEffect(() => {
+    if (paused || maxStart === 0) return undefined;
     timerRef.current = window.setInterval(() => {
       setActive((current) => (current >= maxStart ? 0 : current + 1));
     }, 4200);
     return () => window.clearInterval(timerRef.current);
-  }, [maxStart]);
+  }, [maxStart, paused, active]);
 
   useEffect(() => {
     setActive((current) => Math.min(current, maxStart));
@@ -391,19 +399,37 @@ function PartnerAgents({ cms = {} }) {
     const gap = Number.parseFloat(getComputedStyle(track).columnGap || "0");
     const target = active * (firstCard.getBoundingClientRect().width + gap);
     
-    gsap.to(viewport, { scrollLeft: target, duration: 0.9, ease: "power4.inOut" });
-    
-    // Top-tier slider animation
+    const previous = previousActiveRef.current;
+    previousActiveRef.current = active;
+    gsap.to(viewport, { scrollLeft: target, duration: 0.85, ease: "power3.inOut", overwrite: true });
+    if (previous === active) return undefined;
+
+    // Cards that come into view rise in one after another, from the side the
+    // slider moves towards (no blur: crisp text and photos all the time).
+    const forward = active > previous;
+    const cards = [...viewport.querySelectorAll(".agent-card")]
+      .slice(active, active + visible)
+      .filter((_, offset) => {
+        const index = active + offset;
+        return index < previous || index >= previous + visible;
+      });
+    const entering = forward ? cards : cards.reverse();
+    if (!entering.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
     gsap.fromTo(
-      viewport.querySelectorAll(".agent-card"),
-      { scale: 0.92, y: 15, filter: "blur(6px)", rotationX: 4 },
-      { scale: 1, y: 0, filter: "blur(0px)", rotationX: 0, duration: 0.8, stagger: 0.05, ease: "back.out(1.2)" }
+      entering,
+      { opacity: 0.35, x: forward ? 46 : -46, y: 10, scale: 0.97 },
+      { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.85, delay: 0.12, stagger: 0.08, ease: "expo.out", overwrite: true, clearProps: "transform,opacity" }
+    );
+    // The photo inside settles from a slight zoom for a bit of depth.
+    gsap.fromTo(
+      entering.map((card) => card.querySelector(".agent-cover img")).filter(Boolean),
+      { scale: 1.08 },
+      { scale: 1, duration: 1.1, delay: 0.12, stagger: 0.08, ease: "power3.out", clearProps: "transform" }
     );
     return undefined;
   }, [active, visible]);
 
   const chooseAgent = (index) => {
-    window.clearInterval(timerRef.current);
     if (index < 0) {
       setActive(maxStart);
       return;
@@ -418,7 +444,15 @@ function PartnerAgents({ cms = {} }) {
   if (!agents.length) return null;
 
   return (
-    <section ref={sectionRef} className="agents-showcase" id="agents">
+    <section
+      ref={sectionRef}
+      className="agents-showcase"
+      id="agents"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
+    >
       <div className="agents-head">
         <h2>
           <HighlightedTitle text={cms.agent_title || "Top agentlar"} highlight="Top" />
@@ -438,9 +472,6 @@ function PartnerAgents({ cms = {} }) {
                 <a className="agent-cover" href={agent.href} tabIndex={-1} aria-hidden="true">
                   <img src={agent.cover} alt="" loading="lazy" />
                   {agent.isAd ? <span className="agent-ad-pill">Reklama</span> : null}
-                  {agentBadge(agent.tariff, cms) ? (
-                    <span className={`brand-badge is-${agent.tariff.slug}`}>{agentBadge(agent.tariff, cms)}</span>
-                  ) : null}
                 </a>
                 <div className="agent-body">
                   <div className="brand-logo-wrap">
@@ -510,15 +541,19 @@ function PartnerAgents({ cms = {} }) {
 }
 
 
+// One family of 24px line icons (same stroke, same optical size), so the
+// phone, mail and social glyphs line up.
 function FooterIcon({ type }) {
   const paths = {
     phone: ["M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.7.6 2.5a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6.4 6.4l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.5 2.5.6a2 2 0 0 1 1.7 2.1Z"],
-    mail: ["M4 6h16v12H4z", "m4 7 8 6 8-6"],
-    chat: ["M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4.4A8 8 0 1 1 21 12Z", "M8 11h8M8 14h5"],
+    mail: ["M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z", "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"],
+    chat: ["M12 3.2c5 0 9 3.6 9 8s-4 8-9 8c-1.1 0-2.1-.2-3.1-.5L4.4 20.8l1.3-3.9C4 15.4 3 13.4 3 11.2c0-4.4 4-8 9-8Z", "M7.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M11.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0", "M15.4 11.2a.6.6 0 1 0 1.2 0 .6.6 0 1 0-1.2 0"],
     arrow: ["M5 12h14", "m13 6 6 6-6 6"],
-    instagram: ["M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z", "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z", "M17.5 6.5h.01"],
-    facebook: ["M15 8h-2a2 2 0 0 0-2 2v2H9v3h2v6h3v-6h2.5l.5-3h-3v-1.4c0-.8.2-1.1 1-1.1h2V8Z"],
-    telegram: ["M21 4 3 11.5l6.8 2.3L17 8.2l-4.7 7.1 5.2 4.7L21 4Z"],
+    arrowUpRight: ["M7 17 17 7", "M8 7h9v9"],
+    instagram: ["M7 2.5h10A4.5 4.5 0 0 1 21.5 7v10a4.5 4.5 0 0 1-4.5 4.5H7A4.5 4.5 0 0 1 2.5 17V7A4.5 4.5 0 0 1 7 2.5Z", "M16 11.4a4 4 0 1 1-7.9 1.2 4 4 0 0 1 7.9-1.2Z", "M17.5 6.5h.01"],
+    facebook: ["M18 2.5h-3a5 5 0 0 0-5 5v3H7v4h3v7h4v-7h3l1-4h-4v-3a1 1 0 0 1 1-1h3Z"],
+    telegram: ["M21.2 3.6 2.8 10.8c-1 .4-1 1.8 0 2.1l4.5 1.4 1.7 5.3c.3.9 1.4 1.1 2 .5l2.5-2.4 4.7 3.5c.8.6 1.9.1 2.1-.8l2.9-13.9c.2-1-.8-1.8-1.9-1.4Z", "m7.3 14.3 9.6-6.6-6 7.6"],
+    linkedin: ["M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6Z", "M2 9h4v12H2Z", "M4 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"],
     whatsapp: ["M20 11.8A8 8 0 0 1 8.2 18.9L4 20l1.1-4.1A8 8 0 1 1 20 11.8Z", "M9 8.8c.2 3 2.2 5.2 5.2 6 .7.2 1.6-.8 1.3-1.4l-1-1c-.3-.2-.7-.1-1 .1l-.4.3c-.9-.4-1.8-1.2-2.3-2.2l.3-.4c.3-.3.4-.7.1-1l-.9-1c-.5-.5-1.4-.1-1.3.6Z"]
   };
 
@@ -528,6 +563,32 @@ function FooterIcon({ type }) {
         <path key={path} d={path} />
       ))}
     </svg>
+  );
+}
+
+const SOCIAL_NAMES = { telegram: "Telegram", instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn" };
+const isExternalHref = (href) => /^(https?:)?\/\//i.test(String(href || ""));
+
+// Footer link columns come from the CMS ("links" fields). The "become a
+// partner" link turns into "add a place" for partners and staff.
+function footerLinks(list, { canListPlaces, addLabel }) {
+  return (Array.isArray(list) ? list : [])
+    .filter((item) => item && item.label && item.href)
+    .map((item) => {
+      const isPartnerLink = /^\/partner-guide#become$/.test(item.href) || item.href === "/partner";
+      if (isPartnerLink && canListPlaces) return { label: addLabel, href: ADD_PLACE_PATH };
+      if (isPartnerLink) return { ...item, href: BECOME_PARTNER_PATH };
+      return item;
+    });
+}
+
+function FooterLink({ item }) {
+  const external = isExternalHref(item.href);
+  return (
+    <a href={item.href} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+      <span>{item.label}</span>
+      {external ? <FooterIcon type="arrowUpRight" /> : null}
+    </a>
   );
 }
 
@@ -557,6 +618,7 @@ export function SimpleFooter() {
 // Standard plan (one listing) is a real offer, so it leads.
 export function FooterQuestionStrip({ cms: cmsProp }) {
   const cms = useFooterCms(cmsProp);
+  const { role } = useAccountRole();
   const points = [
     cms.owner_point1 || "Standard tarifda 1 ta e'lon bepul",
     cms.owner_point2 || "Rasm, narx va ish vaqti — 10 daqiqada tayyor",
@@ -564,13 +626,7 @@ export function FooterQuestionStrip({ cms: cmsProp }) {
   ];
   return (
     <div className="owner-strip">
-      <div className="owner-strip-art" aria-hidden="true">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 21V9l8-5 8 5v12" /><path d="M9 21v-6h6v6" /><path d="M12 8v4M10 10h4" />
-        </svg>
-      </div>
       <div className="owner-strip-copy">
-        <span>{cms.owner_kicker || "Joy egalari uchun"}</span>
         <h2>{cms.owner_title || "Bo'sh joyingiz bormi?"}</h2>
         <p>{cms.owner_text || "Ofis, kovorking yoki zalingizni Joyzone'da joylashtiring va mijozlardan bron so'rovlarini qabul qiling."}</p>
       </div>
@@ -583,9 +639,11 @@ export function FooterQuestionStrip({ cms: cmsProp }) {
         ))}
       </ul>
       <div className="owner-strip-actions">
-        <a className="owner-strip-btn" href="/partner">
-          {cms.owner_cta || "Joy qo'shish"}
-          <FooterIcon type="arrow" />
+        <a className="owner-strip-btn" href={partnerEntryHref(role)}>
+          <span>{cms.owner_cta || "Joy qo'shish"}</span>
+          <span className="owner-strip-btn-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </span>
         </a>
         <a className="owner-strip-link" href="/partner-guide#tariffs">{cms.owner_cta2 || "Tariflarni ko'rish"}</a>
       </div>
@@ -602,7 +660,16 @@ function useFooterCms(cmsProp) {
 
 export function JoyFooter({ cms: cmsProp }) {
   const cms = useFooterCms(cmsProp);
+  const { lang } = useSiteContent();
+  const { role, canListPlaces } = useAccountRole();
   const socials = socialLinks(cms).map(([type, , href]) => [type, href]);
+  const linkOptions = { canListPlaces, addLabel: (PARTNER_CTA_TEXT[lang] || PARTNER_CTA_TEXT.uz).add };
+  const columns = [
+    { title: cms.footer_nav1 || "Ma'lumotlar", links: footerLinks(cms.footer_col1_links, linkOptions) },
+    { title: cms.footer_nav2 || "Xizmatlar", links: footerLinks(cms.footer_col2_links, linkOptions) },
+  ].filter((column) => column.links.length);
+  const phone = cms.footer_phone || "+998 77 044 40 00";
+  const email = cms.footer_email || "info@joyzone.uz";
 
   return (
     <footer className="joy-footer-section" id="contact">
@@ -614,43 +681,42 @@ export function JoyFooter({ cms: cmsProp }) {
           <a href="/" className="joy-footer-logo" aria-label="Joyzone bosh sahifa">
             <img src={logoImage} alt="Joyzone" />
           </a>
-          <a href={phoneHref(cms.footer_phone)} className="joy-footer-contact">
-            <FooterIcon type="phone" />
-            {cms.footer_phone || "+998 77 044 40 00"}
+          <a href={phoneHref(phone)} className="joy-footer-contact is-phone">
+            <span className="joy-footer-contact-icon"><FooterIcon type="phone" /></span>
+            <span className="joy-footer-contact-text">{phone}</span>
           </a>
-          <a href={mailHref(cms.footer_email)} className="joy-footer-contact">
-            <FooterIcon type="mail" />
-            {cms.footer_email || "info@joyzone.uz"}
+          <a href={mailHref(email)} className="joy-footer-contact is-mail">
+            <span className="joy-footer-contact-icon"><FooterIcon type="mail" /></span>
+            <span className="joy-footer-contact-text">{email}</span>
           </a>
-          <a href="/partner" className="joy-footer-cta">{cms.footer_cta || "Ariza qoldirish"}</a>
+          <a href={partnerEntryHref(role)} className="joy-footer-cta">
+            <span>{cms.footer_cta || "Ariza qoldirish"}</span>
+            <FooterIcon type="arrow" />
+          </a>
         </div>
 
-        <div className="joy-footer-grid hide-on-mobile">
-          <div>
+        <div className="joy-footer-grid">
+          <div className="joy-footer-about">
             <p>{cms.footer_about || "Bizning maqsadimiz qulay ish joylarini ijarachilarga yaqinlashtirish."}</p>
           </div>
-          <nav aria-label="Ma'lumotlar">
-            <strong>{cms.footer_nav1 || "Ma'lumotlar"}</strong>
-            <a href="/about-us">{cms.footer_link_about || "Biz haqimizda"}</a>
-            <a href="/filter">{cms.footer_link_dirs || "Yo'nalishlar"}</a>
-            <a href="#contact">{cms.footer_link_contact || "Kontaktlar"}</a>
-          </nav>
-          <nav aria-label="Xizmatlar">
-            <strong>{cms.footer_nav2 || "Xizmatlar"}</strong>
-            <a href="/filter">{cms.footer_link_offices || "Ijaraga ofislar"}</a>
-            <a href="/filter">{cms.footer_link_halls || "Konferensiyalar zali"}</a>
-            <a href="/partner-guide">{cms.footer_link_partner || "Hamkor bo'lish"}</a>
-          </nav>
-          <div>
-            <strong>{cms.footer_socials_title || "Ijtimoiy tarmoqlarimiz"}</strong>
-            <div className="joy-footer-socials">
-              {socials.map(([type, href]) => (
-                <a key={type} href={href} aria-label={type}>
-                  <FooterIcon type={type} />
-                </a>
-              ))}
+          {columns.map((column) => (
+            <nav key={column.title} className="joy-footer-nav" aria-label={column.title}>
+              <strong>{column.title}</strong>
+              {column.links.map((item) => <FooterLink key={`${item.label}-${item.href}`} item={item} />)}
+            </nav>
+          ))}
+          {socials.length ? (
+            <div className="joy-footer-social-col">
+              <strong>{cms.footer_socials_title || "Ijtimoiy tarmoqlarimiz"}</strong>
+              <div className="joy-footer-socials">
+                {socials.map(([type, href]) => (
+                  <a key={type} href={href} className={`is-${type}`} target="_blank" rel="noopener noreferrer" aria-label={SOCIAL_NAMES[type] || type} title={SOCIAL_NAMES[type] || type}>
+                    <FooterIcon type={type} />
+                  </a>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <div className="joy-footer-bottom">
@@ -662,14 +728,14 @@ export function JoyFooter({ cms: cmsProp }) {
       {typeof document !== "undefined" && createPortal(
         <button 
           type="button" 
-          className="joy-floating-contact" 
+          className="joy-floating-contact support-icon-host" 
           aria-label="Joyzone bilan bog'lanish"
           onClick={(e) => {
             e.preventDefault();
             // Prevent scrolling to footer
           }}
         >
-          <FooterIcon type="chat" />
+          <SupportIcon size={28} />
           <span>{cms.help_float || "Yordam kerakmi?"}</span>
         </button>,
         document.body

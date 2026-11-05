@@ -441,7 +441,7 @@
 .agents-showcase {
   display: grid;
   gap: 20px;
-  padding: clamp(80px, 10vw, 110px) 0 8px;
+  padding: var(--section-gap) 0 0;
 }
 
 .agents-head {
@@ -685,6 +685,7 @@
 .agent-name {
   display: -webkit-box;
   overflow: hidden;
+  overflow-wrap: anywhere;
   color: #12283f;
   font-size: 18px;
   font-weight: 900;
@@ -693,6 +694,8 @@
   -webkit-line-clamp: 2;
 }
 
+/* Keeps the tick next to the last word. Long names are cut by the
+   2-line clamp on .agent-name; overflow-wrap breaks a single huge word. */
 .agent-name-tail {
   white-space: nowrap;
 }
@@ -706,6 +709,7 @@
 
 .agent-bio {
   display: -webkit-box;
+  overflow-wrap: anywhere;
   min-height: calc(13px * 1.45 * 2);
   margin: 8px 0 16px;
   overflow: hidden;
@@ -794,7 +798,7 @@
   justify-content: center;
   gap: 16px;
   padding-top: 10px;
-  margin-bottom: clamp(32px, 5vw, 64px);
+  margin-bottom: 0;
 }
 
 .agent-controls button {
@@ -853,7 +857,6 @@
   background: #294a6d;
 }
 
-.joy-footer-card svg,
 .joy-floating-contact svg {
   width: 18px;
   height: 18px;
@@ -862,160 +865,6 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.joy-footer-card {
-  position: relative;
-  width: auto;
-  margin: clamp(56px, 7vw, 84px) 0 0;
-  border-radius: 22px 22px 0 0;
-  background: #f6f1ee;
-  color: #12283f;
-  padding: clamp(26px, 4vw, 42px) clamp(22px, 5vw, 66px) 22px;
-  box-shadow: 0 30px 80px rgba(2, 14, 27, 0.26);
-}
-
-.joy-footer-top {
-  display: grid;
-  grid-template-columns: minmax(170px, 1fr) auto auto auto;
-  align-items: center;
-  gap: clamp(18px, 3vw, 48px);
-  border-bottom: 1px solid #ded8d3;
-  padding-bottom: 24px;
-}
-
-.joy-footer-logo img {
-  width: 146px;
-  height: auto;
-  object-fit: contain;
-}
-
-.joy-footer-contact {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: #4c5662;
-  text-decoration: none;
-  font-size: 20px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.joy-footer-contact svg {
-  color: #e46630;
-}
-
-.joy-footer-cta {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #e46630;
-  color: #ffffff;
-  padding: 0 22px;
-  text-decoration: none;
-  font-size: 18px;
-  font-weight: 950;
-  white-space: nowrap;
-  box-shadow: 0 14px 30px rgba(228, 102, 48, 0.2);
-  transition:
-    background 220ms ease,
-    transform 220ms ease,
-    box-shadow 220ms ease;
-}
-
-.joy-footer-cta:hover {
-  background: #12283f;
-  box-shadow: 0 18px 36px rgba(18, 40, 63, 0.18);
-  transform: translateY(-2px);
-}
-
-.joy-footer-grid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.72fr 0.9fr 0.9fr;
-  gap: clamp(28px, 4vw, 58px);
-  padding: 36px 0 80px;
-}
-
-.joy-footer-grid p,
-.joy-footer-grid a,
-.joy-footer-grid strong {
-  color: #4e5660;
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1.55;
-}
-
-.joy-footer-grid p {
-  max-width: 260px;
-  margin: 0;
-}
-
-.joy-footer-grid nav {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-}
-
-.joy-footer-grid strong {
-  display: block;
-  margin-bottom: 10px;
-  color: #12283f;
-  font-size: 20px;
-  font-weight: 950;
-}
-
-.joy-footer-grid a {
-  width: fit-content;
-  text-decoration: none;
-  transition:
-    color 180ms ease,
-    transform 180ms ease;
-}
-
-.joy-footer-grid a:hover {
-  color: #e46630;
-  transform: translateX(2px);
-}
-
-.joy-footer-socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.joy-footer-socials a {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  place-items: center;
-  border-radius: 50%;
-  background: #e46630;
-  color: #ffffff;
-  transition:
-    background 180ms ease,
-    transform 180ms ease;
-}
-
-.joy-footer-socials a:hover {
-  background: #12283f;
-  transform: translateY(-3px);
-}
-
-.joy-footer-socials svg {
-  width: 24px;
-  height: 24px;
-}
-
-.joy-footer-bottom {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  color: #81858b;
-  font-size: 14px;
-  font-weight: 500;
 }
 
 .joy-floating-contact {
@@ -1140,47 +989,12 @@ body.has-active-booking-expanded .joy-floating-contact {
 }
 
 @media (max-width: 980px) {
-  .joy-footer-top,
-.joy-footer-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .joy-footer-cta {
-    justify-self: start;
-  }
-
   .joy-floating-contact {
     right: 28px;
   }
 }
 
 @media (max-width: 640px) {
-  .joy-footer-section {
-    padding-inline: 0;
-  }
-
-  .joy-footer-card {
-    margin-top: 34px;
-    border-radius: 18px 18px 0 0;
-    padding: 24px 18px;
-  }
-
-  .joy-footer-top,
-  .joy-footer-grid,
-  .joy-footer-bottom {
-    grid-template-columns: 1fr;
-  }
-
-  .joy-footer-top,
-  .joy-footer-grid {
-    display: grid;
-    gap: 18px;
-  }
-
-  .joy-footer-bottom {
-    display: grid;
-  }
-
   .joy-floating-contact {
     right: 18px;
     bottom: 28px;
@@ -1417,5 +1231,10 @@ body.has-active-booking-expanded .joy-floating-contact {
 @media (max-width: 900px) {
   .hide-on-mobile {
     display: none !important;
+  }
+
+  /* Benefits is hidden here, so the agents carousel meets the navy block directly. */
+  .agent-controls {
+    margin-bottom: var(--section-gap);
   }
 }

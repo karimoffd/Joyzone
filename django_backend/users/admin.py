@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import User
+from .models import PartnerApplication, User
 
 
 class CustomUserAdmin(UserAdmin):
@@ -49,3 +49,12 @@ class CustomUserAdmin(UserAdmin):
 
 
 admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(PartnerApplication)
+class PartnerApplicationAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'contact_name', 'phone_number', 'city', 'places_count', 'deal_type', 'created_at')
+    list_filter = ('deal_type', 'places_count', 'city')
+    search_fields = ('company_name', 'contact_name', 'phone_number', 'user__username')
+    filter_horizontal = ('categories',)
+    raw_id_fields = ('user',)

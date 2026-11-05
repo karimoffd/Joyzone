@@ -4,6 +4,8 @@ import { getPlacesFromApiResponse } from "../../utils/placeMapper.js";
 import { cmsList, phoneHref } from "../../utils/cmsLinks.js";
 import { VideoModal } from "./VideoModal.jsx";
 import "./reviewsFaq.css";
+import SupportIcon from "../ui/SupportIcon.jsx";
+import { partnerEntryHref, useAccountRole } from "../../utils/partnerAccess.js";
 
 // Demo quotes are shown only in local development when there are no reviews.
 const DEV_REVIEWS = [
@@ -130,9 +132,9 @@ const QUICK_LINKS = [
 
 export function ReviewsFaqSection({ cms = {} }) {
   const reviews = useTopReviews();
+  const { role } = useAccountRole();
   const faqs = cmsList(cms, "faq_arr");
   const [openIndex, setOpenIndex] = useState(0);
-  const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("");
   const [video, setVideo] = useState(null);
 
@@ -144,17 +146,20 @@ export function ReviewsFaqSection({ cms = {} }) {
     [faqs]
   );
 
-  const visibleFaqs = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return faqs
-      .map((item, index) => ({ ...item, index, topic: topicOf(item) }))
-      .filter((item) => !topic || item.topic?.id === topic)
-      .filter((item) => !needle || `${item.question} ${item.answer}`.toLowerCase().includes(needle));
-  }, [faqs, query, topic]);
+  const visibleFaqs = useMemo(() => faqs
+    .map((item, index) => ({ ...item, index, topic: topicOf(item) }))
+    .filter((item) => !topic || item.topic?.id === topic), [faqs, topic]);
+
+  // Switching topic opens its first question; after that every question
+  // opens and closes on click (a topic with one question used to stay stuck open).
+  const chooseTopic = (next) => {
+    setTopic(next);
+    const first = faqs.findIndex((item) => !next || topicOf(item)?.id === next);
+    setOpenIndex(first);
+  };
 
   const telegram = cms.social_telegram;
   const phone = cms.support_phone;
-  const filtering = Boolean(query.trim() || topic);
 
   return (
     <section className="rfq" id="faq">
@@ -174,28 +179,13 @@ export function ReviewsFaqSection({ cms = {} }) {
           <span className="rfq-kicker">{cms.faq_kicker || "FAQ"}</span>
           <h2>{cms.faq_title || "Ko'p beriladigan savollar"}</h2>
           <p>{cms.faq_sub || "Bron, hamkorlik va platforma haqida asosiy javoblar bir joyda."}</p>
-          <label className="rfq-search">
-            <LineIcon paths={["M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z", "m20 20-3.5-3.5"]} />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={cms.faq_search || "Savolni qidiring..."}
-              aria-label={cms.faq_search || "Savolni qidiring"}
-            />
-            {query ? (
-              <button type="button" className="rfq-search-clear" onClick={() => setQuery("")} aria-label="Tozalash">
-                <LineIcon paths={["M6 6l12 12", "M18 6 6 18"]} size={16} />
-              </button>
-            ) : null}
-          </label>
           {topics.length > 1 ? (
             <div className="rfq-topics" role="group" aria-label="Mavzular">
-              <button type="button" className={!topic ? "is-active" : ""} onClick={() => setTopic("")}>
+              <button type="button" className={!topic ? "is-active" : ""} onClick={() => chooseTopic("")}>
                 {cms.faq_topic_all || "Hammasi"}
               </button>
               {topics.map((item) => (
-                <button key={item.id} type="button" className={topic === item.id ? "is-active" : ""} onClick={() => setTopic(topic === item.id ? "" : item.id)}>
+                <button key={item.id} type="button" className={topic === item.id ? "is-active" : ""} onClick={() => chooseTopic(topic === item.id ? "" : item.id)}>
                   <LineIcon paths={item.icon} size={15} />
                   {topicLabel(item)}
                 </button>
@@ -207,7 +197,7 @@ export function ReviewsFaqSection({ cms = {} }) {
         <div className="rfq-faq-body">
           <div className="rfq-list">
             {visibleFaqs.length ? visibleFaqs.map((item, position) => {
-              const isOpen = openIndex === item.index || (filtering && visibleFaqs.length === 1);
+              const isOpen = openIndex === item.index;
               return (
                 <article key={item.question} className={`rfq-item ${isOpen ? "is-open" : ""}`}>
                   <button type="button" onClick={() => setOpenIndex(isOpen ? -1 : item.index)} aria-expanded={Boolean(isOpen)}>
@@ -234,15 +224,15 @@ export function ReviewsFaqSection({ cms = {} }) {
             }) : (
               <div className="rfq-empty">
                 <p>{cms.faq_empty || "Bunday savol topilmadi. Bizga yozing — javob beramiz."}</p>
-                <button type="button" onClick={() => { setQuery(""); setTopic(""); }}>{cms.faq_reset || "Barcha savollar"}</button>
+                <button type="button" onClick={() => chooseTopic("")}>{cms.faq_reset || "Barcha savollar"}</button>
               </div>
             )}
           </div>
 
           <aside className="rfq-side">
-            <div className="rfq-help">
+            <div className="rfq-help support-icon-host">
               <span className="rfq-help-icon" aria-hidden="true">
-                <LineIcon paths={["M21 12a8 8 0 0 1-8 8H7l-4 2 1.3-4.4A8 8 0 1 1 21 12Z", "M8 11h8M8 14h5"]} size={22} />
+                <SupportIcon size={24} />
               </span>
               <b>{cms.faq_help_title || "Javob topmadingizmi?"}</b>
               <p>{cms.faq_help_text || "Qo'llab-quvvatlash jamoamiz savolingizga tez javob beradi."}</p>
@@ -254,7 +244,7 @@ export function ReviewsFaqSection({ cms = {} }) {
             <nav className="rfq-links" aria-label={cms.faq_links_title || "Tezkor havolalar"}>
               <b>{cms.faq_links_title || "Tezkor havolalar"}</b>
               {QUICK_LINKS.map((link) => (
-                <a key={link.key} href={link.href}>
+                <a key={link.key} href={link.key === "faq_link_add" ? partnerEntryHref(role) : link.href}>
                   {cms[link.key] || link.label}
                   <LineIcon paths={["M5 12h14", "m13 6 6 6-6 6"]} size={16} />
                 </a>

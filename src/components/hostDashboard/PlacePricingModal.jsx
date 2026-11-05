@@ -226,7 +226,7 @@ export function PlacePricingModal({ place, onClose, onSaved }) {
                         <strong>{item.name_ru}</strong>
                         {item.description_ru ? <small>{item.description_ru}</small> : null}
                       </span>
-                      <i aria-hidden="true">{isOn ? "✓" : ""}</i>
+                      <i aria-hidden="true" />
                     </button>
                   );
                 })}

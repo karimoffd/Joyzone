@@ -154,7 +154,6 @@ export const CONTENT_SCHEMA = [
         title: "Как это работает",
         where: "Тёмный блок с переключателем «Для клиентов / Для партнёров», анимированной инструкцией и шагами 01–03.",
         fields: [
-          { key: "how_kicker", label: "Метка над заголовком", type: "text" },
           { key: "how_demo_label", label: "Подпись под демо-экраном", type: "text", hint: "Показывается, когда видео не добавлено." },
           { key: "how_video_label", label: "Кнопка видео", type: "text" },
           { key: "how_tab_guest", label: "Клиенты — вкладка", type: "text" },
@@ -188,8 +187,8 @@ export const CONTENT_SCHEMA = [
         fields: [
           { key: "agent_title", label: "Заголовок", type: "text" },
           { key: "agent_sub", label: "Подзаголовок", type: "textarea" },
-          { key: "agent_badge_premium", label: "Метка агента с тарифом Premium", type: "text", hint: "Показывается только у агентов с активным тарифом Premium." },
-          { key: "agent_badge_comfort", label: "Метка агента с тарифом Comfort", type: "text", hint: "У агентов на бесплатном тарифе метки нет." },
+          { key: "agent_badge_premium", label: "Метка агента с тарифом Premium", type: "text", hint: "Подсказка при наведении на корону у логотипа агента с тарифом Premium." },
+          { key: "agent_badge_comfort", label: "Метка агента с тарифом Comfort", type: "text", hint: "Подсказка на короне у агента с тарифом Comfort. У бесплатного тарифа короны нет." },
           { key: "agent_reviews", label: "Слово после числа отзывов", type: "text", hint: "Например: «12 ta sharh»." },
           { key: "agent_profile", label: "Кнопка «Профиль»", type: "text" },
         ],
@@ -203,8 +202,6 @@ export const CONTENT_SCHEMA = [
           { key: "rev_sub", label: "Отзывы — подзаголовок", type: "text" },
           { key: "faq_kicker", label: "Вопросы — метка", type: "text" },
           { key: "faq_title", label: "Вопросы — заголовок", type: "text" },
-          { key: "faq_search", label: "Подсказка в поиске", type: "text" },
-          { key: "faq_empty", label: "Текст, если ничего не найдено", type: "text", hint: "Появляется, когда в поиске по вопросам ничего не нашлось." },
           { key: "faq_help_title", label: "Карточка поддержки — заголовок", type: "text", hint: "Кнопки: Telegram и телефон из «Футер и контакты»." },
           { key: "faq_help_text", label: "Карточка поддержки — текст", type: "textarea" },
           { key: "faq_video_label", label: "Кнопка видео в ответе", type: "text", hint: "Видна в открытом ответе, если у вопроса есть ссылка на видео." },
@@ -244,8 +241,7 @@ export const CONTENT_SCHEMA = [
         title: "Полоса «Для владельцев мест»",
         where: "Оранжевая полоса над футером на всех страницах + плавающая кнопка помощи.",
         fields: [
-          { key: "owner_kicker", label: "Полоса над футером — метка", type: "text", hint: "Оранжевая полоса для владельцев мест на всех страницах." },
-          { key: "owner_title", label: "Полоса — заголовок", type: "text" },
+          { key: "owner_title", label: "Полоса — заголовок", type: "text", hint: "Оранжевая полоса для владельцев мест на всех страницах." },
           { key: "owner_text", label: "Полоса — текст", type: "textarea" },
           { key: "owner_point1", label: "Полоса — пункт 1", type: "text" },
           { key: "owner_point2", label: "Полоса — пункт 2", type: "text" },
@@ -262,14 +258,10 @@ export const CONTENT_SCHEMA = [
           { key: "footer_cta", label: "Кнопка рядом с контактами", type: "text" },
           { key: "footer_about", label: "Текст о компании", type: "textarea" },
           { key: "footer_nav1", label: "Колонка 1 — заголовок", type: "text" },
-          { key: "footer_link_about", label: "Колонка 1 → О нас", type: "text" },
-          { key: "footer_link_dirs", label: "Колонка 1 → Направления", type: "text" },
-          { key: "footer_link_contact", label: "Колонка 1 → Контакты", type: "text" },
+          { key: "footer_col1_links", label: "Колонка 1 — ссылки", type: "links", hint: "Путь страницы (/about-us), блок главной (/#faq) или внешняя ссылка (https://…)." },
           { key: "footer_nav2", label: "Колонка 2 — заголовок", type: "text" },
-          { key: "footer_link_offices", label: "Колонка 2 → Офисы", type: "text" },
-          { key: "footer_link_halls", label: "Колонка 2 → Залы", type: "text" },
-          { key: "footer_link_partner", label: "Колонка 2 → Стать партнёром", type: "text" },
-          { key: "footer_socials_title", label: "Колонка 3 — соцсети", type: "text" },
+          { key: "footer_col2_links", label: "Колонка 2 — ссылки", type: "links", hint: "Категория каталога: /filter?category=ofis (slug из «Категории»). Ссылка /partner-guide#become у партнёров сама меняется на «Добавить место»." },
+          { key: "footer_socials_title", label: "Колонка 3 — соцсети", type: "text", hint: "Сами ссылки — в блоке «Контакты» выше. Пустая ссылка скрывает иконку." },
           { key: "footer_copyright", label: "Копирайт", type: "text" },
           { key: "footer_powered", label: "Подпись разработчика", type: "text" },
         ],
@@ -348,7 +340,6 @@ export const CONTENT_SCHEMA = [
         where: "Первый экран страницы «О нас».",
         fields: [
           { key: "back_button", label: "Кнопка «Назад»", type: "text", hint: "Общая для страниц «О нас» и «Гид для партнёров»." },
-          { key: "about_page_kicker", label: "Метка", type: "text" },
           { key: "about_page_title", label: "Заголовок", type: "text" },
           { key: "about_page_text", label: "Вводный текст", type: "textarea" },
         ],
@@ -378,7 +369,6 @@ export const CONTENT_SCHEMA = [
         title: "История",
         where: "Нижний блок страницы.",
         fields: [
-          { key: "about_story_kicker", label: "Метка", type: "text" },
           { key: "about_story_title", label: "Заголовок", type: "text" },
           { key: "about_story_text", label: "Текст", type: "textarea" },
         ],
@@ -396,7 +386,6 @@ export const CONTENT_SCHEMA = [
         title: "Верх страницы",
         where: "Первый экран гида для партнёров.",
         fields: [
-          { key: "partner_guide_kicker", label: "Метка", type: "text" },
           { key: "partner_guide_title", label: "Заголовок", type: "text" },
           { key: "partner_guide_text", label: "Текст", type: "textarea" },
           { key: "guide_metric1_value", label: "Показатель 1", type: "text" },
@@ -411,7 +400,6 @@ export const CONTENT_SCHEMA = [
         title: "Шаги подготовки",
         where: "Список шагов с боковой карточкой «Процесс».",
         fields: [
-          { key: "guide_sidebar_kicker", label: "Боковая карточка: метка", type: "text" },
           { key: "guide_sidebar_title", label: "Боковая карточка: заголовок", type: "text" },
           { key: "guide_sidebar_text", label: "Боковая карточка: текст", type: "textarea" },
           {
@@ -429,7 +417,6 @@ export const CONTENT_SCHEMA = [
         title: "Условия партнёрства",
         where: "Карточки условий и полоса «Следующий шаг».",
         fields: [
-          { key: "partner_terms_kicker", label: "Метка", type: "text" },
           { key: "partner_terms_title", label: "Заголовок", type: "text" },
           { key: "partner_terms_text", label: "Текст", type: "textarea" },
           {
@@ -447,7 +434,6 @@ export const CONTENT_SCHEMA = [
         title: "Тарифы",
         where: "Внизу гида для партнёров и в кабинете партнёра. Сами тарифы — в разделе «Тарифы».",
         fields: [
-          { key: "tariffs_kicker", label: "Метка", type: "text" },
           { key: "tariffs_title", label: "Заголовок", type: "text" },
           { key: "tariffs_subtitle", label: "Текст", type: "textarea" },
           { key: "tariffs_best", label: "Метка лучшего тарифа", type: "text" },

@@ -29,7 +29,7 @@ function drawDistortion(canvas, intensity) {
   }
 }
 
-export default function JoySlider({ items, interval = 4200 }) {
+export default function JoySlider({ items, interval = 4200, navigation = false }) {
   const [active, setActive] = useState(0);
   const rootRef = useRef(null);
   const canvasRef = useRef(null);
@@ -37,12 +37,18 @@ export default function JoySlider({ items, interval = 4200 }) {
   const timerRef = useRef(null);
   const animationRef = useRef(null);
   const progressRef = useRef(null);
+  // Arrow clicks are ignored while a slide change is still animating, so
+  // fast clicking does not stack transitions that keep playing afterwards.
+  const busyUntilRef = useRef(0);
 
   const count = items.length;
 
-  const goTo = (nextIndex) => {
+  const goTo = (nextIndex, { fromUser = false } = {}) => {
+    const now = performance.now();
+    if (fromUser && now < busyUntilRef.current) return;
     const next = (nextIndex + count) % count;
     if (next === activeRef.current) return;
+    busyUntilRef.current = now + 750;
     activeRef.current = next;
     setActive(next);
   };
@@ -102,13 +108,12 @@ export default function JoySlider({ items, interval = 4200 }) {
       gsap.set(bar, { scaleX: index === active ? 0 : index < active ? 1 : 0 });
     });
 
+    window.clearTimeout(timerRef.current);
     progressRef.current = gsap.to(progressBars[active], {
       scaleX: 1,
       duration: interval / 1000,
       ease: "none"
     });
-
-    window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => goTo(active + 1), interval);
 
     return () => {
@@ -120,7 +125,11 @@ export default function JoySlider({ items, interval = 4200 }) {
   }, [active, count, interval, items]);
 
   return (
-    <section ref={rootRef} className="slider-frame relative flex-1 overflow-hidden rounded-[18px] md:rounded-[20px]" aria-label="Joyzone property preview slider">
+    <section
+      ref={rootRef}
+      className={`slider-frame relative flex-1 overflow-hidden rounded-[18px] md:rounded-[20px] ${navigation ? "has-nav" : ""}`}
+      aria-label="Joyzone property preview slider"
+    >
       {items.map((item, index) => (
         <article key={item.title} className={`slider-pane ${index === active ? "is-active" : ""}`} aria-hidden={index !== active}>
           <div key="photo" className="slider-photo" style={{ backgroundImage: `url("${item.image}")` }} />
@@ -136,12 +145,22 @@ export default function JoySlider({ items, interval = 4200 }) {
             className="slider-dot"
             aria-label={`${index + 1}: ${item.eyebrow}`}
             aria-current={index === active ? "true" : "false"}
-            onClick={() => goTo(index)}
+            onClick={() => goTo(index, { fromUser: true })}
           >
             <span />
           </button>
         ))}
       </div>
+      {navigation && count > 1 ? (
+        <div className="slider-nav">
+          <button type="button" className="slider-arrow is-prev" onClick={() => goTo(activeRef.current - 1, { fromUser: true })} aria-label="Oldingi slayd">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5" /><path d="m11 6-6 6 6 6" /></svg>
+          </button>
+          <button type="button" className="slider-arrow is-next" onClick={() => goTo(activeRef.current + 1, { fromUser: true })} aria-label="Keyingi slayd">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -9,6 +9,8 @@
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* One vertical rhythm between home sections. */
+  --section-gap: clamp(56px, 7vw, 88px);
 }
 
 *,
@@ -1713,38 +1715,66 @@ textarea {
   }
 }
 
-/* Scrollbar: an orange pill on a dark rail, so it shows on the navy background. */
+/* Page scrollbar: an orange pill on a dark rail, so it shows on the navy
+   background. Inner lists (dropdowns, panels) get a slim, quiet bar instead. */
 @supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 135, 152, 0.45) transparent;
+  }
   html {
+    scrollbar-width: auto;
     scrollbar-color: #e46630 #0d1f33;
   }
 }
-::-webkit-scrollbar {
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(120, 135, 152, 0.45);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(228, 102, 48, 0.75);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
-::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track {
   background: linear-gradient(90deg, #0b1b2c, #12283f);
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06);
 }
-::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #f08a4b 0%, #e46630 55%, #c9561e 100%);
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
-::-webkit-scrollbar-thumb:hover {
+html::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #ffa168 0%, #f07438 55%, #d9602a 100%);
   border-width: 2px;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:active {
+html::-webkit-scrollbar-thumb:active {
   background: #c9561e;
   border-width: 2px;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-corner {
+html::-webkit-scrollbar-corner {
   background: #0d1f33;
 }
 
@@ -1759,4 +1789,26 @@ textarea {
 #faq,
 #tariffs {
   scroll-margin-top: 84px;
+}
+
+/* Support chat icon (components/ui/SupportIcon.jsx): typing dots on hover. */
+.support-icon-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.support-icon-host:hover .support-icon-dot {
+  animation: support-dot 900ms ease-in-out infinite;
+}
+
+.support-icon-host:hover .support-icon-dot:nth-of-type(2) { animation-delay: 120ms; }
+.support-icon-host:hover .support-icon-dot:nth-of-type(3) { animation-delay: 240ms; }
+
+@keyframes support-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-2.2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .support-icon-host:hover .support-icon-dot { animation: none; }
 }

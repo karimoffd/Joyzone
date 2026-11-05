@@ -118,9 +118,16 @@ function useDebouncedValue(value, delay = 350) {
   return debouncedValue;
 }
 
-function getAmenityLabel(amenity) {
-  return amenity?.name_ru || amenity?.name_uz || amenity?.name_en || amenity?.slug || "";
+function getAmenityLabel(amenity, lang = "uz") {
+  return amenity?.[`name_${lang}`] || amenity?.name_uz || amenity?.name_ru || amenity?.name_en || amenity?.slug || "";
 }
+
+// Catalog texts that were only in Russian.
+const CATALOG_TEXT = {
+  uz: { amenities: "Qulayliklar", loading: "Yuklanmoqda...", empty: "Hech narsa topilmadi", loadCategories: "Kategoriyalarni yuklab bo'lmadi.", loadAmenities: "Qulayliklar filtrini yuklab bo'lmadi.", loadPlaces: "Joylarni yuklab bo'lmadi." },
+  ru: { amenities: "Удобства", loading: "Загрузка...", empty: "Ничего не найдено", loadCategories: "Не удалось загрузить категории.", loadAmenities: "Не удалось загрузить фильтры удобств.", loadPlaces: "Не удалось загрузить места." },
+  en: { amenities: "Amenities", loading: "Loading...", empty: "Nothing found", loadCategories: "Could not load categories.", loadAmenities: "Could not load amenity filters.", loadPlaces: "Could not load places." },
+};
 
 function getBackendMinPeople(filters) {
   if (filters.exactCapacity > 0) return filters.exactCapacity;
@@ -711,16 +718,18 @@ function ProductSkeletonGrid() {
 }
 
 export default function FilterPage({ userState, setUserState }) {
+  const { lang } = useLanguage();
+  const ct = CATALOG_TEXT[lang] || CATALOG_TEXT.uz;
   const [categories, setCategories] = useState([]);
   const [allAmenityParams, setAllAmenityParams] = useState([]);
   const [lookupError, setLookupError] = useState("");
   const allAmenities = useMemo(
-    () => allAmenityParams.map(getAmenityLabel).filter(Boolean),
-    [allAmenityParams]
+    () => allAmenityParams.map((amenity) => getAmenityLabel(amenity, lang)).filter(Boolean),
+    [allAmenityParams, lang]
   );
   const amenitySlugByLabel = useMemo(() => {
     return allAmenityParams.reduce((acc, amenity) => {
-      const slug = amenity.slug || getAmenityLabel(amenity);
+      const slug = amenity.slug || getAmenityLabel(amenity, "uz");
       [amenity.name_ru, amenity.name_uz, amenity.name_en, amenity.slug]
         .filter(Boolean)
         .forEach((label) => {
@@ -740,7 +749,7 @@ export default function FilterPage({ userState, setUserState }) {
         setLookupError("");
       })
       .catch((err) => {
-        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, "Не удалось загрузить категории."));
+        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, ct.loadCategories));
       });
 
     api.get('/api/parameter-groups/', requestConfig)
@@ -751,7 +760,7 @@ export default function FilterPage({ userState, setUserState }) {
          setAllAmenityParams(params);
       })
       .catch((err) => {
-        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, "Не удалось загрузить фильтры удобств."));
+        if (!isRequestCanceled(err)) setLookupError(getApiErrorMessage(err, ct.loadAmenities));
       });
     return () => controller.abort();
   }, []);
@@ -818,8 +827,43 @@ export default function FilterPage({ userState, setUserState }) {
     [spaces]
   );
 
-  // Reset subcategory when category changes (not for the category the URL opened with).
   const categoryFromUrlRef = useRef(true);
+  // Links may name a category by slug (/filter?category=ofis): use its id,
+  // which is what the tabs and the local filter compare against.
+  useEffect(() => {
+    if (typeof selectedCategory !== "string" || !selectedCategory || !categories.length) return;
+    const match = findCategory(categories, selectedCategory);
+    if (match && match.id !== selectedCategory) {
+      categoryFromUrlRef.current = true;
+      setSelectedCategory(match.id);
+    }
+  }, [categories, selectedCategory]);
+
+  // A footer / menu link to another category while the catalog is open:
+  // the page stays mounted, so apply the new URL query ourselves.
+  useEffect(() => {
+    let lastSearch = window.location.search;
+    const sync = () => {
+      if (window.location.pathname.replace(/\/+$/, "") !== "/filter") return;
+      if (window.location.search === lastSearch) return;
+      lastSearch = window.location.search;
+      const next = initialFilterQuery();
+      categoryFromUrlRef.current = true;
+      setSelectedCategory(next.category);
+      setSelectedSubCat(next.subcategory);
+      setDealType(next.dealType);
+      setFilters(next.filters);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    window.addEventListener("joyzone-route-change", sync);
+    window.addEventListener("popstate", sync);
+    return () => {
+      window.removeEventListener("joyzone-route-change", sync);
+      window.removeEventListener("popstate", sync);
+    };
+  }, []);
+
+  // Reset subcategory when category changes (not for the category the URL opened with).
   useEffect(() => {
     if (categoryFromUrlRef.current) {
       categoryFromUrlRef.current = false;
@@ -853,7 +897,7 @@ export default function FilterPage({ userState, setUserState }) {
       })
       .catch((err) => {
         if (isRequestCanceled(err)) return;
-        const message = getApiErrorMessage(err, "Не удалось загрузить места.");
+        const message = getApiErrorMessage(err, ct.loadPlaces);
         setApiError(message);
         if (import.meta.env.DEV) {
           // DEV-only offline source; production never replaces backend results with demo places.
@@ -1178,7 +1222,7 @@ export default function FilterPage({ userState, setUserState }) {
           ) : null}
           {!activeCategory && allAmenities.length > 0 && (
             <FilterDropdown
-              label="Список удобств"
+              label={ct.amenities}
               options={allAmenities}
               selectedOptions={filters.amenities}
               onToggle={(value) => toggleFilter("amenities", value)}
@@ -1190,7 +1234,7 @@ export default function FilterPage({ userState, setUserState }) {
       <section className="filter-results">
         <div className="results-top">
           <p>
-            {resultsLoading ? "Загрузка..." : `${filteredCards.length} ta natija topildi`}
+            {resultsLoading ? ct.loading : `${filteredCards.length} ta natija topildi`}
             {usingMockFallback ? <span style={{ marginLeft: 8, fontSize: 12, color: "#dc2626" }}>DEV fallback</span> : null}
           </p>
           <div className="results-actions">
@@ -1224,7 +1268,7 @@ export default function FilterPage({ userState, setUserState }) {
           <div className={`property-grid ${viewMode === "list" ? "is-list-view" : ""}`}>
             {filteredCards.length === 0 ? (
               <div style={{ gridColumn: "1 / -1", padding: "38px 16px", textAlign: "center", color: "#64748b", fontWeight: 700 }}>
-                Ничего не найдено
+                {ct.empty}
               </div>
             ) : (
               filteredCards.map((item, index) => (

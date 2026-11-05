@@ -6,6 +6,8 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.utils import datetime_from_epoch
 
+from .models import PartnerApplication
+
 User = get_user_model()
 
 
@@ -125,6 +127,27 @@ class AdminUserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'bookings_total'):
             return obj.bookings_total
         return obj.bookings.count()
+
+class PartnerApplicationSerializer(serializers.ModelSerializer):
+    """The "become a partner" form. Phone and names are trimmed; at least one
+    category is required so the team knows what the partner will list."""
+
+    class Meta:
+        model = PartnerApplication
+        fields = ('id', 'company_name', 'contact_name', 'phone_number', 'city', 'categories', 'places_count', 'deal_type', 'comment', 'created_at')
+        read_only_fields = ('id', 'created_at')
+
+    def validate_phone_number(self, value):
+        digits = ''.join(character for character in str(value) if character.isdigit())
+        if len(digits) < 9:
+            raise serializers.ValidationError("Telefon raqamini to'liq kiriting.")
+        return normalize_login_identifier(value)
+
+    def validate_categories(self, value):
+        if not value:
+            raise serializers.ValidationError("Kamida bitta joy turini tanlang.")
+        return value
+
 
 class SendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=20)

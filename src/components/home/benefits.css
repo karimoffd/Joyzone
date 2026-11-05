@@ -7,7 +7,7 @@
   --bf-loop: 6s;
   width: 100%;
   margin: 0 auto;
-  padding: clamp(72px, 9vw, 120px) 0 clamp(64px, 8vw, 104px);
+  padding: var(--section-gap) 0;
   color: var(--bf-ink);
 }
 

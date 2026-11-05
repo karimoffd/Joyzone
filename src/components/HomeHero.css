@@ -237,6 +237,127 @@
   border-radius: 50%;
 }
 
+/* "+" partner button: floats left of the right-hand group, so the bar
+   never reflows; the label shows as a tooltip on hover. */
+.nav-right { position: relative; }
+
+.nav-partner-fab {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 10px);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff4ec;
+  box-shadow: inset 0 0 0 1.5px rgba(228, 102, 48, 0.35);
+  color: #e46630;
+  transform: translateY(-50%);
+  transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+  animation: navFabIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* A soft ring now and then draws the eye without being loud. */
+.nav-partner-fab::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(228, 102, 48, 0.35);
+  animation: navFabPulse 5s ease-out 2s infinite;
+}
+
+.nav-partner-fab svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav-partner-fab:hover,
+.nav-partner-fab:focus-visible {
+  background: #e46630;
+  box-shadow: 0 8px 18px rgba(228, 102, 48, 0.35);
+  color: #ffffff;
+}
+
+.nav-partner-fab:hover svg { transform: rotate(90deg); }
+
+.nav-partner-tip {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #12283f;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 750;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-partner-tip::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: #12283f;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.nav-partner-fab:hover .nav-partner-tip,
+.nav-partner-fab:focus-visible .nav-partner-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@keyframes navFabIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.5); }
+}
+
+@keyframes navFabPulse {
+  0% { box-shadow: 0 0 0 0 rgba(228, 102, 48, 0.4); }
+  30%, 100% { box-shadow: 0 0 0 10px rgba(228, 102, 48, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-partner-fab,
+  .nav-partner-fab::before { animation: none; }
+}
+
+/* UserAvatar fills whatever frame it sits in (header pill, menu cards). */
+.user-avatar-img,
+.user-avatar-default {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nav-btn-avatar:has(.user-avatar-img, .user-avatar-default) {
+  border: 2px solid #ffffff;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(18, 40, 63, 0.25);
+}
+
+.menu-user-avatar:has(.user-avatar-default),
+.menu-mobile-avatar:has(.user-avatar-default) {
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.menu-mobile-avatar:has(.user-avatar-img) { overflow: hidden; }
+
 .burger-menu {
   display: grid;
   width: 48px;
@@ -521,11 +642,17 @@
   padding: clamp(16px, 2.1vh, 28px) 14px clamp(16px, 2vh, 24px);
 }
 
+/* The catalog's .filter-tabs pill frame (FilterPage.css) is not wanted in the hero. */
 .banner .info .filter .filter-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
 }
 
 .home-category-skeleton {
@@ -2956,16 +3083,16 @@ body.is-menu-open .joy-floating-contact {
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease !important;
 }
 
-/* Desktop hero: the title is pinned from the top and the filter from the
-   bottom, so when a category opens its sub-filters the filter grows upward
-   into the gap and the title never jumps. */
+/* Desktop hero: the title sits near the top and the filter is pinned to the
+   bottom. When a category opens its sub-filters the filter grows upward into
+   the gap (smoothly, see useSmoothHeight) and the title never moves. */
 @media (min-width: 1181px) {
   .banner .info {
     justify-content: flex-start;
   }
 
   .banner .info .title {
-    margin-top: clamp(12px, calc(100svh - 790px), 230px);
+    margin-top: clamp(8px, calc((100svh - 700px) * 0.5), 110px);
   }
 
   .banner .info .filter {
@@ -3013,5 +3140,98 @@ body.is-menu-open .joy-floating-contact {
   .banner .info .filter-options > :not(:last-child),
   .banner .info .filter-hint {
     animation: none;
+  }
+}
+
+/* Laptop screens (not tall enough for wrapped rows): categories and their
+   sub-types sit in one horizontally scrollable row each, so the opened
+   filter still fits inside the hero panel. */
+@media (min-width: 1181px) and (max-height: 920px) {
+  .banner .info .filter .filter-tabs,
+  .banner .info .filter-subcats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+    padding-right: 28px;
+  }
+
+  .banner .info .filter .filter-tabs::-webkit-scrollbar,
+  .banner .info .filter-subcats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .banner .info .filter .filter-tabs > *,
+  .banner .info .filter-subcats > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Title + subtitle glide up when the opened filter needs more room
+   (--hero-lift is set by HeroBanner). It is the title's top margin that
+   shrinks, so the filter really gets the freed space. */
+@media (min-width: 1181px) {
+  .banner .info .title {
+    margin-top: calc(clamp(8px, calc((100svh - 700px) * 0.5), 110px) - var(--hero-lift, 0px));
+    transition: margin-top 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+/* Desktop: the navy card background is a layer of its own so its top edge
+   can slide while the rows glide (see useSmoothHeight in HeroBanner). */
+@media (min-width: 1181px) {
+  .banner .info .filter {
+    position: relative;
+    isolation: isolate;
+    background-color: transparent;
+  }
+
+  .banner .info .filter::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background-color: #294a6d;
+    pointer-events: none;
+  }
+}
+
+/* Long hero titles (Russian) are a size smaller. */
+@media (min-width: 1181px) {
+  .banner .info .title.is-long {
+    font-size: clamp(30px, min(2.8vw, 4.6vh), 62px);
+  }
+}
+
+/* Set by HeroBanner when the opened filter does not fit under the text:
+   the category rows become one horizontally scrollable line each. */
+@media (min-width: 1181px) {
+  .banner .info.is-tight .filter .filter-tabs,
+  .banner .info.is-tight .filter-subcats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
+    padding-right: 28px;
+  }
+
+  .banner .info.is-tight .filter .filter-tabs::-webkit-scrollbar,
+  .banner .info.is-tight .filter-subcats::-webkit-scrollbar {
+    display: none;
+  }
+
+  .banner .info.is-tight .filter .filter-tabs > *,
+  .banner .info.is-tight .filter-subcats > * {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }

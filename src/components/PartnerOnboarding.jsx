@@ -1,5 +1,6 @@
 import { Icon, Header, SelectionCard, CounterRow, resolveIconName } from "./partnerOnboarding/parts.jsx";
 import { AddressStep } from "./partnerOnboarding/AddressStep.jsx";
+import { PartnerWelcome } from "./partnerOnboarding/Welcome.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import api, { getAccessToken, getApiErrorMessage, withUploadTimeout } from "../api/client.js";
@@ -14,6 +15,7 @@ import {
 import "./PartnerOnboarding.css";
 import "./partnerOnboarding/wizard.css";
 import { navigate, useQueryParam } from "../utils/router.js";
+import { BECOME_PARTNER_PATH, loginThenReturn, useAccountRole } from "../utils/partnerAccess.js";
 
 // Wizard order. Step 4 (a manual address form whose fields were never saved)
 // was removed; the remaining numbers stay as they are referenced by validation.
@@ -93,6 +95,7 @@ export default function PartnerOnboardingPage() {
 }
 
 function PartnerOnboarding({ initialEditId = null }) {
+  const account = useAccountRole();
   const [step, setStep] = useState(0);
   const [categories, setCategories] = useState([]);
   const [categoriesError, setCategoriesError] = useState(null);
@@ -681,7 +684,7 @@ function PartnerOnboarding({ initialEditId = null }) {
                 className={activeDescTab === tab.id ? "is-active" : ""}
                 onClick={() => setActiveDescTab(tab.id)}
               >
-                <i className={filledLangs[tab.id] ? "is-filled" : ""} aria-hidden="true">{filledLangs[tab.id] ? "✓" : ""}</i>
+                <i className={filledLangs[tab.id] ? "is-filled" : ""} aria-hidden="true" />
                 {tab.label}
               </button>
             ))}
@@ -749,7 +752,7 @@ function PartnerOnboarding({ initialEditId = null }) {
                 <button type="button" key={p.slug} className={`pow-amenity ${isSel ? "is-selected" : ""}`} aria-pressed={isSel} onClick={() => toggleAmenity(p.slug)}>
                   <span className="pow-amenity-icon"><Icon name={paramIconName(p)} /></span>
                   <strong>{p.name_ru}</strong>
-                  <i aria-hidden="true">{isSel ? "✓" : ""}</i>
+                  <i aria-hidden="true" />
                 </button>
               );
             })}
@@ -879,7 +882,7 @@ function PartnerOnboarding({ initialEditId = null }) {
                       <strong>{discount.name_ru}</strong>
                       {discount.description_ru ? <small>{discount.description_ru}</small> : null}
                     </span>
-                    <i aria-hidden="true">{isActive ? "✓" : ""}</i>
+                    <i aria-hidden="true" />
                   </button>
                 );
               })}
@@ -894,9 +897,17 @@ function PartnerOnboarding({ initialEditId = null }) {
   };
 
   const isLastStep = step === wizardSteps[wizardSteps.length - 1];
+  const isWelcome = step === 0 && !editLoading;
+  // Only partners list places: guests log in first, clients fill the partner form.
+  const startWizard = () => {
+    if (!account.isAuthed) return loginThenReturn("/partner");
+    if (!account.canListPlaces) return navigate(BECOME_PARTNER_PATH);
+    window.scrollTo(0, 0);
+    setStep(1);
+  };
 
   return (
-    <main className={`partner-onboarding-page pow${isEditing ? " is-editing" : ""}`}>
+    <main className={`partner-onboarding-page pow${isEditing ? " is-editing" : ""}${isWelcome ? " is-welcome" : ""}`}>
       <Header profile={profile} />
       {isEditing && !editLoading ? (
         <nav className="pe-nav" aria-label="Разделы объявления">
@@ -928,22 +939,7 @@ function PartnerOnboarding({ initialEditId = null }) {
             Загружаем объявление...
           </div>
         ) : step === 0 ? (
-          <div className="pow-welcome">
-            <div className="pow-copy">
-              <span className="pow-eyebrow">Joyzone для владельцев</span>
-              <h1>Начните зарабатывать на своём пространстве</h1>
-              <p>Разместите офис, коворкинг или зал — заявки от клиентов будут приходить в ваш кабинет.</p>
-              <ul className="pow-welcome-steps">
-                <li><b>1</b><span><strong>Расскажите о месте</strong><small>Тип, адрес, фото и описание</small></span></li>
-                <li><b>2</b><span><strong>Задайте условия</strong><small>Цены, часы работы, скидки</small></span></li>
-                <li><b>3</b><span><strong>Пройдите модерацию</strong><small>Обычно занимает до 24 часов</small></span></li>
-              </ul>
-              <button data-testid="onboarding-start" type="button" className="pow-start" onClick={() => setStep(1)}>Начать — это ~5 минут</button>
-            </div>
-            <div className="pow-welcome-art">
-              <img src="/partner-illustration.jpg" alt="" />
-            </div>
-          </div>
+          <PartnerWelcome onStart={startWizard} />
         ) : (
           <div className={`pow-step pow-step-${step}`}>
             {renderCopy()}

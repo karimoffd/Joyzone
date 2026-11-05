@@ -1,4 +1,5 @@
 import { FilterSelect, MultiFilterSelect, PriceFilter } from "./HeroFilters.jsx";
+import HeroLocationList from "./HeroLocationList.jsx";
 import { useIsMobile } from "./HeaderNav.jsx";
 import React, { useEffect, useRef, useState, useContext } from "react";
 import { LanguageContext } from "../../context/LanguageContext.jsx";
@@ -8,46 +9,104 @@ import kvIcon from "../../assets/img/kv.svg";
 import { navigate } from "../../utils/router.js";
 
 // When the filter card changes size (sub-categories / their filters appear),
-// glide between the old and new height instead of snapping.
+// glide instead of snapping.
+// Desktop: the card is pinned to the bottom of the hero and grows upward. Its
+// layout changes at once; we then animate from the old picture (FLIP): the
+// navy background (drawn by ::before) slides its top edge, rows that only
+// moved glide to their new place, new rows fade in. Nothing jumps.
+// Phones: the card grows downward, a plain height animation is enough.
+const FILTER_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const FILTER_MS = 460;
+
 function useSmoothHeight(ref) {
   useEffect(() => {
     const element = ref.current;
     if (!element || typeof ResizeObserver === "undefined") return undefined;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
-    let last = element.getBoundingClientRect().height;
-    let animation = null;
+    const isDesktop = () => window.innerWidth >= 1181;
+
+    // Layout positions, relative to the card's parent (transforms ignored).
+    const measure = () => {
+      const parentTop = element.parentElement.getBoundingClientRect().top;
+      const box = element.getBoundingClientRect();
+      const tops = new Map();
+      [...element.children].forEach((child) => {
+        tops.set(child, child.offsetTop);
+      });
+      return { top: box.top - parentTop, height: box.height, tops };
+    };
+
+    let last = measure();
+    let running = [];
+    let heightAnimation = null;
+
+    const stop = () => {
+      running.forEach((animation) => animation.cancel());
+      running = [];
+    };
+
     const observer = new ResizeObserver(() => {
-      if (animation) return;
-      const next = element.getBoundingClientRect().height;
-      if (Math.abs(next - last) < 2) {
+      const next = measure();
+      if (Math.abs(next.height - last.height) < 2) {
         last = next;
         return;
       }
-      const from = last;
+
+      if (!isDesktop()) {
+        if (heightAnimation) { last = next; return; }
+        element.style.overflow = "hidden";
+        heightAnimation = element.animate(
+          [{ height: `${last.height}px` }, { height: `${next.height}px` }],
+          { duration: FILTER_MS, easing: FILTER_EASE }
+        );
+        const done = () => { heightAnimation = null; element.style.overflow = ""; last = measure(); };
+        heightAnimation.onfinish = done;
+        heightAnimation.oncancel = done;
+        last = next;
+        return;
+      }
+
+      stop();
+      const shift = last.top - next.top; // > 0: the card grew upward
+      const options = { duration: FILTER_MS, easing: FILTER_EASE };
+      running.push(element.animate(
+        [{ top: `${shift}px` }, { top: "0px" }],
+        { ...options, pseudoElement: "::before" }
+      ));
+      [...element.children].forEach((child) => {
+        if (last.tops.has(child)) {
+          // Same row, new place: start where it was on screen.
+          const delta = (last.top + last.tops.get(child)) - (next.top + next.tops.get(child));
+          if (Math.abs(delta) > 1) {
+            running.push(child.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }], options));
+          }
+        } else {
+          running.push(child.animate(
+            [{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "translateY(0)" }],
+            { ...options, delay: 80, fill: "backwards" }
+          ));
+        }
+      });
       last = next;
-      element.style.overflow = "hidden";
-      animation = element.animate(
-        [{ height: `${from}px` }, { height: `${next}px` }],
-        { duration: 460, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
-      );
-      const done = () => {
-        animation = null;
-        element.style.overflow = "";
-        last = element.getBoundingClientRect().height;
-      };
-      animation.onfinish = done;
-      animation.oncancel = done;
     });
+
     observer.observe(element);
     return () => {
       observer.disconnect();
-      animation?.cancel();
+      stop();
+      heightAnimation?.cancel();
     };
   }, [ref]);
 }
 
-// "Больше N" in the hero means strictly more than N people.
-const HERO_MIN_PEOPLE = { "Больше 1": 2, "Больше 5": 6, "Больше 10": 11 };
+// Labels of the hero filters. "More than N" means strictly more than N people.
+const HERO_FILTER_TEXT = {
+  uz: { any: "Istalgan", more: (n) => `${n} dan ortiq`, capacity: "Sig'im", people: "kishi", area: "Maydon", amenities: "Qulayliklar", picked: "ta tanlandi" },
+  ru: { any: "Любой", more: (n) => `Больше ${n}`, capacity: "Вместимость", people: "чел", area: "Площадь", amenities: "Удобства", picked: "выбрано" },
+  en: { any: "Any", more: (n) => `More than ${n}`, capacity: "Capacity", people: "people", area: "Area", amenities: "Amenities", picked: "selected" },
+};
+const HERO_PEOPLE_STEPS = [1, 5, 10];
+const HERO_AREA_STEPS = [10, 50, 100];
 
 export function Banner({
   slides,
@@ -61,6 +120,9 @@ export function Banner({
 }) {
   const { lang, content } = useContext(LanguageContext);
   const categoryNameField = `name_${lang}`;
+  const ft = HERO_FILTER_TEXT[lang] || HERO_FILTER_TEXT.uz;
+  const localParamName = (param) => param?.[categoryNameField] || param?.name_uz || param?.name_ru || param?.slug || "";
+  const localOption = (option) => option?.[lang] || option?.uz || option?.ru || option?.slug || "";
   const tabs = [
     { id: "barchasi", label: content?.[lang]?.tab_all || "Barchasi" },
     ...categories.map((category) => ({
@@ -90,10 +152,93 @@ export function Banner({
   const locationSelectRef = useRef(null);
   const filterRef = useRef(null);
   useSmoothHeight(filterRef);
+
+  // When the opened filter grows close to the subtitle, the title and the
+  // subtitle glide up (CSS var --hero-lift) to keep a calm gap between them.
+  useEffect(() => {
+    const filter = filterRef.current;
+    const info = filter?.closest(".info");
+    const title = info?.querySelector(".title");
+    const desc = info?.querySelector(".desc");
+    if (!filter || !info || !title || !desc || typeof ResizeObserver === "undefined") return undefined;
+    const MIN_GAP = 40;
+    let lift = 0;
+    const setLift = (value) => {
+      if (value !== lift) {
+        lift = value;
+        info.style.setProperty("--hero-lift", `${lift}px`);
+      }
+    };
+    // Natural height of the filter with / without the compact (one-row)
+    // category layout. Toggling the class and reading back happens in one
+    // task, so nothing flickers.
+    const heightWith = (tight) => {
+      const had = info.classList.contains("is-tight");
+      info.classList.toggle("is-tight", tight);
+      const height = filter.offsetHeight;
+      info.classList.toggle("is-tight", had);
+      return height;
+    };
+    const update = () => {
+      if (window.innerWidth < 1181) {
+        info.classList.remove("is-tight");
+        setLift(0);
+        return;
+      }
+      const infoRect = info.getBoundingClientRect();
+      const innerBottom = infoRect.bottom - parseFloat(getComputedStyle(info).paddingBottom);
+      // Same formula as the title's top margin in HomeHero.css.
+      const baseMargin = Math.min(110, Math.max(8, (window.innerHeight - 700) * 0.5));
+      const liveMargin = parseFloat(getComputedStyle(title).marginTop) || 0;
+      // Subtitle bottom without the current lift.
+      const descBottom = desc.getBoundingClientRect().bottom - liveMargin + baseMargin;
+      const room = Math.max(0, baseMargin - 4);
+      const needFor = (height) => MIN_GAP - (innerBottom - height - descBottom);
+
+      const looseNeed = needFor(heightWith(false));
+      // A few pixels short of the 40px gap is fine: keep the wrapped rows.
+      if (looseNeed <= room + 10) {
+        info.classList.remove("is-tight");
+        setLift(Math.round(Math.min(room, Math.max(0, looseNeed))));
+        return;
+      }
+      // Long title (e.g. in Russian) + big filter: categories go to one
+      // scrollable row, and the text rises as far as it can.
+      info.classList.add("is-tight");
+      setLift(Math.round(Math.min(room, Math.max(0, needFor(heightWith(true))))));
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(filter);
+    observer.observe(info);
+    update();
+    return () => observer.disconnect();
+  }, []);
+
+  // On laptop screens the category rows scroll sideways: let the mouse wheel
+  // move them (instead of snapping the page) while they can still scroll.
+  useEffect(() => {
+    const root = filterRef.current;
+    if (!root) return undefined;
+    const onWheel = (event) => {
+      const row = event.target.closest?.(".filter-tabs, .filter-subcats");
+      if (!row || row.scrollWidth <= row.clientWidth + 1 || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      const max = row.scrollWidth - row.clientWidth;
+      const atEdge = (event.deltaY < 0 && row.scrollLeft <= 0) || (event.deltaY > 0 && row.scrollLeft >= max - 1);
+      if (atEdge) return;
+      event.preventDefault();
+      event.stopPropagation();
+      row.scrollLeft += event.deltaY;
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+    return () => root.removeEventListener("wheel", onWheel);
+  }, []);
   
   const [heroTitle, setHeroTitle] = useState("O'zbekiston bo'ylab\nqulay");
   const [heroSubtitle, setHeroSubtitle] = useState("Ofis, do'kon va omborlarni ijaraga oling yoki sotib oling.");
   const wordsRef = useRef(["ofislar", "kovorking", "zallar", "do'konlar", "omborlar"]);
+  // Long titles (Russian is ~40 letters, Uzbek ~34) get a smaller size so they stay on
+  // two lines and leave room for the filter.
+  const heroTitleLong = heroTitle.replace(/\s+/g, " ").length + Math.max(0, ...wordsRef.current.map((word) => word.length)) > 36;
 
   useEffect(() => {
     if (content && content[lang]) {
@@ -115,7 +260,7 @@ export function Banner({
       const rect = locationSelectRef.current?.getBoundingClientRect();
       if (!rect) return;
       
-      const dropdownHeight = 250; // approximate height of location dropdown
+      const dropdownHeight = 380; // approximate height of the location dropdown
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
       
@@ -208,13 +353,33 @@ export function Banner({
   }, [locationPlaces]);
 
   const [expandedRegion, setExpandedRegion] = useState(null);
+  // Opening the picker shows the region of the current choice expanded.
+  useEffect(() => {
+    if (isLocationOpen && selectedLocation.includes(",")) setExpandedRegion(selectedLocation.split(",")[0].trim());
+  }, [isLocationOpen, selectedLocation]);
+  const chooseLocation = (value) => {
+    setSelectedLocation(value);
+    setSearchQuery("");
+    setIsLocationOpen(false);
+  };
+  const locationListProps = {
+    lang,
+    groups: locationGroups,
+    query: searchQuery,
+    onQuery: setSearchQuery,
+    selected: selectedLocation,
+    onSelect: chooseLocation,
+    expanded: expandedRegion,
+    onExpand: setExpandedRegion,
+  };
 
   const openCatalog = () => {
     const params = new URLSearchParams();
     if (activeTab !== "barchasi") params.set("category", String(activeTab));
     if (selectedSubCat) params.set("subcategory", String(selectedSubCat));
     if (selectedLocation) params.set("location", selectedLocation);
-    if (HERO_MIN_PEOPLE[heroCapacity]) params.set("min_people", String(HERO_MIN_PEOPLE[heroCapacity]));
+    const peopleStep = HERO_PEOPLE_STEPS.find((step) => ft.more(step) === heroCapacity);
+    if (peopleStep) params.set("min_people", String(peopleStep + 1));
     if (heroPrice) {
       params.set("min_price", String(heroPrice[0]));
       params.set("max_price", String(heroPrice[1]));
@@ -230,7 +395,7 @@ export function Banner({
           <div className="row equal-cols">
             <div className="col-lg-6">
               <div className="info d-flex flex-column">
-                <h1 className="title">
+                <h1 className={`title ${heroTitleLong ? "is-long" : ""}`}>
                   <span className="static-text">{heroTitle.split('\n')[0].split(' ')[0]} </span>
                   {heroTitle.split('\n')[0].split(' ').slice(1).join(' ')}
                   {heroTitle.split('\n').length > 1 && (
@@ -292,8 +457,8 @@ export function Banner({
                       <div className="filter-options">
                         {activeTab === "barchasi" && (
                           <>
-                            <FilterSelect name="capacity" label="Вместимость" unit="чел" options={["Любой", "Больше 1", "Больше 5", "Больше 10"]} openFilter={openFilter} setOpenFilter={setOpenFilter} onChange={setHeroCapacity} />
-                            <FilterSelect name="area" label="Площадь" unit="м²" options={["Любой", "Больше 10", "Больше 50", "Больше 100"]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                            <FilterSelect key={`capacity-${lang}`} name="capacity" label={ft.capacity} unit={ft.people} options={[ft.any, ...HERO_PEOPLE_STEPS.map(ft.more)]} openFilter={openFilter} setOpenFilter={setOpenFilter} onChange={setHeroCapacity} />
+                            <FilterSelect key={`area-${lang}`} name="area" label={ft.area} unit="m²" options={[ft.any, ...HERO_AREA_STEPS.map(ft.more)]} openFilter={openFilter} setOpenFilter={setOpenFilter} />
                           </>
                         )}
                         
@@ -306,20 +471,21 @@ export function Banner({
                            return (
                              <>
                                {characteristics.map((p) => {
-                                 let options = ["Любой"];
+                                 let options = [ft.any];
                                  if (p.type === 'counter' || p.type === 'select') {
-                                    options = ["Любой", ...(Array.isArray(p.config?.options) ? p.config.options.map(o => o.ru || o.slug) : [])];
+                                    options = [ft.any, ...(Array.isArray(p.config?.options) ? p.config.options.map(localOption) : [])];
                                  }
                                  return (
-                                   <FilterSelect key={p.slug} name={p.slug} label={p.name_ru} unit="" options={options} openFilter={openFilter} setOpenFilter={setOpenFilter} />
+                                   <FilterSelect key={p.slug} name={p.slug} label={localParamName(p)} unit="" options={options} openFilter={openFilter} setOpenFilter={setOpenFilter} />
                                  );
                                })}
                                
                                {amenities.length > 0 && (
                                  <MultiFilterSelect 
                                    name="amenities_group" 
-                                   label="Список удобств" 
-                                   options={amenities.map(a => a.name_ru)} 
+                                   label={ft.amenities}
+                                   pickedLabel={ft.picked}
+                                   options={amenities.map(localParamName)} 
                                    openFilter={openFilter} 
                                    setOpenFilter={setOpenFilter} 
                                  />
@@ -337,175 +503,29 @@ export function Banner({
                   </div>
 
                   <div className="custom-select-wrapper">
-                    <div ref={locationSelectRef} className={`custom-select ${isLocationOpen ? "open" : ""} ${locationOpenAbove ? "open-above" : ""}`}>
+                    <div ref={locationSelectRef} className={`custom-select ${isLocationOpen ? "open" : ""} ${locationOpenAbove ? "open-above" : ""} ${selectedLocation ? "has-value" : ""}`}>
                       <div className="selected" onClick={() => setIsLocationOpen((current) => !current)}>
                         <img height="38" src={kvIcon} alt="" />
                         <span>{selectedLocation || content?.[lang]?.hero_location_placeholder || "Manzilni tanlang"}</span>
                         {usingDevLocationFallback ? <small style={{ color: "#dc2626", fontWeight: 800 }}>DEV</small> : null}
+                        {selectedLocation ? (
+                          <button
+                            type="button"
+                            className="custom-select-clear"
+                            aria-label="Tozalash"
+                            onClick={(event) => { event.stopPropagation(); setSelectedLocation(""); }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+                          </button>
+                        ) : null}
                       </div>
                       {isMobile ? (
                         <BottomSheet isOpen={isLocationOpen} onClose={() => setIsLocationOpen(false)} title={content?.[lang]?.hero_location_title || "Manzil"}>
-                          <div className="dropdown" style={{ position: "static", opacity: 1, visibility: "visible", boxShadow: "none", transform: "none", width: "100%", padding: "0 16px 24px", maxHeight: "60vh", overflowY: "auto" }}>
-                        <input className="search-input" value={searchQuery} placeholder={content?.[lang]?.hero_search_placeholder || "Qidirish..."} onChange={(event) => setSearchQuery(event.target.value)} />
-                        <ul className="options">
-                          {Object.entries(locationGroups).map(([region, districts]) => {
-                            const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
-                            if (!isMatch) return null;
-
-                            return (
-                              <React.Fragment key={region}>
-                                <li 
-                                  className={`region-item ${expandedRegion === region ? 'expanded' : ''}`}
-                                  style={{ display: "flex", padding: 0 }}
-                                >
-                                  <div 
-                                    style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                                    onClick={() => { setSelectedLocation(region); setIsLocationOpen(false); }}
-                                  >
-                                    <span>{region}</span>
-                                    {selectedLocation === region && (
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
-                                    )}
-                                  </div>
-                                  {districts.length > 0 && (
-                                    <div 
-                                      style={{ padding: "0 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(41, 74, 109, 0.08)" }}
-                                      onClick={(e) => { e.stopPropagation(); setExpandedRegion(expandedRegion === region ? null : region); }}
-                                    >
-                                      <div style={{ transform: expandedRegion === region ? "rotate(180deg)" : "rotate(0deg)", transition: "0.2s", color: "rgba(41, 74, 109, 0.5)" }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                                      </div>
-                                    </div>
-                                  )}
-                                </li>
-                                {expandedRegion === region && districts.length > 0 && (
-                                  <div 
-                                    className="districts-list" 
-                                    style={{ 
-                                      margin: "2px 0 6px 14px", 
-                                      padding: "4px 0 4px 10px", 
-                                      borderLeft: "2px solid rgba(41, 74, 109, 0.08)",
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: "2px"
-                                    }}
-                                  >
-                                    {districts.map(dist => {
-                                      const fullLoc = `${region}, ${dist}`;
-                                      const isSelected = selectedLocation === fullLoc;
-                                      return (
-                                        <li 
-                                          key={dist} 
-                                          className={`district-item ${isSelected ? 'selected' : ''}`}
-                                          style={{ 
-                                            padding: "8px 12px", 
-                                            fontSize: "14px", 
-                                            fontWeight: isSelected ? "600" : "500",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            display: "flex", 
-                                            justifyContent: "space-between", 
-                                            alignItems: "center", 
-                                            cursor: "pointer",
-                                            transition: "all 0.2s ease"
-                                          }}
-                                          onClick={() => { setSelectedLocation(fullLoc); setIsLocationOpen(false); }}
-                                        >
-                                          <span>{dist}</span>
-                                          {isSelected && (
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
-                                          )}
-                                        </li>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </ul>
-                          </div>
+                          <HeroLocationList sheet {...locationListProps} />
                         </BottomSheet>
                       ) : (
-                        <div className="dropdown">
-                        <input className="search-input" value={searchQuery} placeholder={content?.[lang]?.hero_search_placeholder || "Qidirish..."} onChange={(event) => setSearchQuery(event.target.value)} />
-                        <ul className="options">
-                          {Object.entries(locationGroups).map(([region, districts]) => {
-                            const isMatch = region.toLowerCase().includes(searchQuery.toLowerCase()) || districts.some(d => d.toLowerCase().includes(searchQuery.toLowerCase()));
-                            if (!isMatch) return null;
-
-                            return (
-                              <React.Fragment key={region}>
-                                <li 
-                                  className="region-item" 
-                                  style={{ display: "flex", padding: 0, background: expandedRegion === region ? "#f8fafc" : "transparent" }}
-                                >
-                                  <div 
-                                    style={{ flex: 1, padding: "10px 12px", cursor: "pointer", fontWeight: expandedRegion === region ? "700" : "500", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                                    onClick={() => { setSelectedLocation(region); setIsLocationOpen(false); }}
-                                  >
-                                    <span>{region}</span>
-                                    {selectedLocation === region && (
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "16px", height: "16px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
-                                    )}
-                                  </div>
-                                  {districts.length > 0 && (
-                                    <div 
-                                      style={{ padding: "0 14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderLeft: "1px solid rgba(41, 74, 109, 0.08)" }}
-                                      onClick={(e) => { e.stopPropagation(); setExpandedRegion(expandedRegion === region ? null : region); }}
-                                    >
-                                      <div style={{ transform: expandedRegion === region ? "rotate(180deg)" : "rotate(0deg)", transition: "0.2s", color: "rgba(41, 74, 109, 0.5)" }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                                      </div>
-                                    </div>
-                                  )}
-                                </li>
-                                {expandedRegion === region && districts.length > 0 && (
-                                  <div 
-                                    className="districts-list" 
-                                    style={{ 
-                                      margin: "2px 0 6px 14px", 
-                                      padding: "4px 0 4px 10px", 
-                                      borderLeft: "2px solid rgba(41, 74, 109, 0.08)",
-                                      display: "flex",
-                                      flexDirection: "column",
-                                      gap: "2px"
-                                    }}
-                                  >
-                                    {districts.map(dist => {
-                                      const fullLoc = `${region}, ${dist}`;
-                                      const isSelected = selectedLocation === fullLoc;
-                                      return (
-                                        <li 
-                                          key={dist} 
-                                          className={`district-item ${isSelected ? 'selected' : ''}`}
-                                          style={{ 
-                                            padding: "8px 12px", 
-                                            fontSize: "14px", 
-                                            fontWeight: isSelected ? "600" : "500",
-                                            border: "none",
-                                            borderRadius: "8px",
-                                            display: "flex", 
-                                            justifyContent: "space-between", 
-                                            alignItems: "center", 
-                                            cursor: "pointer",
-                                            transition: "all 0.2s ease"
-                                          }}
-                                          onClick={() => { setSelectedLocation(fullLoc); setIsLocationOpen(false); }}
-                                        >
-                                          <span>{dist}</span>
-                                          {isSelected && (
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ width: "14px", height: "14px", color: "#e46630" }}><path d="M20 6L9 17l-5-5"/></svg>
-                                          )}
-                                        </li>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </ul>
+                        <div className="dropdown" onClick={(event) => event.stopPropagation()}>
+                          <HeroLocationList {...locationListProps} />
                         </div>
                       )}
                     </div>
@@ -520,7 +540,7 @@ export function Banner({
                 {placesLoading ? (
                   <div className="home-hero-media-skeleton" aria-label="Joylar yuklanmoqda" />
                 ) : slides.length > 0 ? (
-                  <JoySlider items={slides} interval={4600} />
+                  <JoySlider items={slides} interval={4600} navigation />
                 ) : (
                   <div className="home-hero-media-empty" role="status">
                     {placesError || content?.[lang]?.hero_empty_places || "Hozircha ko'rsatish uchun joylar yo'q."}

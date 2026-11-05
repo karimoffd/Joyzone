@@ -66,3 +66,34 @@ class OTPVerification(models.Model):
 
     def __str__(self):
         return f"{self.phone_number} ({self.created_at:%Y-%m-%d %H:%M})"
+
+
+class PartnerApplication(models.Model):
+    """What a user told us when becoming a partner (the /partner-guide form)."""
+    PLACES_COUNT_CHOICES = (
+        ('1', '1'),
+        ('2-5', '2-5'),
+        ('6+', '6+'),
+    )
+    DEAL_CHOICES = (
+        ('rent', 'Ijara'),
+        ('sale', 'Sotuv'),
+        ('both', 'Ijara va sotuv'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='partner_applications')
+    company_name = models.CharField(max_length=150)
+    contact_name = models.CharField(max_length=150)
+    phone_number = models.CharField(max_length=20)
+    city = models.CharField(max_length=80)
+    categories = models.ManyToManyField('places.Category', blank=True, related_name='partner_applications')
+    places_count = models.CharField(max_length=5, choices=PLACES_COUNT_CHOICES, default='1')
+    deal_type = models.CharField(max_length=5, choices=DEAL_CHOICES, default='rent')
+    comment = models.TextField(blank=True, max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f"{self.company_name} ({self.phone_number})"

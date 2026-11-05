@@ -10,7 +10,7 @@
   isolation: isolate;
   width: 100vw;
   margin-left: calc(50% - 50vw);
-  padding: clamp(64px, 8vw, 112px) clamp(16px, 5.7vw, 100px);
+  padding: var(--section-gap) clamp(16px, 5.7vw, 100px);
   overflow: hidden;
   background: var(--hiw-navy);
   color: #ffffff;
@@ -41,34 +41,11 @@
   margin-bottom: clamp(28px, 4vw, 44px);
 }
 
-.hiw-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffb38f;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hiw-kicker::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--hiw-orange);
-  box-shadow: 0 0 0 4px rgba(228, 102, 48, 0.25);
-}
-
 .hiw-head h2 {
   max-width: 640px;
-  margin-top: 16px;
-  font-size: clamp(30px, 3.6vw, 50px);
+  margin-top: 0;
+  /* Same size as the other home section titles. */
+  font-size: clamp(30px, 4vw, 46px);
   font-weight: 950;
   line-height: 1.08;
   letter-spacing: -0.02em;

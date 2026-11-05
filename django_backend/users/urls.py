@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    BecomePartnerView,
     DevAdminLoginView,
     ProfileView,
     JoyzoneTokenRefreshView,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('token/refresh/', JoyzoneTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('profile/', ProfileView.as_view(), name='profile'),
+    path('become-partner/', BecomePartnerView.as_view(), name='become_partner'),
     path('dev-admin-login/', DevAdminLoginView.as_view(), name='dev_admin_login'),
     path('demo-login/status/', PublicDemoLoginStatusView.as_view(), name='public_demo_login_status'),
     path('demo-login/', PublicDemoLoginView.as_view(), name='public_demo_login'),
